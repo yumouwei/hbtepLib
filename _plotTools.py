@@ -385,3 +385,6 @@ class subPlot:
             ## save figure
             if self.fileName != '':
                 fig.savefig(self.fileName+'.png')   
+                
+        # plot
+        _plt.show()
