@@ -7,5 +7,5 @@ _hbtPreferences.py
 # misc files that aren't necessary and glutter the repository.  
 .gitingore~
 readme.md~
-*.py~
 *.pyc 
+*.py~

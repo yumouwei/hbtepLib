@@ -1806,17 +1806,17 @@ class nModeData:
 
         if nModeSensor=='TA':
             ## load TA data
-            fbData=TAData(self.shotno,tStart,tStop);
-            data=fbData.taPolData
-            self.time=fbData.tbPolTime
-            phi=fbData.phi
+            temp=taData(self.shotno,tStart,tStop);
+            data=temp.taPolData
+            self.time=temp.tbPolTime
+            phi=temp.phi
             [n,m]=_np.shape(data)
         elif nModeSensor=='FB':
             ## load FB data
-            fbData=FBData(self.shotno,tStart=tStart,tStop=tStop);
-            data=fbData.fbPolData[0]  ## top toroidal array = 0
-            self.time=fbData.fbPolTime
-            phi=fbData.phi
+            temp=fbData(self.shotno,tStart=tStart,tStop=tStop);
+            data=temp.fbPolData[0]  ## top toroidal array = 0
+            self.time=temp.fbPolTime
+            phi=temp.phi
             [n,m]=_np.shape(data)
         self._data=data
         self._phi=phi
@@ -1944,10 +1944,8 @@ class nModeData:
         if plot==True:
             self.plotSlice(index=int(m/4));
             self.plotSlice(index=int(m/2));
-            self.plotOfAmps.plot()
-            self.plotOfN1Phase.plot();
-            self.plotOfN1Freq.plot();
-            self.plotOfPhaseAmp.plot();
+            _plot.subPlot([self.plotOfAmps,self.plotOfN1Phase,self.plotOfN1Freq])
+#            self.plotOfPhaseAmp.plot();  #TODO fix this.  still having issues
 
     def plotSlice(self,index=0):
         """
@@ -1991,13 +1989,13 @@ class mModeData:
 #        self.theta0=theta0
         
         if sensor=='PA1':
-            data=PAData(self.shotno,tStart=tStart,tStop=tStop);
+            data=paData(self.shotno,tStart=tStart,tStop=tStop);
             self._data=data.pa1Data
             self.time=data.pa1Time
             self._theta=data.theta
             [n,m]=_np.shape(self._data)
         if sensor=='PA2':
-            data=PAData(self.shotno,tStart=tStart,tStop=tStop,sensor='PA2');
+            data=paData(self.shotno,tStart=tStart,tStop=tStop,sensor='PA2');
             self._data=data.pa2Data
             self.time=data.time
             self._theta=data.theta
