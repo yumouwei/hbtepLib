@@ -15,9 +15,8 @@ I recommend the following youtube video:
 
 1. Make sure git is installed on your computer.  You can check by running '$ git --version'
 2. Clone the repository.  Navigate to a directory in which you want to place the library.  Then type '$ git clone https://github.com/jwbrooks0/hbtepLib'  . An hbtepLib folder should now exist there.
-3. Add this new directory to PYTHON_PATH.  You can check your PYTHON_PATH env. variable with the command '$ echo $PYTHON_PATH'.  If the directory in which you placed hbtepLib is not there, you'll need to add it.  Open ~/.profile and add the address to the hbtep folder.  Then run '$ source ~/.profile' to enable it for the current session.  Check the results by again typing '$ echo $PYTHON_PATH' .
-4. Make sure you can import the new library.  Enter the python environment by typing 'python'.  Then type '>>> import hbtepLib as hbt'.  You should get an error about a missing _hbtPreferences.py file.  This means everything is doing ok.
-5. Make a copy _hbtPreferences.template and rename it as _hbtPreferences.py.  Then fill out the variables with your details.  
+3. Add this new directory to PYTHON_PATH.  You can check your PYTHON_PATH env. variable with the command '$ echo $PYTHON_PATH'.  If the directory in which you placed hbtepLib is not there, you'll need to add it.  Open ~/.profile and add the address to the hbtep folder.
+
 
 ## Notes
 
