@@ -2,3 +2,5 @@ preferences.py
 gitCommands
 *.pyc 
 _hbtPreferences.py
+.gitingore~
+readme.md~
