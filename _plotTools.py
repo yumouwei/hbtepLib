@@ -353,7 +353,7 @@ class subPlot:
                         
                 ## create legend
                 if data.yLegendLabel!=[]:
-                    ax.legend(loc=data.legendLoc, fontsize=10)
+                    ax.legend(loc=data.legendLoc) #, fontsize=10 # not compatible with HBTEP server???
                     
                 ## hide the top y tick label on each subplot
                 if n!=1 and m!=1:
