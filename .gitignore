@@ -1,6 +1,10 @@
-preferences.py
+# list of git commands for my personal use
 gitCommands
-*.pyc 
+
+# preferences file.  keeps user specific settings as well as hides the HBTEP server address from the public
 _hbtPreferences.py
+
+# misc files that aren't necessary and glutter the repository.  
 .gitingore~
 readme.md~
+*.pyc 
