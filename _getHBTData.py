@@ -255,6 +255,8 @@ class bpData:
         time data
     
     """
+    # TODO(John) Time should likely be split into s2 and s9 because different 
+    # racks often have slightly different time bases
     # TODO(John) Determine when the Tree node for the BP was added, and have
     # this code automatically determine whether to use the old or new loading
     # method
@@ -1145,7 +1147,7 @@ class gpuControlData:
         self.plotOfAmplitudes.title=str(self.shotno);
         self.plotOfAmplitudes.yData.append(self.mAmpSec1*1e4)
         self.plotOfAmplitudes.xData.append(self.time*1000)
-        self.plotOfAmplitudes.yLegendLabel.append('FBSensors-GPU Sec1')
+        self.plotOfAmplitudes.yLegendLabel.append('GPU-Sec1')
         if plotEVERYTHING==True:
             self.plotOfAmplitudes.yData.append(self.mAmpSec2*1e4)
             self.plotOfAmplitudes.yData.append(self.mAmpSec3*1e4)
@@ -1280,159 +1282,158 @@ class gpuControlData:
         sshCon.closeConnection();
         
         
-    def GPUBPData(self):
-        # note: 97598 is one of first GPU/CPSI combined shots
-        # load GPU output to BP data recorded at GPU
+    def GPUBPData(self,cpciShotno=None,operatingMode='currentControl'):
+        """
+        Load fb_store_<shotno>.dat from GPU.  This is the active feedback data file
+        
+        Notes
+        -----
+        Sometimes this function loads a fb_store.dat file that was generated 
+        from fake data (FAKE_INPUT) instead of from a real plasma shot.  In 
+        those cases, the CPCI data used in the plots below should be pulled
+        from the same shotno used to create the FAKE_INPUT.  This is what the
+        variable, cpciShotno, does.  
+        
+        note: 97598 is one of first GPU/CPSI combined shots
+        """
+        
         import _feedBackTools as _fbt
         DT=0.000006; # should be 0.00006
         timeOffset=-1.1;# calibrated on shotno 97601.  sig gen on input with 200 Hz triangular wave.  
         
-        self.GPUBP=_fbt.get_fb(self.shotno);
+        GPUBP=_fbt.get_fb(self.shotno);
         
-        # the time array is mostly zeros.  removing these.  
-        indices=_np.where(self.GPUBP[0,:]!=0)[0]  
-        self.BPTime=self.GPUBP[0,indices]*DT+timeOffset*1e-3;  # multipling by DT converts sequential numbers into microseconds.  
+        # the time array is mostly zeros.  removing these from time AND from the data
+        indices=_np.where(GPUBP[0,:]!=0)[0]  
+        self.fb.time=GPUBP[0,indices]*DT+timeOffset*1e-3;  # multipling by DT converts sequential numbers into microseconds.  
 
-#        # old method
-#        self.BPVin=self.GPUBP[1,indices]
-#        self.BPIin=self.GPUBP[2,indices]
-#        self.Ireq=self.GPUBP[3,indices]
-#        self.fb=self.GPUBP[4,indices]
-#        self.ff=self.GPUBP[5,indices]
-#        self.e=self.Ireq-self.BPIin
-#        self.P=self.GPUBP[6,indices]
-#        self.I=self.GPUBP[7,indices]
-
-        self.Vact=self.GPUBP[1,indices]
-        self.Vreq=self.GPUBP[2,indices]
-        self.Iact=self.GPUBP[3,indices]
-        self.Ireq=self.GPUBP[4,indices]
-        self.fb=self.GPUBP[5,indices]
-        self.ff=self.GPUBP[6,indices]
-        self.P=self.GPUBP[7,indices]
-        self.I=self.GPUBP[8,indices]
-        self.D=self.GPUBP[9,indices]      
-        self.error=self.GPUBP[10,indices] 
-        self.wfb=self.GPUBP[11,indices]
-        self.wreq=self.GPUBP[12,indices]
-        self.wact=self.GPUBP[13,indices]
+        # set feedback variables from loaded data
+        self.fb.Vact=GPUBP[1,indices]
+        self.fb.Vreq=GPUBP[2,indices]
+        self.fb.Iact=GPUBP[3,indices]
+        self.fb.Ireq=GPUBP[4,indices]
+        self.fb.fb=GPUBP[5,indices]
+        self.fb.ff=GPUBP[6,indices]
+        self.fb.P=GPUBP[7,indices]
+        self.fb.I=GPUBP[8,indices]
+        self.fb.D=GPUBP[9,indices]      
+        self.fb.error=GPUBP[10,indices] 
+        self.fb.wfb=GPUBP[11,indices]
+        self.fb.wreq=GPUBP[12,indices]
+        self.fb.wact=GPUBP[13,indices]
         
-#        self.P=self.e*KP;
-#        
-#        self.I=_np.zeros(len(self.P));
-#        for i in range(1,len(self.I)):
-#            self.I[i]=self.I[i-1]+KI*DT*self.e[i];
-#        self.I=
-
-#        self.Vout=self.fb+self.ff
-##        self.Vout[_np.where(self.Vout>5.0)[0]]=5.0
-##        self.Vout[_np.where(self.Vout<-5.0)[0]]=-5.0
-
-        self.plotOfVin=_pdt.prePlot();
-        self.plotOfVin.xLim=[self.tStart,self.tStop]
+        # load supplementary data
+        if self.shotno!=None and cpciShotno==None:
+            cpciShotno=self.shotno
+        bp=bpData(cpciShotno,self._tStart,self.__tStop)
+        nMode=nModeData(cpciShotno,self._tStart,self.__tStop)
+        
+        # initiate BP voltage plot
+        self.plotOfVin=_plot.plot();
         self.plotOfVin.yLabel='V'
         self.plotOfVin.xLabel='Time [ms]'
-        self.plotOfVin.subtitle='BPS9 Voltage'
+        self.plotOfVin.subtitle='BPS9 Voltages'
         self.plotOfVin.title=str(self.shotno);
         self.plotOfVin.yLim=[-120, 120]  
-        self.plotOfVin.yData.append(self.Vact) 
-        self.plotOfVin.yData.append(self.Vreq) 
-        self.plotOfVin.xData.append(self.BPTime*1e3)
-        self.plotOfVin.xData.append(self.BPTime*1e3)
-        self.plotOfVin.yLegendLabel.append('GPU-BPS9-V')
-        self.plotOfVin.yLegendLabel.append('GPU-Vrequest')
-#        self.plotOfVin.color.append('b')
-#        self.plotOfVin.linestyle=['-','-']
-#        self.plotOfVin.color.append('r')
-#        self.plotOfVin.marker=['','']
-#        self.plotOfVin.alpha=[1,1]
+        self.plotOfVin.yData.append(self.fb.Vact) 
+        self.plotOfVin.xData.append(self.fb.time*1e3)
+        self.plotOfVin.yLegendLabel.append(r'GPU-V$_{measured}$')
+        self.plotOfVin.yData.append(self.fb.Vreq) 
+        self.plotOfVin.xData.append(self.fb.time*1e3)
+        self.plotOfVin.yLegendLabel.append(r'GPU-V$_{request}$')
+        self.plotOfVin.yData.append(bp.bps9Voltage) 
+        self.plotOfVin.xData.append(bp.time*1e3)
+        self.plotOfVin.yLegendLabel.append(r'CPCI-V$_{measured}$')
+        self.plotOfVin.yData.append(bp.bps9GPURequestVoltage) 
+        self.plotOfVin.xData.append(bp.time*1e3)
+        self.plotOfVin.yLegendLabel.append(r'CPCI-V$_{request}$')
+        if operatingMode=='voltageControl':
+            self.plotOfIin.yData.append(self.fb.error) 
+            self.plotOfIin.xData.append(self.fb.time*1e3)
+            self.plotOfIin.yLegendLabel.append('GPU-error')
         
-        
-### version for current control
-#        self.plotOfIin=_pdt.prePlot();
-#        self.plotOfIin.xLim=[self.tStart,self.tStop]
-#        self.plotOfIin.yLabel='A'
-#        self.plotOfIin.xLabel='Time [ms]'
-#        self.plotOfIin.subtitle='BPS9 Current'
-#        self.plotOfIin.title=str(self.shotno);
-#        self.plotOfIin.yLim=[-20, 50]  
-#        self.plotOfIin.yData.append(self.Iact) 
-#        self.plotOfIin.yData.append(self.Ireq) 
-#        self.plotOfIin.yData.append(self.error) 
-#        self.plotOfIin.xData.append(self.BPTime*1e3)
-#        self.plotOfIin.xData.append(self.BPTime*1e3)
-#        self.plotOfIin.xData.append(self.BPTime*1e3)
-#        self.plotOfIin.yLegendLabel.append('GPU-BPS9-I')
-#        self.plotOfIin.yLegendLabel.append('GPU-Irequest')
-#        self.plotOfIin.yLegendLabel.append('error')
-        
-### version for freq control
-        self.plotOfIin=_pdt.prePlot();
-        self.plotOfIin.xLim=[self.tStart,self.tStop]
+        # initialize BP current plot
+        self.plotOfIin=_plot.plot();
         self.plotOfIin.yLabel='A'
         self.plotOfIin.xLabel='Time [ms]'
-        self.plotOfIin.subtitle='BPS9 Current'
+        self.plotOfIin.subtitle='BPS9 Currents'
         self.plotOfIin.title=str(self.shotno);
         self.plotOfIin.yLim=[-20, 50]  
-        self.plotOfIin.yData.append(self.Iact) 
-        self.plotOfIin.yData.append(self.Ireq) 
-#        self.plotOfIin.yData.append(self.error) 
-        self.plotOfIin.xData.append(self.BPTime*1e3)
-        self.plotOfIin.xData.append(self.BPTime*1e3)
-#        self.plotOfIin.xData.append(self.BPTime*1e3)
-        self.plotOfIin.yLegendLabel.append('GPU-BPS9-I')
-        self.plotOfIin.yLegendLabel.append('GPU-Irequest')
-#        self.plotOfIin.yLegendLabel.append('error')
+        self.plotOfIin.yData.append(self.fb.Iact) 
+        self.plotOfIin.xData.append(self.fb.time*1e3)
+        self.plotOfIin.yLegendLabel.append('GPU-I$_{measured}$')
+        self.plotOfIin.yData.append(self.fb.Ireq) 
+        self.plotOfIin.xData.append(self.fb.time*1e3)
+        self.plotOfIin.yLegendLabel.append('GPU-I$_{request}$')
+        self.plotOfIin.yData.append(bp.bps9Current) 
+        self.plotOfIin.xData.append(bp.time*1e3)
+        self.plotOfIin.yLegendLabel.append('CPCI-I$_{measured}$')
+        if operatingMode=='currentControl':
+            self.plotOfIin.yData.append(self.fb.error) 
+            self.plotOfIin.xData.append(self.fb.time*1e3)
+            self.plotOfIin.yLegendLabel.append('GPU-error')
         
-        self.plotOfFBAndFF=_pdt.prePlot();
-        self.plotOfFBAndFF.xLim=[self.tStart,self.tStop]
-        self.plotOfFBAndFF.yLabel=''
-        self.plotOfFBAndFF.xLabel='Time [ms]'
-        self.plotOfFBAndFF.subtitle='Gains'
-        self.plotOfFBAndFF.title=str(self.shotno);
-        self.plotOfFBAndFF.yLim=[-50, 100]  
-        self.plotOfFBAndFF.yData.append(self.fb) 
-        self.plotOfFBAndFF.yData.append(self.ff) 
-        self.plotOfFBAndFF.yData.append(self.P) 
-        self.plotOfFBAndFF.yData.append(self.I) 
-        self.plotOfFBAndFF.xData.append(self.BPTime*1e3)
-        self.plotOfFBAndFF.xData.append(self.BPTime*1e3)
-        self.plotOfFBAndFF.xData.append(self.BPTime*1e3)
-        self.plotOfFBAndFF.xData.append(self.BPTime*1e3)
-        self.plotOfFBAndFF.yLegendLabel.append('fb=P+I')
-        self.plotOfFBAndFF.yLegendLabel.append('ff')
-        self.plotOfFBAndFF.yLegendLabel.append('P')
-        self.plotOfFBAndFF.yLegendLabel.append('I')
-#        self.plotOfFBAndFF.color.append('b')
-#        self.plotOfFBAndFF.color.append('r')
-#        self.plotOfFBAndFF.color.append('g')
-#        self.plotOfFBAndFF.color.append('m')
-#        self.plotOfFBAndFF.linestyle=['-','-','-','-']
-#        self.plotOfFBAndFF.marker=['','','','']
-#        self.plotOfFBAndFF.alpha=[1,1,1,1]
+        # initialize plot of gains
+        self.plotOfGains=_plot.plot();
+        self.plotOfGains.yLabel=''
+        self.plotOfGains.xLabel='Time [ms]'
+        self.plotOfGains.subtitle='Gains'
+        self.plotOfGains.title=str(self.shotno);
+        self.plotOfGains.yLim=[-50, 100]  
+        self.plotOfGains.yData.append(self.fb.fb) 
+        self.plotOfGains.xData.append(self.fb.time*1e3)
+        self.plotOfGains.yLegendLabel.append('fb=P+I')
+        self.plotOfGains.yData.append(self.fb.ff) 
+        self.plotOfGains.xData.append(self.fb.time*1e3)
+        self.plotOfGains.yLegendLabel.append('ff')
+        self.plotOfGains.yData.append(self.fb.P) 
+        self.plotOfGains.xData.append(self.fb.time*1e3)
+        self.plotOfGains.yLegendLabel.append('P')
+        self.plotOfGains.yData.append(self.fb.I) 
+        self.plotOfGains.xData.append(self.fb.time*1e3)
+        self.plotOfGains.yLegendLabel.append('I')
         
-        self.plotOfFBFreq=_pdt.prePlot();
-        self.plotOfFBFreq.xLim=[self.tStart,self.tStop]
+        # initialize plot of freq
+        self.plotOfFBFreq=_plot.plot();
         self.plotOfFBFreq.yLabel='kHz'
         self.plotOfFBFreq.xLabel='Time [ms]'
         self.plotOfFBFreq.subtitle='n=1 mode Frequency'
         self.plotOfFBFreq.title=str(self.shotno);
         self.plotOfFBFreq.yLim=[-10, 20]  
         self.plotOfFBFreq.yData.append(self.wact*1e-3) 
+        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
+        self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{measured}$')
         self.plotOfFBFreq.yData.append(self.wfb*1e-3) 
-        self.plotOfFBFreq.yData.append(self.wreq*1e-3) 
-        self.plotOfFBFreq.yData.append(self.error*1e-3) 
         self.plotOfFBFreq.xData.append(self.BPTime*1e3)
-        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
-        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
-        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
-        self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{actual}$')
         self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{fb}$')
-        self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{req}$')
-        self.plotOfFBFreq.yLegendLabel.append('error')
+        self.plotOfFBFreq.yData.append(self.wreq*1e-3) 
+        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
+        self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{request}$')
+        self.plotOfFBFreq.yData.append(nMode.n1FreqStrongFilter*1e-3) 
+        self.plotOfFBFreq.xData.append(nMode.time*1e3)
+        self.plotOfFBFreq.yLegendLabel.append(r'CPCI-$\omega_{measured}$')
+        if operatingMode=='frequencyControl':
+            self.plotOfFBFreq.yData.append(self.error*1e-3) 
+            self.plotOfFBFreq.xData.append(self.BPTime*1e3)
+            self.plotOfFBFreq.yLegendLabel.append('GPU-error')
 
-
-
+        # add to mode amplitude plot
+        self.plotOfAmplitudes.yData.append(nMode.n1Amp*1e4)
+        self.plotOfAmplitudes.xData.append(nMode.time*1000)
+        self.plotOfAmplitudes.yLegendLabel.append('CPCI')
+        
+        # add to mode phase plot
+        self.plotOfPhase.yData.append(nMode.n1Phase*1e4)
+        self.plotOfPhase.xData.append(nMode.time*1000)
+        self.plotOfPhase.yLegendLabel.append('CPCI')
+        
+        # construct fb subplot
+        self.plotOfFeedback=_plot.subPlot([self.plotOfVin,
+                                           self.plotOfIn,
+                                           self.plotOfGains,
+                                           self.plotOfFBFreq,
+                                           self.plotOfAmplitudes,
+                                           self.plotOfPhase])
 
 
 
