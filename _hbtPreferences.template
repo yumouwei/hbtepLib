@@ -1,0 +1,23 @@
+"""
+This file is intended for several reasons:
+
+1.  It provides computer and user specific settings that should not be common accross all branches
+2.  It keeps the HBTEP server address private 
+
+Notes
+-----
+When you first clone this library, you must fill in the following variables.  If you don't know what they are, ask someone who does.  
+"""
+
+# hbt server address
+_HBT_SERVER_ADDRESS = ""
+
+# hbt server name
+_HBT_SERVER_NAME = ""
+
+# hbt server username
+_HBT_SERVER_USERNAME = ""
+
+# local directory for storing data
+_LOCAL_DATA_DIR = ""
+

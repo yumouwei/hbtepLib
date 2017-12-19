@@ -14,5 +14,7 @@ I recommend the following youtube video:
 ## Notes
 
 You need to create a preferences.py file in the hbtep directory if you want to use this code.  This file should contain the variable:
-_HBTSERVERADDRESS = <address>
+
+_HBT_SERVER_ADDRESS = 'str'
+
 which points at our data server.  Because I don't wish for this address to be public knowledge, you will need to get this address from me.  This is also why preferences.py is an ignored file with the project.  
