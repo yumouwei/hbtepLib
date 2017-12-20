@@ -10,7 +10,7 @@ The convention for units is to maintain everything in SI until they are
 plotted.  
 """
 
-# import common functions
+# import common functions 
 import numpy as _np
 import MDSplus as _mds
 from copy import copy as _copy
