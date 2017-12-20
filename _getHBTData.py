@@ -6,6 +6,9 @@ NOTES
 -The convention for units is to maintain everything in SI until they are
 plotted.  
 -A few of these functions are merely wrappers for other people's code
+-In most of the functions below, I've specified default shotno's.  This is 
+largely to make bebugging easier as there is nothing special about the 
+provided shotnos.  
 """
 
 ###############################################################################
@@ -84,10 +87,14 @@ def _trimTime(time,data,tStart,tStop):
     This function does not concern itself with units (e.g. s or ms). Instead, 
     it is assumed that tStart and tStop have the same units as time.  
     """    
-    # determine indices of cutoff regions
-    iStart=_process.find_nearest(time,tStart);   # index of lower cutoff
-    iStop=_process.find_nearest(time,tStop);     # index of higher cutoff
-    
+    if tStart is None:
+        iStart=0;
+        iStop=len(time);
+    else:
+        # determine indices of cutoff regions
+        iStart=_process.find_nearest(time,tStart);   # index of lower cutoff
+        iStop=_process.find_nearest(time,tStop);     # index of higher cutoff
+        
     # trim time
     time=time[iStart:iStop];
     
@@ -121,7 +128,7 @@ def _initMDSConnection(shotno):
 def mdsData(shotno=None,
             dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_95',
                          '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_96'],
-            tStart=None,tStop=None):
+            tStart=0*1e-3,tStop=10*1e-3):
     """
     Get data and optionally associated time from MDSplus tree
     
@@ -161,10 +168,10 @@ def mdsData(shotno=None,
         data.append(mdsConn.get(dataAddress[i]).data())
     time = mdsConn.get('dim_of('+dataAddress[0]+')').data();
 
-    # if tStart is not defined, give it the default values
-    if type(tStart) is not int and type(tStart) is not float:
-        tStart = _TSTART;
-        tStop  = _TSTOP;
+#    # if tStart is not defined, give it the default values
+#    if tStart is None:
+#        tStart = _TSTART;
+#        tStop  = _TSTOP;
         
     # check to see if units are in seconds and NOT in milliseconds
     if tStop > 1:
@@ -209,7 +216,7 @@ class ipData:
         custom plot function
     
     """
-    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
         
         # get data
@@ -298,7 +305,7 @@ class bpData:
     # how to handle this
     # TODO(John) these probes have been periodically moved to different nodes.  
     # implement if lowerbound < shotno < upperbound conditions to handle these cases
-    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10,plot=False):
         self.shotno = shotno
         self.title = "shotno=%s, BP Data." % shotno
 
@@ -494,7 +501,7 @@ class tpData:
     can still be loaded.  
     """
     
-    def __init__(self,shotno=95996,tStart=None,tStop=None,plot=False,probes='both'):  #sectionNum=2,
+    def __init__(self,shotno=95996,tStart=0*1e-3,tStop=10*1e-3,plot=False,probes='both'):  #sectionNum=2,
         
         self.shotno = shotno
         self.title = 'shotno = %s, triple probe data' % shotno
@@ -715,7 +722,7 @@ class paData:
 
     """
     
-    def __init__(self,shotno=95540,tStart=None,tStop=None,plotSample=False, plotAll=False,
+    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plotSample=False, plotAll=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         
@@ -862,7 +869,7 @@ class fbData:
     TODO add all remaining attributes here
         
     """
-    def __init__(self,shotno=95540,tStart=None,tStop=None,plotSample=False, plotAll=False,smoothingAlgorithm='tripleBoxCar'):
+    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plotSample=False, plotAll=False,smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
 
         # sensor names
@@ -1028,7 +1035,7 @@ class taData:
 
     """
         
-    def __init__(self,shotno=95540,tStart=1,tStop=8,plotSample=False,plotAll=False,smoothingAlgorithm='tripleBoxCar'):
+    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plotSample=False,plotAll=False,smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
 #        self.taPDataRaw = []
 #        self.taPData = []
@@ -1136,13 +1143,126 @@ class jumperData:
     
     work in progress
     """
-
+    
+    
+class loopVoltageData:
+    """
+    
+    """
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+        self.shotno = shotno
+        
+        # get data
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.LOOP_VOlTAGE'],
+                              tStart=tStart, tStop=tStop)   
+        self.loopVoltage=data[0];
+        self.time=time;
+        
+        # generate plot
+        self.plotOfLV=_plot.plot()
+        self.plotOfLV.yData=[self.loopVoltage]
+        self.plotOfLV.xData=[self.time*1000]
+        self.plotOfLV.yLabel='V'
+        self.plotOfLV.xLabel='time [ms]'
+        self.plotOfLV.subtitle='Loop Voltage'
+        self.plotOfLV.title=str(self.shotno);
+        self.plotOfLV.yLim=[0,15]
+        
+        if plot == True:
+            self.plot()
+            
+    def plot(self):
+        """ Plot all relevant plots """
+        self.plotOfLV.plot()
+        
+        
+class capBankData:
+    """
+    """
+    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
+        self.shotno = shotno
+        self.title = "shotno = %s, Capacitor Bank Data"
+        
+        # get tf data
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.TF_PROBE'],
+                              tStart=tStart, tStop=tStop) 
+        self.tfBankField=data[0];    
+        self.tfTime=time;
+        
+        # get vf data
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.VF_CURRENT'],
+                              tStart=tStart, tStop=tStop) 
+        self.vfBankCurrent=data[0];    
+        self.vfTime=time;
+        
+        # get oh data
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.OH_CURRENT'],
+                              tStart=tStart, tStop=tStop) 
+        self.ohBankCurrent=data[0];    
+        self.ohTime=time;
+        
+        # get sh data
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.SH_CURRENT'],
+                              tStart=tStart, tStop=tStop) 
+        self.shBankCurrent=data[0];    
+        self.shTime=time;
+               
+        # generate tf plot
+        self.plotOfTF=_plot.plot()
+        self.plotOfTF.yData=[self.tfBankField]
+        self.plotOfTF.xData=[self.tfTime*1000]
+        self.plotOfTF.yLabel='T'
+        self.plotOfTF.xLabel='time [ms]'
+        self.plotOfTF.subtitle='TF Bank Field'
+        self.plotOfTF.title=str(self.title);
+        
+        # generate vf plot
+        self.plotOfVF=_plot.plot()
+        self.plotOfVF.yData=[self.vfBankCurrent*1e-3]
+        self.plotOfVF.xData=[self.vfTime*1000]
+        self.plotOfVF.yLabel='kA'
+        self.plotOfVF.xLabel='time [ms]'
+        self.plotOfVF.subtitle='VF Bank Current'
+        self.plotOfVF.title=str(self.title);
+        
+        # generate oh plot
+        self.plotOfOH=_plot.plot()
+        self.plotOfOH.yData=[self.ohBankCurrent*1e-3]
+        self.plotOfOH.xData=[self.ohTime*1000]
+        self.plotOfOH.yLabel='kA'
+        self.plotOfOH.xLabel='time [ms]'
+        self.plotOfOH.subtitle='OH Bank Current'
+        self.plotOfOH.title=str(self.title);
+        self.plotOfOH.yLim=[-3.5e1,3.5e1]
+        
+        # generate sh plot
+        self.plotOfSH=_plot.plot()
+        self.plotOfSH.yData=[self.shBankCurrent*1e-3]
+        self.plotOfSH.xData=[self.shTime*1000]
+        self.plotOfSH.yLabel='kA'
+        self.plotOfSH.xLabel='time [ms]'
+        self.plotOfSH.subtitle='SH Bank Current'
+        self.plotOfSH.title=str(self.title);
+        
+        if plot == True:
+            self.plot()
+            
+    def plot(self):
+        """ Plot all relevant plots """
+        _plot.subPlot([self.plotOfVF,self.plotOfOH,self.plotOfSH])
+        self.plotOfTF.plot()
+        
             
 class gpuControlData:
     """
     reads control data from Caliban's control files
     """
-    def __init__(self,shotno=96496, tStart=1, tStop=8, plot=False, password='', forceDownload=False, calibrateTime=False, plotEVERYTHING=False):
+    def __init__(self,shotno=96496, tStart=0*1e-3, tStop=10*1e-3, plot=False, password='', forceDownload=False, calibrateTime=False, plotEVERYTHING=False):
         # note, shootno=None loads the data generated from FAKE_INPUT        
         import _feedBackTools as fbt
         import os     
@@ -1319,7 +1439,7 @@ class gpuControlData:
         # enforce that units are in seconds (NOT milliseconds)
         tStop=self._tStop
         tStart=self._tStart
-        if tStop > 1:
+        if tStop > 2:
             tStop=tStop*1e-3
             tStart=tStart*1e-3
         BP=bpData(self.shotno,tStart,tStop)
@@ -1522,6 +1642,8 @@ class gpuControlData:
         self.plotOfPhase.yData.append(nMode.n1Phase)
         self.plotOfPhase.xData.append(nMode.time*1000)
         self.plotOfPhase.yLegendLabel.append('CPCI')
+        self.plotOfPhase.marker.append('.')
+        self.plotOfPhase.linestyle.append('')
         
         # construct fb subplot
         self.plotOfFeedback=_plot.subPlot([self.plotOfVin,
@@ -1887,7 +2009,7 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,phi0=0,nModeSensor='FB',method='leastSquares'):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,phi0=0,nModeSensor='FB',method='leastSquares'):
         
         self.shotno=shotno
         
@@ -2075,7 +2197,7 @@ class mModeData:
     
     
     """  
-    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,theta0=0,sensor='PA1'):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,theta0=0,sensor='PA1'):
         self.shotno=shotno
         self.title= 'shotno = %d.  sensor = %s.  m mode analysis' % (shotno, sensor)
 #        self.tStart=tStart
@@ -2188,3 +2310,23 @@ class mModeData:
         p1.title='t=%.3f ms. %s ' % (self.time[j]*1000, self.title)
         p1.plot()
         
+
+###############################################################################
+### debugging code
+
+def _debugPlotExamplesOfAll():
+    """ 
+    This code plots an example of most every function in this file.  
+    Effectively, this allows the testing of most every function. 
+    """
+    bpData(plot=True)
+    capBankData(plot=True)
+    fbData(plotSample=True)
+    ipData(plot=True)
+    loopVoltageData(plot=True)
+    mModeData(plot=True)
+    nModeData(plot=True)
+    paData(plotSample=True)
+    taData(plotSample=True)
+    tpData(plot=True)
+    

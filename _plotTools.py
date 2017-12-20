@@ -5,7 +5,7 @@ import matplotlib.pyplot as _plt
 
 
 # color sequence for plotting.  add more colors if you need more than 8.  
-_cSequence=['b', 'r', 'g','m', 'k', 'c', 'y', 'w']
+_cSequence=['b', 'r', 'g', 'k', 'm', 'c', 'y', 'w']
 
 
 class plot:
