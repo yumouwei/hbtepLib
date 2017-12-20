@@ -60,8 +60,8 @@ class plot:
     # TODO(John) finish entries...
         
         
-    Example
-    -------
+    Example #1
+    ----------
     # import library correctly.  I'm using hbt.plot
     fig=hbt.plot.plot()
     x = np.arange(0,10,.1)
@@ -118,6 +118,9 @@ class subPlot:
     
     def __init__(self,subPlots,fileName='',plot=True):
         
+        self.shareX=True;
+        self.shareY=False;
+        
         # show x label on only bottom-most subplot
         self._showOnlyBottomXLabel=True
         
@@ -147,7 +150,8 @@ class subPlot:
         # initialize subplot
         fig, axarr = _plt.subplots(nrows=m,
                                    ncols=n, 
-                                   sharex=True,#True,
+                                   sharex=self.shareX,#True,
+                                   sharey=self.shareY,
                                    facecolor='w', 
                                    edgecolor='k', 
                                    # TODO either 
@@ -174,7 +178,7 @@ class subPlot:
             for j in range(0,n):
                 
                 # plot instance
-                data = self.subPlots[j][i];
+                data = self.subPlots[i][j];
                 
                 # axis handle.  plt.subplots has trouble indexing when the 
                 # subplot changes from 0D to 1D to 2D.  these next lines take
@@ -184,7 +188,7 @@ class subPlot:
                 elif n==1 and m!=1:
                     ax=axarr[i];
                 else:
-                    ax=axarr[j][i];
+                    ax=axarr[i][j];
                     
                 # check xData formatting
                 if type(data.xData) is _np.ndarray:
@@ -193,19 +197,6 @@ class subPlot:
                     
                 # iterate through data within the same plot
                 for k in range(0,len(data.xData)):
-                    
-#                    # set xData
-#                    try:
-#                        xData=data.xData[k]
-#                    except IndexError:
-#                        xData=data.xData;
-#                        
-#                    # set yData
-#                    try:
-#                        yData=data.yData[k]
-#                    except IndexError:
-#                        yData=data.yData;
-#                    
                     # set marker
                     if type(data.marker) is str:
                         data.marker=[data.marker]
@@ -236,10 +227,7 @@ class subPlot:
                     except IndexError:
                         alpha=1.0;
                     except TypeError:
-#                        try:
                         alpha=data.alpha
-#                        except TypeError:
-#                            alpha
                         
                     # set color
                     if type(data.color) is str:
@@ -247,7 +235,6 @@ class subPlot:
                     try:
                         color=data.color[k];
                     except IndexError:
-#                        print k
                         color=_cSequence[k]
                         
                        
@@ -276,8 +263,7 @@ class subPlot:
                     elif (data.plotType == 'scatter'):
                         cmap='BuPu';
                         markerSize=35;
-    #                    lineWidth=0.5;
-                        lineWidth=0.1;
+                        lineWidth=0.1; # lineWidth=0.5;
                         
                         cm = _plt.cm.get_cmap(cmap)
                         sc = _plt.scatter(data.xData[k], data.yData[k], 
@@ -382,9 +368,9 @@ class subPlot:
                         fig.suptitle(data.title, #verticalalignment='bottom',
                                      fontsize=18)
 
-            ## save figure
-            if self.fileName != '':
-                fig.savefig(self.fileName+'.png')   
+        ## save figure
+        if self.fileName != '':
+            fig.savefig(self.fileName+'.png')   
                 
         # plot
         _plt.show()

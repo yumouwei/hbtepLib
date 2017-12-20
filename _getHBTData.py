@@ -218,6 +218,7 @@ class ipData:
     """
     def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
+        self.title = "shotno = %d, Ip Data" % shotno
         
         # get data
         data, time=mdsData(shotno=shotno,
@@ -234,7 +235,7 @@ class ipData:
         self.plotOfIP.yLabel='kA'
         self.plotOfIP.xLabel='time [ms]'
         self.plotOfIP.subtitle='Plasma Current'
-        self.plotOfIP.title=str(self.shotno);
+        self.plotOfIP.title=str(self.title);
         
         if plot == True:
             self.plot()
@@ -1137,14 +1138,165 @@ class taData:
             self.plotPol(k,alsoPlotRawAndFit);
   
 
-class jumperData:
+class externalRogowskiData:
     """
-    Measures jumper data between toroidal sections    
-    
-    work in progress
+    External rogowski data
     """
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+        self.shotno = shotno
+        self.title = "shotno = %d, Ext. Rogowski Data" % shotno
+        
+        # get data
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
+                                           '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_B',
+                                           '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_C',
+                                           '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',],
+                              tStart=tStart, tStop=tStop)
+        self.eRogA=data[0];
+        self.eRogB=data[1];
+        self.eRogC=data[2];
+        self.eRogD=data[3];
+        self.time=time;
+        
+        # generate rog A plot
+        self.plotOfERogA=_plot.plot()
+        self.plotOfERogA.yData=[self.eRogA]
+        self.plotOfERogA.xData=[self.time*1000]
+        self.plotOfERogA.yLabel='A'
+        self.plotOfERogA.xLabel='time [ms]'
+        self.plotOfERogA.subtitle='Ext. Rog. A'
+        self.plotOfERogA.title=str(self.title);
+        
+        # generate rog B plot
+        self.plotOfERogB=_plot.plot()
+        self.plotOfERogB.yData=[self.eRogB]
+        self.plotOfERogB.xData=[self.time*1000]
+        self.plotOfERogB.yLabel='A'
+        self.plotOfERogB.xLabel='time [ms]'
+        self.plotOfERogB.subtitle='Ext. Rog. B'
+        self.plotOfERogB.title=str(self.title);
+        
+        # generate rog C plot
+        self.plotOfERogC=_plot.plot()
+        self.plotOfERogC.yData=[self.eRogC]
+        self.plotOfERogC.xData=[self.time*1000]
+        self.plotOfERogC.yLabel='A'
+        self.plotOfERogC.xLabel='time [ms]'
+        self.plotOfERogC.subtitle='Ext. Rog. C'
+        self.plotOfERogC.title=str(self.title);
+        
+        # generate rog D plot
+        self.plotOfERogD=_plot.plot()
+        self.plotOfERogD.yData=[self.eRogD]
+        self.plotOfERogD.xData=[self.time*1000]
+        self.plotOfERogD.yLabel='A'
+        self.plotOfERogD.xLabel='time [ms]'
+        self.plotOfERogD.subtitle='Ext. Rog. D'
+        self.plotOfERogD.title=str(self.title);
+        
+        # generate rog All plot
+        self.plotOfERogAll=_plot.plot()
+        self.plotOfERogAll.yData=[self.eRogA,self.eRogB,self.eRogC,self.eRogD]
+        self.plotOfERogAll.xData=[self.time*1000,self.time*1000,self.time*1000,self.time*1000]
+        self.plotOfERogAll.yLabel='A'
+        self.plotOfERogAll.xLabel='time [ms]'
+        self.plotOfERogAll.subtitle='Ext. Rogs.'
+        self.plotOfERogAll.yLegendLabel=['A','B','C','D']
+        self.plotOfERogAll.title=str(self.title);
+        
+        if plot == True:
+            self.plot()
+            
+    def plot(self):
+        """ Plot all relevant plots """
+        self.plotOfERogAll.plot()
+        
+        
+class spectrometerData:
+    """
+    """
+    def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+        self.shotno = shotno
+        self.title = "shotno = %d, Spectrometer Data" % shotno
+        
+        # get data
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.SPECTROMETER'],
+                              tStart=tStart, tStop=tStop)
+        self.spect=data[0];
+        self.time=time;
+        
+        # generate plot
+        self.plotOfSpect=_plot.plot()
+        self.plotOfSpect.yData=[self.spect*1e-3]
+        self.plotOfSpect.xData=[self.time*1000]
+#        self.p1.xLim=[self.tStart,self.tStop]
+        self.plotOfSpect.yLabel='V'
+        self.plotOfSpect.xLabel='time [ms]'
+        self.plotOfSpect.subtitle='Spectrometer'
+        self.plotOfSpect.title=str(self.title);
+        
+        if plot == True:
+            self.plot()
+            
+    def plot(self):
+        """ Plot all relevant plots """
+        self.plotOfSpect.plot()
+        
+        
+class solData:
+    """
+    """
+    def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+        self.shotno = shotno
+        self.title = "shotno = %d, SOL Data" % shotno
+        self.sensorNames = ['LFS01_S1', 'LFS01_S2', 'LFS01_S3', 'LFS01_S4', 'LFS01_S5', 'LFS01_S6', 'LFS01_S7', 'LFS01_S8', 'LFS04_S1', 'LFS04_S2', 'LFS04_S3', 'LFS04_S4', 'LFS08_S1', 'LFS08_S2', 'LFS08_S3', 'LFS08_S4', 'LFS08_S5', 'LFS08_S6', 'LFS08_S7', 'LFS08_S8']
+
+        # compile list of sensor addresses for all 20 SOL tiles
+        self.sensorAddress=[]
+        for i in range(0,len(self.sensorNames)):
+            self.sensorAddress.append('\HBTEP2::TOP.SENSORS.SOL:%s' % self.sensorNames[i]) 
+            
+        # get data
+        self.solData, self.time=mdsData(shotno=shotno,
+                              dataAddress=self.sensorAddress,
+                              tStart=tStart, tStop=tStop)
+                              
+        if plot == True:
+            self.plotAll()
+                              
+    def plotOne(self,name='LFS01_S1',plot=True):
+        index = self.sensorNames.index(name)
+        # generate plot
+        p1=_plot.plot()
+        p1.yData=[self.solData[index]*1e-3]
+        p1.xData=[self.time*1000]
+        p1.yLabel='V'
+        p1.xLabel='time [ms]'
+#            p1.subtitle=''
+        p1.title=str(self.title+', '+name);
+        
+        if plot == True:
+            p1.plot()
+            
+        return p1
+        
+    def plotAll(self):
+        plots=[[],[],[],[]]
+        count=0
+        for i in range(0,4):
+            for j in range(0,5):
+                newPlot=self.plotOne(name=self.sensorNames[count],plot=False)
+                newPlot.subtitle=self.sensorNames[count]
+                plots[i].append(newPlot)
+                count+=1;
+        plots[0][0].title=self.title
+        sp1=_plot.subPlot(plots,plot=False)
+        sp1.shareY=True;
+        sp1.plot()
     
-    
+        
 class loopVoltageData:
     """
     
@@ -1182,7 +1334,7 @@ class capBankData:
     """
     def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
         self.shotno = shotno
-        self.title = "shotno = %s, Capacitor Bank Data"
+        self.title = "shotno = %d, Capacitor Bank Data" % shotno
         
         # get tf data
         data, time=mdsData(shotno=shotno,
