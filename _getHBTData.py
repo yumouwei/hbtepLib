@@ -1,35 +1,42 @@
 """
-_rwHBTDataTools.py - read write HBT related data functions and related tools
-
-A few of these functions are merely wrappers for other people's code
-
+_rwHBTData.py - load HBT data, both processed and unprocessed
 
 NOTES
 -----
-The convention for units is to maintain everything in SI until they are
+-The convention for units is to maintain everything in SI until they are
 plotted.  
+-A few of these functions are merely wrappers for other people's code
 """
 
-# import common functions 
+###############################################################################
+### import libraries
+
+# common libraries 
 import numpy as _np
 import MDSplus as _mds
 from copy import copy as _copy
-#import matplotlib.pyplot as _plt
 import pickle as _pk
 import sys as _sys
+import _socket
 
-# import hbt library functions\
-import _rwDataTools as _gdt
-import _processData as _pd
+# hbtepLib libraries
+import _rwDataTools as _rwData
+import _processData as _process
 import _plotTools as _plot
-#import _pauls_MDSplus_toolbox as _pDT
-
-
 try:
     import _hbtPreferences as _pref
 except ImportError:
-    _sys.exit("_hbtPreferences.py file not found.  Please create 'hbtPreferences.py' in the directory of this library and add a variable to it \n _HBT_SERVER_ADDRESS = 'address' \n where 'address' is the network address of the MDSplus tree server for HBTEP")
+    _sys.exit("Code hault: _hbtPreferences.py file not found.  See readme.md concerning the creation of hbtPreferences.py")
         
+        
+###############################################################################
+### constants
+_REMOTE_DATA_PATH='/opt/hbt/data/control'  
+if _socket.gethostname()==_pref._HBT_SERVER_NAME:
+    _ON_HBTEP_SERVER=True;
+else:
+    _ON_HBTEP_SERVER=False;
+
 
 ###############################################################################
 ### global variables
@@ -78,8 +85,8 @@ def _trimTime(time,data,tStart,tStop):
     it is assumed that tStart and tStop have the same units as time.  
     """    
     # determine indices of cutoff regions
-    iStart=_pd.find_nearest(time,tStart);   # index of lower cutoff
-    iStop=_pd.find_nearest(time,tStop);     # index of higher cutoff
+    iStart=_process.find_nearest(time,tStart);   # index of lower cutoff
+    iStop=_process.find_nearest(time,tStop);     # index of higher cutoff
     
     # trim time
     time=time[iStart:iStop];
@@ -137,8 +144,8 @@ def mdsData(shotno=None,
     -------
     data : list (of numpy.ndarray)
         requested data
-    (time) : numpy.ndarray
-        optional.  time associated with data array
+    time : numpy.ndarray
+        time associated with data array
     """
     # if shotno is specified, this function gets its own mdsConn
     if type(shotno) is float or type(shotno) is int:
@@ -169,6 +176,7 @@ def mdsData(shotno=None,
         
     # return data and time
     return data, time
+    # TODO is there a way to make time an optional return??
     
     
 ###############################################################################
@@ -252,6 +260,33 @@ class bpData:
         plasma current data
     time : numpy.ndarray
         time data
+    title : str
+        title of all included figures
+    bps9Voltage : numpy.ndarray
+        bps9 voltage
+    bps9Current : numpy.ndarray
+        bps9 current
+    bps5Voltage : numpy.ndarray
+        bps9 voltage
+    bps5Current : numpy.ndarray
+        bps9 current
+    bps9GPURequestVoltage : numpy.ndarray
+        CPCI measurement of pre-amp voltage, out from the GPU, and going to 
+        control bps9
+    plotOfGPUVoltageRequest : _plotTools.plot 
+        Plot of gpu request voltage (as measured by the CPCI)
+    plotOfVoltage : _plotTools.plot 
+        Plot of both bias probe voltages
+    plotOfCurrent : _plotTools.plot 
+        Plot of both bias probe currents
+    plotOfBPS9Voltage : _plotTools.plot 
+        Plot of bps9 voltage only
+    plotOfBPS9Current : _plotTools.plot 
+        Plot of bps9 current only
+        
+    Notes
+    -----
+    BPS5 was moved to section 2 (now BPS2) summer of 2017.  
     
     """
     # TODO(John) Time should likely be split into s2 and s9 because different 
@@ -276,7 +311,7 @@ class bpData:
                                             '\HBTEP2::TOP.SENSORS.BIAS_PROBE_9:CURRENT'],
                                tStart=tStart, tStop=tStop)
             self.bps9Voltage=data[0];
-            self.bps9Current=data[1];
+            self.bps9Current=data[1]*-1; # signs are flipped somewhere
             self.time=time;
             
             # get current data
@@ -394,9 +429,57 @@ class tpData:
     ----------
     shotno : int
         shot number of desired data
-    # TODO add the remaining attribues
-
-    
+    title : str
+        title of all included figures
+    self.tps5TipA : numpy.ndarray
+        tps5 tip A voltage data.  (note that this channel is typically 
+        disconnected)
+    tps5TipB : numpy.ndarray
+        tps5 tip B voltage data.  
+    tps5TipC : numpy.ndarray
+        tps5 tip C voltage data.  
+    tps5Time : numpy.ndarray
+        tps5 time data 
+    tps5Current : numpy.ndarray
+        tps5 current data
+    tps5Temp : numpy.ndarray    
+        tps5 temperature data.  
+    tps5VFloat : numpy.ndarray
+        tps5 floating voltage data 
+    tps5Density : numpy.ndarray
+        tps5 density data
+    tps8TipA : numpy.ndarray
+        tps8 tip A voltage data.  (note that this channel is typically 
+        disconnected)
+    tps8TipB : numpy.ndarray
+        tps8 tip B voltage data.  
+    tps8TipC : numpy.ndarray
+        tps8 tip C voltage data.  
+    tps8Time : numpy.ndarray
+        tps8 time data 
+    tps8Current : numpy.ndarray
+        tps8 current data
+    tps8Temp : numpy.ndarray    
+        tps8 temperature data.  
+    tps8VFloat : numpy.ndarray
+        tps8 floating voltage data 
+    tps8Density : numpy.ndarray
+        tps8 density data
+    plotOfISat : _plotTools.plot
+        plot function of ion saturation current
+    plotOfTipC : _plotTools.plot
+        plot function of tip C voltages
+    plotOfTipB : _plotTools.plot
+        plot function of tip B voltages
+    plotOfTipA : _plotTools.plot
+        plot function of tip A voltages
+    plotOfVf : _plotTools.plot
+        plot function of floating voltages
+    plotOfNe : _plotTools.plot
+        plot function of density
+    plotOfKTe : _plotTools.plot
+        plot function of temperature
+        
     Notes
     -----
     - I am not using the same time array for the section 5 or the section 8 
@@ -415,9 +498,9 @@ class tpData:
         
         self.shotno = shotno
         self.title = 'shotno = %s, triple probe data' % shotno
-        self.vTipA = None  # negative tip? TODO check
-        self.vTipB = None  # positive tip? TODO check
-        self.vTipC = None  # floating tip
+#        self.vTipA = None  # negative tip? TODO check
+#        self.vTipB = None  # positive tip? TODO check
+#        self.vTipC = None  # floating tip
         
         # enforce probes naming convetion
         if probes=='5':
@@ -617,9 +700,9 @@ class paData:
     tStart : float
         time (in seconds) to drim data after
     plotSample : bool
-        plots one PA1 and one PA2 sensor data
+        plots a single PA1 and PA2 sensor data
     plotAll : bool
-        plots all 64 sensors
+        plots all 64 sensors.  Warning: this is hard on system memory
     smoothingAlgorithm : str
         informs function as to which smoothing algorithm to use on each PA 
         sensor
@@ -628,6 +711,7 @@ class paData:
     ----------
     shotno : int
         shot number of desired data
+    TODO add all remaining attributes here
 
     """
     
@@ -662,15 +746,15 @@ class paData:
         if smoothingAlgorithm=='tripleBoxCar':
             # jeff's triple boxcar smoothing
             for i in range(0,32):
-                temp=_copy(_pd.boxCar(data=self.pa1Raw[i][:],c=50))
-                temp=_copy(_pd.boxCar(data=temp,c=50))
-                temp=_copy(_pd.boxCar(data=temp,c=10))
+                temp=_copy(_process.boxCar(data=self.pa1Raw[i][:],c=50))
+                temp=_copy(_process.boxCar(data=temp,c=50))
+                temp=_copy(_process.boxCar(data=temp,c=10))
                 self.pa1RawFit.append(temp)
                 self.pa1Data.append(self.pa1Raw[i]-temp)
                 
-                temp=_copy(_pd.boxCar(data=self.pa2Raw[i][:],c=50))
-                temp=_copy(_pd.boxCar(data=temp,c=50))
-                temp=_copy(_pd.boxCar(data=temp,c=10))
+                temp=_copy(_process.boxCar(data=self.pa2Raw[i][:],c=50))
+                temp=_copy(_process.boxCar(data=temp,c=50))
+                temp=_copy(_process.boxCar(data=temp,c=10))
                 self.pa2RawFit.append(temp)
                 self.pa2Data.append(self.pa2Raw[i]-temp)
         else:
@@ -775,6 +859,7 @@ class fbData:
         shot number of desired data
     phi : numpy.ndarray
         array of toroidal locations for all sensors.  units in degrees.
+    TODO add all remaining attributes here
         
     """
     def __init__(self,shotno=95540,tStart=None,tStop=None,plotSample=False, plotAll=False,smoothingAlgorithm='tripleBoxCar'):
@@ -819,15 +904,15 @@ class fbData:
             # jeff's triple boxcar smoothing
             for j in range(0,4):
                 for i in range(0,10):
-                    temp=_copy(_pd.boxCar(data=self.fbPolRaw[j][i][:],c=50))
-                    temp=_copy(_pd.boxCar(data=temp,c=50))
-                    temp=_copy(_pd.boxCar(data=temp,c=10))
+                    temp=_copy(_process.boxCar(data=self.fbPolRaw[j][i][:],c=50))
+                    temp=_copy(_process.boxCar(data=temp,c=50))
+                    temp=_copy(_process.boxCar(data=temp,c=10))
                     self.fbPolRawFit[j].append(temp)
                     self.fbPolData[j].append(self.fbPolRaw[j][i]-temp)
                     
-                    temp=_copy(_pd.boxCar(data=self.fbRadRaw[j][i][:],c=50))
-                    temp=_copy(_pd.boxCar(data=temp,c=50))
-                    temp=_copy(_pd.boxCar(data=temp,c=10))
+                    temp=_copy(_process.boxCar(data=self.fbRadRaw[j][i][:],c=50))
+                    temp=_copy(_process.boxCar(data=temp,c=50))
+                    temp=_copy(_process.boxCar(data=temp,c=10))
                     self.fbRadRawFit[j].append(temp)
                     self.fbRadData[j].append(self.fbRadRaw[j][i]-temp)
         else:
@@ -939,6 +1024,7 @@ class taData:
     ----------
     shotno : int
         shot number of desired data
+    TODO add all remaining attributes here
 
     """
         
@@ -984,16 +1070,16 @@ class taData:
         if smoothingAlgorithm=='tripleBoxCar':
             # jeff's triple boxcar smoothing
             for i in range(0,30):
-                temp=_copy(_pd.boxCar(data=self.taPolRaw[i][:],c=50))
-                temp=_copy(_pd.boxCar(data=temp,c=50))
-                temp=_copy(_pd.boxCar(data=temp,c=10))
+                temp=_copy(_process.boxCar(data=self.taPolRaw[i][:],c=50))
+                temp=_copy(_process.boxCar(data=temp,c=50))
+                temp=_copy(_process.boxCar(data=temp,c=10))
                 self.taPolRawFit.append(temp)
                 self.taPolData.append(self.taPolRaw[i]-temp)
                 
                 if i < 10:
-                    temp=_copy(_pd.boxCar(data=self.taRadRaw[i][:],c=50))
-                    temp=_copy(_pd.boxCar(data=temp,c=50))
-                    temp=_copy(_pd.boxCar(data=temp,c=10))
+                    temp=_copy(_process.boxCar(data=self.taRadRaw[i][:],c=50))
+                    temp=_copy(_process.boxCar(data=temp,c=50))
+                    temp=_copy(_process.boxCar(data=temp,c=10))
                     self.taRadRawFit.append(temp)
                     self.taRadData.append(self.taRadRaw[i]-temp)
         else:
@@ -1065,17 +1151,25 @@ class gpuControlData:
         self._tStart=tStart
         self._tStop=tStop
         
-        # check to see if the file has previously been downloaded to local directory.  if not, it is downloaded
-        if shotno!=None:
-            filePath=_pref._LOCAL_DATA_DIR + "fbsettings_" +str(int(shotno))+'.py';
-        else:
-            filePath=_pref._LOCAL_DATA_DIR + 'fbsettings.py';
-        print filePath
-        if os.path.isfile(filePath)==False or forceDownload==True:
-            self._downloadCDFromCaliban(password=password)
+        if _ON_HBTEP_SERVER==False:
+            # ssh data must be transfered if operating remotely.
+            # this copies control data to your local computer.
+        
+            # change data directories because we are operating remotely
+            fbt._CONTROL_CODE_PATH=_pref._LOCAL_DATA_DIR
+            fbt._DATA_PATH=_pref._LOCAL_DATA_DIR
+        
+            # check to see if the file has previously been downloaded to local directory.  if not, it is downloaded
+            if shotno!=None:
+                filePath=_pref._LOCAL_DATA_DIR + "fbsettings_" +str(int(shotno))+'.py';
+            else:
+                filePath=_pref._LOCAL_DATA_DIR + 'fbsettings.py';
+            print filePath
+            if os.path.isfile(filePath)==False or forceDownload==True:
+                self._downloadCDFromCaliban(password=password)
             
         ## Load time from control files.  
-        # TODO(JOHN) recal time offset
+        # TODO(JOHN) recalibrate time offset
         timeOffset = 0.0340/1000
         self.time=fbt.get_ctrl_times(shotno)+timeOffset; ## NOTE:  For some reason, there is a shift in the time data on the GPU vs. the Tree.  Not sure why.  I "roughly" correct for it in the next line.  Calibrated with hbt.compareBP_Bn1_GPU(97088)
 
@@ -1162,18 +1256,18 @@ class gpuControlData:
         self.plotOfPhase=_plot.plot();
         self.plotOfPhase.yLabel='Radians'
         self.plotOfPhase.xLabel='Time [ms]'
-        self.plotOfPhase.subtitle='GPU phase'
+        self.plotOfPhase.subtitle='n=1 mode phase'
         self.plotOfPhase.title=str(self.shotno);
         self.plotOfPhase.yLim=[-_np.pi, _np.pi]  
-        self.plotOfPhase.yData.append(_pd.wrapPhase(self.mPhaseSec1))
+        self.plotOfPhase.yData.append(_process.wrapPhase(self.mPhaseSec1))
         self.plotOfPhase.linestyle.append('')
         self.plotOfPhase.marker.append('.')
         self.plotOfPhase.xData.append(self.time*1000)
         self.plotOfPhase.yLegendLabel.append('FBSensors-GPU Sec1')
         if plotEVERYTHING==True:
-            self.plotOfPhase.yData.append(_pd.wrapPhase(self.mPhaseSec2))
-            self.plotOfPhase.yData.append(_pd.wrapPhase(self.mPhaseSec3))
-            self.plotOfPhase.yData.append(_pd.wrapPhase(self.mPhaseSec4))
+            self.plotOfPhase.yData.append(_process.wrapPhase(self.mPhaseSec2))
+            self.plotOfPhase.yData.append(_process.wrapPhase(self.mPhaseSec3))
+            self.plotOfPhase.yData.append(_process.wrapPhase(self.mPhaseSec4))
             self.plotOfPhase.xData.append(self.time*1000)
             self.plotOfPhase.xData.append(self.time*1000)
             self.plotOfPhase.xData.append(self.time*1000)
@@ -1208,8 +1302,7 @@ class gpuControlData:
             self.plotOfFreq.yLegendLabel.append('FBSensors-GPU Sec4')
 
         if plot == True:
-            self.plotOfBPS9Voltage.plot()
-            _plot.subPlot([self.plotOfAmplitudes,self.plotOfPhase,self.plotOfFreq])
+            _plot.subPlot([self.plotOfAmplitudes,self.plotOfPhase,self.plotOfFreq,self.plotOfBPS9Voltage])
 
         if calibrateTime==True:
             self.calibrateCPCIAndGPUData()
@@ -1239,15 +1332,15 @@ class gpuControlData:
         
         if password=='' or password == None:
             #password = raw_input("Enter spitzer password:  ")
-            password=_gdt.getPwd(system=_pref._HBT_SERVER_NAME,username=_pref._HBT_SERVER_USERNAME);
+            password=_rwData.getPwd(system=_pref._HBT_SERVER_NAME,username=_pref._HBT_SERVER_USERNAME);
 
         # address where all real data is stored (i.e. each shot has a shot number)
-        REMOTE_DATA_PATH='/opt/hbt/data/control'
+#        _REMOTE_DATA_PATH='/opt/hbt/data/control'
         # address where code on caliban in located.  this is where the FAKE_INPUT shots are stored
         REMOTE_CODE_PATH='/home/brooks/TokaMac/control' # this will need to be adjusted for every user
         
         # open connection
-        sshCon = _gdt.scpData(password=password,port=22,username=_pref._HBT_SERVER_USERNAME,address=_pref._HBT_SERVER_ADDRESS)
+        sshCon = _rwData.scpData(password=password,port=22,username=_pref._HBT_SERVER_USERNAME,address=_pref._HBT_SERVER_ADDRESS)
 
         # _copy data
         if self.shotno=='' or self.shotno==None:
@@ -1264,15 +1357,15 @@ class gpuControlData:
             sshCon.downloadFile('%s/fb_store.dat' % (REMOTE_CODE_PATH), localFilePath=_FILEDIR+'fb_store.dat' )
             sshCon.downloadFile('%s/fbsettings.py' % (REMOTE_CODE_PATH), localFilePath=_FILEDIR+'fbsettings.py' )
         else:
-            sshCon.downloadFile('%s/ao_store_%d.dat' % (REMOTE_DATA_PATH, self.shotno), localFilePath='%s/ao_store_%d.dat' % (_FILEDIR, self.shotno))
-            sshCon.downloadFile('%s/ai_store_%d.dat' % (REMOTE_DATA_PATH, self.shotno), localFilePath='%s/ai_store_%d.dat' % (_FILEDIR, self.shotno))
-            sshCon.downloadFile('%s/mamp_store_%d.dat' % (REMOTE_DATA_PATH, self.shotno), localFilePath='%s/mamp_store_%d.dat' % (_FILEDIR, self.shotno))
-            sshCon.downloadFile('%s/mphase_store_%d.dat' % (REMOTE_DATA_PATH, self.shotno), localFilePath='%s/mphase_store_%d.dat' % (_FILEDIR, self.shotno))
-            sshCon.downloadFile('%s/mfreq_store_%d.dat' % (REMOTE_DATA_PATH, self.shotno), localFilePath='%s/mfreq_store_%d.dat' % (_FILEDIR, self.shotno))
-            sshCon.downloadFile('%s/fbsettings_%d.py' % (REMOTE_DATA_PATH, self.shotno), localFilePath='%s/fbsettings_%d.py'  % (_FILEDIR, self.shotno))
-            print '%s/fb_store_%d.dat' % (REMOTE_DATA_PATH, self.shotno)
+            sshCon.downloadFile('%s/ao_store_%d.dat' % (_REMOTE_DATA_PATH, self.shotno), localFilePath='%s/ao_store_%d.dat' % (_FILEDIR, self.shotno))
+            sshCon.downloadFile('%s/ai_store_%d.dat' % (_REMOTE_DATA_PATH, self.shotno), localFilePath='%s/ai_store_%d.dat' % (_FILEDIR, self.shotno))
+            sshCon.downloadFile('%s/mamp_store_%d.dat' % (_REMOTE_DATA_PATH, self.shotno), localFilePath='%s/mamp_store_%d.dat' % (_FILEDIR, self.shotno))
+            sshCon.downloadFile('%s/mphase_store_%d.dat' % (_REMOTE_DATA_PATH, self.shotno), localFilePath='%s/mphase_store_%d.dat' % (_FILEDIR, self.shotno))
+            sshCon.downloadFile('%s/mfreq_store_%d.dat' % (_REMOTE_DATA_PATH, self.shotno), localFilePath='%s/mfreq_store_%d.dat' % (_FILEDIR, self.shotno))
+            sshCon.downloadFile('%s/fbsettings_%d.py' % (_REMOTE_DATA_PATH, self.shotno), localFilePath='%s/fbsettings_%d.py'  % (_FILEDIR, self.shotno))
+            print '%s/fb_store_%d.dat' % (_REMOTE_DATA_PATH, self.shotno)
             try:
-                sshCon.downloadFile('%s/fb_store_%d.dat' % (REMOTE_DATA_PATH, self.shotno), localFilePath='%s/fb_store_%d.dat'  % (_FILEDIR, self.shotno))
+                sshCon.downloadFile('%s/fb_store_%d.dat' % (_REMOTE_DATA_PATH, self.shotno), localFilePath='%s/fb_store_%d.dat'  % (_FILEDIR, self.shotno))
             except Exception:
                 print("fb_store file not present.  skipping...")     
                 pass
@@ -1295,6 +1388,9 @@ class gpuControlData:
         
         note: 97598 is one of first GPU/CPSI combined shots
         """
+        class fb:
+            """ container object for feedback data """
+        self.fb=fb;
         
         import _feedBackTools as _fbt
         DT=0.000006; # should be 0.00006
@@ -1307,6 +1403,7 @@ class gpuControlData:
         self.fb.time=GPUBP[0,indices]*DT+timeOffset*1e-3;  # multipling by DT converts sequential numbers into microseconds.  
 
         # set feedback variables from loaded data
+        print _np.shape(GPUBP)
         self.fb.Vact=GPUBP[1,indices]
         self.fb.Vreq=GPUBP[2,indices]
         self.fb.Iact=GPUBP[3,indices]
@@ -1324,8 +1421,8 @@ class gpuControlData:
         # load supplementary data
         if self.shotno!=None and cpciShotno==None:
             cpciShotno=self.shotno
-        bp=bpData(cpciShotno,self._tStart,self.__tStop)
-        nMode=nModeData(cpciShotno,self._tStart,self.__tStop)
+        bp=bpData(cpciShotno,self._tStart,self._tStop)
+        nMode=nModeData(cpciShotno,self._tStart,self._tStop)
         
         # initiate BP voltage plot
         self.plotOfVin=_plot.plot();
@@ -1399,50 +1496,42 @@ class gpuControlData:
         self.plotOfFBFreq.subtitle='n=1 mode Frequency'
         self.plotOfFBFreq.title=str(self.shotno);
         self.plotOfFBFreq.yLim=[-10, 20]  
-        self.plotOfFBFreq.yData.append(self.wact*1e-3) 
-        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
+        self.plotOfFBFreq.yData.append(self.fb.wact*1e-3) 
+        self.plotOfFBFreq.xData.append(self.fb.time*1e3)
         self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{measured}$')
-        self.plotOfFBFreq.yData.append(self.wfb*1e-3) 
-        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
+        self.plotOfFBFreq.yData.append(self.fb.wfb*1e-3) 
+        self.plotOfFBFreq.xData.append(self.fb.time*1e3)
         self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{fb}$')
-        self.plotOfFBFreq.yData.append(self.wreq*1e-3) 
-        self.plotOfFBFreq.xData.append(self.BPTime*1e3)
+        self.plotOfFBFreq.yData.append(self.fb.wreq*1e-3) 
+        self.plotOfFBFreq.xData.append(self.fb.time*1e3)
         self.plotOfFBFreq.yLegendLabel.append(r'GPU-$\omega_{request}$')
         self.plotOfFBFreq.yData.append(nMode.n1FreqStrongFilter*1e-3) 
         self.plotOfFBFreq.xData.append(nMode.time*1e3)
         self.plotOfFBFreq.yLegendLabel.append(r'CPCI-$\omega_{measured}$')
         if operatingMode=='frequencyControl':
-            self.plotOfFBFreq.yData.append(self.error*1e-3) 
-            self.plotOfFBFreq.xData.append(self.BPTime*1e3)
+            self.plotOfFBFreq.yData.append(self.fb.error*1e-3) 
+            self.plotOfFBFreq.xData.append(self.fb.time*1e3)
             self.plotOfFBFreq.yLegendLabel.append('GPU-error')
 
         # add to mode amplitude plot
-        self.plotOfAmplitudes.yData.append(nMode.n1Amp*1e4)
+        self.plotOfAmplitudes.yData.append(nMode.n1Amp) #*1e4
         self.plotOfAmplitudes.xData.append(nMode.time*1000)
         self.plotOfAmplitudes.yLegendLabel.append('CPCI')
         
         # add to mode phase plot
-        self.plotOfPhase.yData.append(nMode.n1Phase*1e4)
+        self.plotOfPhase.yData.append(nMode.n1Phase)
         self.plotOfPhase.xData.append(nMode.time*1000)
         self.plotOfPhase.yLegendLabel.append('CPCI')
         
         # construct fb subplot
         self.plotOfFeedback=_plot.subPlot([self.plotOfVin,
-                                           self.plotOfIn,
+                                           self.plotOfIin,
                                            self.plotOfGains,
                                            self.plotOfFBFreq,
                                            self.plotOfAmplitudes,
                                            self.plotOfPhase])
 
 
-
-
-
-
-
-
-    
-    
 ###############################################################################
 ### sensor black list data.  presently not used anywhere
     
@@ -1515,8 +1604,8 @@ def loadShotData(shotno=96635,tStart=0.0,tStop=8.0,forceDownload=False,gpu=False
             
         # trim time to desired range
         if True:
-            iStart=_pd.find_nearest(data[i].time,tStart/1000.);
-            iStop=_pd.find_nearest(data[i].time,tStop/1000.)
+            iStart=_process.find_nearest(data[i].time,tStart/1000.);
+            iStop=_process.find_nearest(data[i].time,tStop/1000.)
             
             try:
                 data[i].time=data[i].time[iStart:iStop];
@@ -1652,7 +1741,7 @@ class _shotData:
         """              
         gpuIndices=_np.zeros(len(self.gpuTime),dtype=int)
         for i in range(0,len(self.gpuTime)):
-            gpuIndices[i]=_pd.find_nearest(self.time,self.gpuTime[i])
+            gpuIndices[i]=_process.find_nearest(self.time,self.gpuTime[i])
             
         return gpuIndices
         
@@ -1798,7 +1887,7 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,phi0=0,nModeSensor='FB'):
+    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,phi0=0,nModeSensor='FB',method='leastSquares'):
         
         self.shotno=shotno
         
@@ -1821,49 +1910,52 @@ class nModeData:
         self._data=data
         self._phi=phi
 
-        ## Construct A matrix and its inversion
-        A=_np.zeros((n,5))
-        A[:,0]=_np.ones(n);
-        A[:,1]=_np.sin(phi)
-        A[:,2]=_np.cos(phi)
-        A[:,3]=_np.sin(2*phi)
-        A[:,4]=_np.cos(2*phi)
-        Ainv=_np.linalg.pinv(A)
-        
-        ## Solve for coefficients, x, for every time step and assign values to appropriate arrays 
-        x=_np.zeros([5,m]);
-        # self.n0Offset=_np.zeros(m)
-        self.n1Amp=_np.zeros(m)
-        self.n1Phase=_np.zeros(m)
-        self.n2Amp=_np.zeros(m)
-        self.n2Phase=_np.zeros(m)
-        # TODO(John): remove for loop and convert into all matrix math 
-        # should simplify code and make it run faster
-        for j in range(0,m):
-            y=_np.zeros(n);
-            for i in range(0,n):
-                y[i]=data[i][j]*1e4
-            x[:,j]=Ainv.dot(y)
-            # self.n0Offset=self.x[0,j]
-            self.n1Amp[j]=_np.sqrt(x[1,j]**2+x[2,j]**2)
-            self.n2Amp[j]=_np.sqrt(x[3,j]**2+x[4,j]**2)
-            self.n1Phase[j]=_np.arctan2(x[1,j],x[2,j])
-            self.n2Phase[j]=_np.arctan2(x[3,j],x[4,j])
-        self._x=x
-        self.n1Phase*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
-        self.n2Phase*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
-        
-        ## Calculate frequency (in Hz) using second order deriv 
-        self.n1Freq=_np.gradient(_pd.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)
-        
-        # boxcar filter of frequency
-        self.n1FreqWeakFilter=_pd.boxCar(self.n1Freq,10)
-        self.n1FreqTimeWeakFilter = self.time        
-        self.n1FreqStrongFilter=_pd.boxCar(self.n1Freq,40)
-        self.n1FreqTimeStrongFilter = self.time
-        
-        # boxcar filter of n1 amplitude
-        self.n1AmpFiltered=_pd.boxCar(self.n1Amp,30)
+        if method=='leastSquares':
+            ## Construct A matrix and its inversion
+            A=_np.zeros((n,5))
+            A[:,0]=_np.ones(n);
+            A[:,1]=_np.sin(phi)
+            A[:,2]=_np.cos(phi)
+            A[:,3]=_np.sin(2*phi)
+            A[:,4]=_np.cos(2*phi)
+            Ainv=_np.linalg.pinv(A)
+            
+            ## Solve for coefficients, x, for every time step and assign values to appropriate arrays 
+            x=_np.zeros([5,m]);
+            # self.n0Offset=_np.zeros(m)
+            self.n1Amp=_np.zeros(m)
+            self.n1Phase=_np.zeros(m)
+            self.n2Amp=_np.zeros(m)
+            self.n2Phase=_np.zeros(m)
+            # TODO(John): remove for loop and convert into all matrix math 
+            # should simplify code and make it run faster
+            for j in range(0,m):
+                y=_np.zeros(n);
+                for i in range(0,n):
+                    y[i]=data[i][j]*1e4
+                x[:,j]=Ainv.dot(y)
+                # self.n0Offset=self.x[0,j]
+                self.n1Amp[j]=_np.sqrt(x[1,j]**2+x[2,j]**2)
+                self.n2Amp[j]=_np.sqrt(x[3,j]**2+x[4,j]**2)
+                self.n1Phase[j]=_np.arctan2(x[1,j],x[2,j])
+                self.n2Phase[j]=_np.arctan2(x[3,j],x[4,j])
+            self._x=x
+            self.n1Phase*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
+            self.n2Phase*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
+            
+            ## Calculate frequency (in Hz) using second order deriv 
+            self.n1Freq=_np.gradient(_process.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)
+            
+            # boxcar filter of frequency
+            self.n1FreqWeakFilter=_process.boxCar(self.n1Freq,10)
+            self.n1FreqTimeWeakFilter = self.time        
+            self.n1FreqStrongFilter=_process.boxCar(self.n1Freq,40)
+            self.n1FreqTimeStrongFilter = self.time
+            
+            # boxcar filter of n1 amplitude
+            self.n1AmpFiltered=_process.boxCar(self.n1Amp,30)
+        else:
+            _sys.exit("Invalid mode analysis method provided.")
         
         ## mode amplitude plots  
         self.plotOfAmps=_plot.plot()
@@ -1939,7 +2031,7 @@ class nModeData:
 #        mx=_np.max(self.n1AmpFiltered)
 #        lCutoff=2.5
 #        uCutoff=8.
-#        cm = _pdt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
+#        cm = _processt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
 #        self.plotOfPhaseAmp.cmap=cm
                                 
         ## plot data
@@ -2047,11 +2139,11 @@ class mModeData:
             self.m3Phase[j]=_np.arctan2(self._x[5,j],self._x[6,j])
             self.m4Phase[j]=_np.arctan2(self._x[7,j],self._x[8,j])
             self.m5Phase[j]=_np.arctan2(self._x[9,j],self._x[10,j])
-#        m1PhaseUnwrapped=_pd.unwrapPhase(self.m1Phase)
-#        m2PhaseUnwrapped=_pd.unwrapPhase(self.m2Phase)
-#        m3PhaseUnwrapped=_pd.unwrapPhase(self.m3Phase)
-#        m4PhaseUnwrapped=_pd.unwrapPhase(self.m4Phase)
-#        m5PhaseUnwrapped=_pd.unwrapPhase(self.m5Phase)
+#        m1PhaseUnwrapped=_process.unwrapPhase(self.m1Phase)
+#        m2PhaseUnwrapped=_process.unwrapPhase(self.m2Phase)
+#        m3PhaseUnwrapped=_process.unwrapPhase(self.m3Phase)
+#        m4PhaseUnwrapped=_process.unwrapPhase(self.m4Phase)
+#        m5PhaseUnwrapped=_process.unwrapPhase(self.m5Phase)
         
         # TODO:  add frequency data, raw and smoothed
         

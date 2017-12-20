@@ -1,9 +1,13 @@
+"""
+Written by Niko/Qian (i think)
+Contains functions pertaining to processing gpu data from caliban.
+"""
 
+###############################################################################
+### import libraries
+
+# standard libraries
 from __future__ import print_function, absolute_import, division
-from hbtepold.find_shots import get_calm_period
-from hbtepold.mdsplus import signals_from_shot
-from hbtepold.misc import poly_fit_weights 
-#import MDSplus
 import logging
 import math
 import numpy as np
@@ -13,20 +17,30 @@ import os
 import types
 import matplotlib.pyplot as plt
 
-_fileDir='/home/john/shotData'
+# hbtep libraries 
+#from hbtep.find_shots import get_calm_period
+from hbtep.mdsplus import signals_from_shot
+from hbtep.misc import poly_fit_weights 
+
+# hbtepLib libraries
+#import _hbtPreferences as _pref
 
 
-#DATA_PATH='/opt/hbt/data/control'
-#REF_PATH='/home/john'
-REF_PATH=_fileDir
-DATA_PATH=_fileDir
-#REF_PATH='/home/pq/Repository/fbsystem/control'
+###############################################################################
+### constants
+#_CONTROL_CODE_PATH=_pref._CONTROL_CODE_DIR
+_CONTROL_CODE_PATH='/home/brooks/TokaMac/control/' # TODO(john) this needs to be derived from the pref file but i'm having trouble importing it into this file
+_DATA_PATH='/opt/hbt/data/control'
 CFG_CACHE=dict()
 INT16_MAX = np.iinfo(np.int16).max
 AO_CHANNELS = 64
 AI_CHANNELS = 96
 
 log = logging.getLogger('fbtools')
+
+
+###############################################################################
+### functions
 
 class FBConfiguration(object):
     '''A container object to hold FB configurations'''
@@ -92,9 +106,9 @@ def get_ctrl_ai(shotno):
     
     cfg = get_fb_config(shotno)
     if shotno is None:
-        path = '%s/ai_store.dat' % DATA_PATH
+        path = '%s/ai_store.dat' % _DATA_PATH
     else:
-        path = '%s/ai_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/ai_store_%d.dat' % (_DATA_PATH, shotno)
 #     return np.fromfile(path, np.float32).reshape((-1, len(cfg.SENSORS))).T
     tmp = np.fromfile(path, np.float32).reshape((-1, len(cfg.SENSORS)+0 + 0)).T #+1 is added
     #print(len(cfg.SENSORS))
@@ -107,9 +121,9 @@ def get_ctrl_ai_numCh(shotno,n=96):
     
 #    cfg = get_fb_config(shotno)
     if shotno is None:
-        path = '%s/ai_store.dat' % DATA_PATH
+        path = '%s/ai_store.dat' % _DATA_PATH
     else:
-        path = '%s/ai_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/ai_store_%d.dat' % (_DATA_PATH, shotno)
 #     return np.fromfile(path, np.float32).reshape((-1, len(cfg.SENSORS))).T
 #    print path
     tmp2 = np.fromfile(path,np.float32);  
@@ -127,7 +141,7 @@ def get_ctrl_airaw(shotno):
     if shotno is None:
         path = 'airaw_store.dat' 
     else:
-        path = '%s/airaw_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/airaw_store_%d.dat' % (_DATA_PATH, shotno)
 #     return np.fromfile(path, np.float32).reshape((-1, len(cfg.SENSORS))).T
     tmp = np.fromfile(path, np.float32).reshape((-1, len(cfg.SENSORS) + 0)).T 
     #print(len(cfg.SENSORS))
@@ -141,9 +155,9 @@ def get_ctrl_mamp(shotno):
     
     cfg = get_fb_config(shotno)
     if shotno is None:
-        path = '%s/mamp_store.dat' % REF_PATH
+        path = '%s/mamp_store.dat' % _CONTROL_CODE_PATH
     else:
-        path = '%s/mamp_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/mamp_store_%d.dat' % (_DATA_PATH, shotno)
     return np.fromfile(path, np.float32).reshape((-1, len(cfg.IN_MODE_MATRIX))).T
     
 def get_fb(shotno, n=14):
@@ -151,9 +165,9 @@ def get_fb(shotno, n=14):
     
 #    cfg = get_fb_config(shotno)
     if shotno is None or shotno is '':
-        path = '%s/fb_store.dat' % REF_PATH
+        path = '%s/fb_store.dat' % _CONTROL_CODE_PATH
     else:
-        path = '%s/fb_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/fb_store_%d.dat' % (_DATA_PATH, shotno)
         
     # this next bit of code corrects the fact that the data returned isn't always divisible by n, the num of channels.  not sure why.  
     a=np.fromfile(path, np.float32)
@@ -171,9 +185,9 @@ def get_ctrl_mphase(shotno):
     
     cfg = get_fb_config(shotno)
     if shotno is None:
-        path = '%s/mphase_store.dat' % REF_PATH
+        path = '%s/mphase_store.dat' % _CONTROL_CODE_PATH
     else:
-        path = '%s/mphase_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/mphase_store_%d.dat' % (_DATA_PATH, shotno)
     return np.fromfile(path, np.float32).reshape((-1, len(cfg.IN_MODE_MATRIX))).T
 
 
@@ -182,9 +196,9 @@ def get_ctrl_mfreq(shotno):
     
     cfg = get_fb_config(shotno)
     if shotno is None:
-        path = '%s/mfreq_store.dat' % REF_PATH
+        path = '%s/mfreq_store.dat' % _CONTROL_CODE_PATH
     else:
-        path = '%s/mfreq_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/mfreq_store_%d.dat' % (_DATA_PATH, shotno)
     return np.fromfile(path, np.float32).reshape((-1, len(cfg.IN_MODE_MATRIX))).T
 
             
@@ -192,9 +206,9 @@ def get_ctrl_ao(shotno):
     '''Return control system output in shot *shotno*'''
     
     if shotno is None:
-        path = '%s/ao_store.dat'% REF_PATH
+        path = '%s/ao_store.dat'% _CONTROL_CODE_PATH
     else:
-        path = '%s/ao_store_%d.dat' % (DATA_PATH, shotno)
+        path = '%s/ao_store_%d.dat' % (_DATA_PATH, shotno)
         
     raw = np.fromfile(path, np.int16).reshape((-1, AO_CHANNELS)).T
     return raw.astype(np.float) * 10 / INT16_MAX                        
@@ -214,10 +228,10 @@ def get_fb_config(shotno):
     cfg = FBConfiguration()
     
     if shotno is None:
-        execfile('%s/fbsettings.py'% REF_PATH , cfg.__dict__)
+        execfile('%s/fbsettings.py'% _CONTROL_CODE_PATH , cfg.__dict__)
         return cfg
      
-    fname =  '%s/fbsettings_%d.py' % (DATA_PATH, shotno)
+    fname =  '%s/fbsettings_%d.py' % (_DATA_PATH, shotno)
     print(fname)
     if not os.path.exists(fname):
         raise NoFBConfiguration()

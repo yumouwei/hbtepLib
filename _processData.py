@@ -2,20 +2,27 @@
 this library contains a number of useful functions that are general purpose 
 data processing functions.
 """
-
-### import common libraries
+            
+###############################################################################
+### import libraries
+            
+# common libraries
 import numpy as _np
 import matplotlib.pyplot as _plt
 import copy as _copy
-import _plotDataTools as _pdt
 import math as _math
 
+# hbtepLib libraries
+import _plotTools as _plot
+
             
-    
+###############################################################################
+### functions
+            
 def find_nearest(array,value):
     """
-    search through array and returns the index of the cell closest to the 
-    value.
+    search through `array` and returns the `index` of the cell closest to the 
+    `value`.
     
     Parameters
     ----------
@@ -26,15 +33,15 @@ def find_nearest(array,value):
         
     Return
     ------
-    idx : int
+    index : int
         index of value in array that is closest to value
     
     References
     ----------
     http://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
     """
-    idx = (_np.abs(array-value)).argmin()
-    return idx #array[idx] #index instead of value
+    index = (_np.abs(array-value)).argmin()
+    return index #array[idx] #index instead of value
     
     
 def rmse(data, targets=0):
@@ -51,7 +58,8 @@ def rmse(data, targets=0):
         
     Return
     ------
-    root mean square error
+    : numpy.array 
+        root mean square error of data
     
     References
     ----------
@@ -68,11 +76,12 @@ def rms(data):
     Parameters
     ----------
     data : numpy.array 
-        Data being considered
+        Data to be processed
         
     Return
     ------
-    root mean square 
+    : numpy.array 
+        root mean square of data
     
     References
     ----------
@@ -82,7 +91,7 @@ def rms(data):
     return _np.sqrt(((data - 0) ** 2).mean())
     
     
-def rejectOutliers(data, m=2):
+def rejectOutliers(data, sigma=2):
     """
     remove outliers from set of data
     
@@ -90,9 +99,9 @@ def rejectOutliers(data, m=2):
     ----------
     data : numpy.ndarray
         data array being considered
-    m : int
-        the number of std. devs. about which to reject data.  E.g. m=2 rejects 
-        outliers outside of +-2*sigma
+    sigma : int
+        the number of std. devs. about which to reject data.  E.g. sigma=2 
+        rejects outliers outside of +-2*sigma
         
     Return
     ------
@@ -102,7 +111,7 @@ def rejectOutliers(data, m=2):
     ----------
     http://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
     """
-    return data[abs(data - _np.mean(data)) < m * _np.std(data)]
+    return data[abs(data - _np.mean(data)) < sigma* _np.std(data)]
                 
       
 def boxCar(data,c=25):
@@ -344,7 +353,7 @@ class polyFitData:
         self.fitData=self.ffit(xData)
         
         ### generate plot        
-        self.plotOfFit=_pdt.prePlot();
+        self.plotOfFit=_plot.plot();
         self.plotOfFit.xLabel='x'
         self.plotOfFit.yLabel='y'
         self.plotOfFit.title=title;
@@ -386,28 +395,26 @@ class genericCurveFit:
     references:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
     
-        #######################
-        ## example usage
-        
-        def dumbModel(variables,a,b,c):
-            x,y=variables
-            return _np.log(a) + b*_np.log(x) + c*_np.log(y)
-        
-        # some artificially noisy data to fit
-        x = _np.linspace(0.1,1.1,101)
-        y = _np.linspace(1.,2., 101)
-        a, b, c = 10., 4., 6.
-        z = dumbModel((x,y), a, b, c) * 1 + _np.random.random(101) / 100
-        
-        # initial guesses for a,b,c:
-        p0 = 8., 2., 7.
-        
-        # solve
-        indepVars=(x,y)
-        a=genericCurveFit(dumbModel, indepVars, z, p0)
+    Example use
+    -----------
+    def dumbModel(variables,a,b,c):
+        x,y=variables
+        return _np.log(a) + b*_np.log(x) + c*_np.log(y)
+    
+    # some artificially noisy data to fit
+    x = _np.linspace(0.1,1.1,101)
+    y = _np.linspace(1.,2., 101)
+    a, b, c = 10., 4., 6.
+    z = dumbModel((x,y), a, b, c) * 1 + _np.random.random(101) / 100
+    
+    # initial guesses for a,b,c:
+    p0 = 8., 2., 7.
+    
+    # solve
+    indepVars=(x,y)
+    a=genericCurveFit(dumbModel, indepVars, z, p0)
 
     """    
-    
 
     def __init__(self,func, indepVars,depVar,guess, bounds=None,plot=True , maxNumIterations = None, fileName=''):
         self.indepVars=indepVars;
@@ -450,8 +457,25 @@ class genericCurveFit:
 
 def expFun(x, a,b,c):
     """
-    Basic exponential function.
-    Used primarily with fitting functions.  
+    Basic exponential function.  Used primarily with fitting functions. 
+    Output = a*_np.exp(x/b)+c
+    
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Independent variable
+    a : float
+        Fitting parameter.  Output = a*_np.exp(x/b)+c
+    b : float
+        Fitting parameter.  Output = a*_np.exp(x/b)+c
+    c : float
+        Fitting parameter.  Output = a*_np.exp(x/b)+c
+        
+    Returns
+    -------
+    : numpy.ndarray
+        Output = a*_np.exp(x/b)+c
+    
     """
     return a*_np.exp(x/b)+c
     
@@ -459,15 +483,50 @@ def expFun(x, a,b,c):
 # define sin cos function
 def cosFunc(x, a,b,c,d):
     """
-    Cosine function.
-    Used primarily with fitting functions.  
+    Cosine function.  Used primarily with fitting functions.  
+    Output = a*_np.cos(x*d*2*_np.pi+b)+c
+    
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Independent variable
+    a : float
+        Fitting parameter.  Output = a*_np.cos(x*d*2*_np.pi+b)+c
+    b : float
+        Fitting parameter.  Output = a*_np.cos(x*d*2*_np.pi+b)+c
+    c : float
+        Fitting parameter.  Output = a*_np.cos(x*d*2*_np.pi+b)+c
+    d : float
+        Fitting parameter.  Output = a*_np.cos(x*d*2*_np.pi+b)+c
+        
+    Returns
+    -------
+    : numpy.ndarray
+        Output = a*_np.cos(x*d*2*_np.pi+b)+c
     """
     return a*_np.cos(x*d*2*_np.pi+b)+c
     
 
 def singlePowerTerm(x, a,b,c):
     """
-    basic single power term
+    Basic power term.  Used primarily with fitting functions.  
+    Output = a*(x)**b+c
+    
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Independent variable
+    a : float
+        Fitting parameter.  Output = a*(x)**b+c
+    b : float
+        Fitting parameter.  Output = a*(x)**b+c
+    c : float
+        Fitting parameter.  Output = a*(x)**b+c
+        
+    Returns
+    -------
+    : numpy.ndarray
+        Output = a*(x)**b+c
     """
     return a*(x)**b+c
     
@@ -591,12 +650,11 @@ class genericLeastSquaresFit:
     i've found that the guess values often NEED to be somewhat close to the 
     actual values for the solution to converge
     
-    Examples use
+    Example use
     ------------
     # define expoential function
     def expFun(x, a,b,c):
         return a*_np.exp(x/b)+c
-    
     # generate noisy exponential signal
     x1=_np.linspace(-1,1,100);
     a=_np.zeros(len(x1));
@@ -608,9 +666,8 @@ class genericLeastSquaresFit:
         c[i]=(random.random()-0.5)/4. + 1.
     y1=1+_np.pi*_np.exp(x1/_np.sqrt(2)) # actual solution
     y2=1*a+_np.pi*b*_np.exp(x1/_np.sqrt(2)/c) # noisy solution
-        
     # perform fit
-    d=genericLeastSquaresFit(x1,[1,1,1],y2, expFun, y1)
+    d=genericLeastSquaresFit(x1,[1,1,1],y2, expFun, y1,plot=True)
     """           
     
     def __init__(self, x, x0, y, function,yTrue=[],plot=True ):
@@ -630,7 +687,7 @@ class genericLeastSquaresFit:
         ### plot of fit
         # only makes this plot if there is a single indep. variable. 
         if type(x) is _np.ndarray or len(x)==1:
-            self.plotOfFit=_pdt.prePlot();
+            self.plotOfFit=_plot.plot();
             self.plotOfFit.yLabel='y'
             self.plotOfFit.xLabel='x'
             self.plotOfFit.title=r'R$^2$ = %.5f' % self.rSquared
@@ -664,7 +721,7 @@ class genericLeastSquaresFit:
                 
         ### plot of fit vs dependent data.  important if there are multiple
         ###         independent variables.
-        self.plotOfFitDep=_pdt.prePlot();
+        self.plotOfFitDep=_plot.plot();
         self.plotOfFitDep.yLabel='fit data'
         self.plotOfFitDep.xLabel='raw data'
         self.plotOfFitDep.aspect="equal"
@@ -703,7 +760,6 @@ class genericLeastSquaresFit:
 def rSquared(y,f):
     """
     calculates R^2 of data fit
-        
         
     Parameters
     ----------
@@ -752,8 +808,9 @@ def listArrayToNumpyArray(inData):
 
     Notes
     -----
-    Note that this code requires that all arrays in the list have the same
+    -Note that this code requires that all arrays in the list have the same
     length
+    -This code is so obvious that having a wrapper for it is kinda dumb...
     
     """
     outData = _np.array(inData)
