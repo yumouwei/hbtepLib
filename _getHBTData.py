@@ -18,8 +18,7 @@ from copy import copy as _copy
 import pickle as _pk
 import sys as _sys
 
-# import hbt library functions
-import _plotDataTools as _pdt
+# import hbt library functions\
 import _rwDataTools as _gdt
 import _processData as _pd
 import _plotTools as _plot
@@ -1935,11 +1934,13 @@ class nModeData:
         self.plotOfPhaseAmp.yLegendLabel=['TA sensors']
         self.plotOfPhaseAmp.plotType='scatter'
         self.plotOfPhaseAmp.yLim=[-_np.pi,_np.pi]
-        mx=_np.max(self.n1AmpFiltered)
-        lCutoff=2.5
-        uCutoff=8.
-        cm = _pdt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
-        self.plotOfPhaseAmp.cmap=cm
+        
+#       TODO fix this code        
+#        mx=_np.max(self.n1AmpFiltered)
+#        lCutoff=2.5
+#        uCutoff=8.
+#        cm = _pdt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
+#        self.plotOfPhaseAmp.cmap=cm
                                 
         ## plot data
         if plot==True:
