@@ -5,7 +5,13 @@ gitCommands
 _hbtPreferences.py
 
 # misc files that aren't necessary and glutter the repository.  
-.gitingore~
+.gitignore~
 readme.md~
 *.py~
 *.pyc 
+__init__.pyc
+_getHBTData.pyc
+_hbtPreferences.pyc
+_plotTools.pyc
+_processData.pyc
+_rwDataTools.pyc
