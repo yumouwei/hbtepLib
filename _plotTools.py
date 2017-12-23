@@ -146,6 +146,7 @@ class subPlot:
         else:
             n=1;
             self.subPlots=[self.subPlots];
+        print "m=%d, n=%d" % (m,n)
                 
         # initialize subplot
         fig, axarr = _plt.subplots(nrows=m,
@@ -178,7 +179,7 @@ class subPlot:
             for j in range(0,n):
                 
                 # plot instance
-                data = self.subPlots[i][j];
+                data = self.subPlots[j][i]; # TODO issue here. some plots only work with [j][i] instead of [i][j]
                 
                 # axis handle.  plt.subplots has trouble indexing when the 
                 # subplot changes from 0D to 1D to 2D.  these next lines take
@@ -188,7 +189,7 @@ class subPlot:
                 elif n==1 and m!=1:
                     ax=axarr[i];
                 else:
-                    ax=axarr[i][j];
+                    ax=axarr[j][i]; # TODO issue here. some plots only work with [j][i] instead of [i][j]
                     
                 # check xData formatting
                 if type(data.xData) is _np.ndarray:
@@ -374,3 +375,5 @@ class subPlot:
                 
         # plot
         _plt.show()
+        
+

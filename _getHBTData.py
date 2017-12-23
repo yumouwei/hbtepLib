@@ -1294,7 +1294,8 @@ class solData:
         plots[0][0].title=self.title
         sp1=_plot.subPlot(plots,plot=False)
         sp1.shareY=True;
-        sp1.plot()
+#        sp1.plot()
+        self.sp1=sp1
     
         
 class loopVoltageData:
@@ -1442,8 +1443,8 @@ class gpuControlData:
             
         ## Load time from control files.  
         # TODO(JOHN) recalibrate time offset
-        timeOffset = 0.0340/1000
-        self.time=fbt.get_ctrl_times(shotno)+timeOffset; ## NOTE:  For some reason, there is a shift in the time data on the GPU vs. the Tree.  Not sure why.  I "roughly" correct for it in the next line.  Calibrated with hbt.compareBP_Bn1_GPU(97088)
+        self.timeOffset = -1.0/1000+0.01406/1000- 0.00308/1000
+        self.time=fbt.get_ctrl_times(shotno)+self.timeOffset+1.0/1000; ## NOTE:  For some reason, there is a shift in the time data on the GPU vs. the Tree.  Not sure why.  I "roughly" correct for it in the next line.  Calibrated with hbt.compareBP_Bn1_GPU(97088)
 
         # get data
         analogIn=fbt.get_ctrl_ai(shotno); # TODO(JOHN) remove _numCh 
@@ -1469,9 +1470,11 @@ class gpuControlData:
         temp,mPhase=_trimTime(self.time,list(mPhase),tStart,tStop)
         temp,mFreq=_trimTime(self.time,list(mFreq),tStart,tStop)
         self.time=temp
+        self.analogIn=analogIn;  # only uncomment this variable for debugging perpuses
+        self.analogOut=analogOut; # only uncomment this variable for debugging perpuses
         
         # distribute trimmed data to class variables
-        self.BPS9Voltage=analogOut[43]; #43
+        self.BPS9Voltage=analogOut[41]; #41 or 43 (SOUTH_CPCI_10 channels 41 or 43)
         self.mAmpCosSec1=mAmp[0];
         self.mAmpSinSec1=mAmp[1];
         self.mAmpSec1=_np.sqrt(self.mAmpCosSec1**2 + self.mAmpSinSec1**2)
@@ -1502,7 +1505,7 @@ class gpuControlData:
         self.plotOfBPS9Voltage.title=str(self.shotno);
         self.plotOfBPS9Voltage.yData.append(self.BPS9Voltage)
         self.plotOfBPS9Voltage.xData.append(self.time*1000)
-        self.plotOfBPS9Voltage.yLegendLabel.append('BPS9')
+        self.plotOfBPS9Voltage.yLegendLabel.append('GPU-BPS9')
         
         # init mode amp plot
         self.plotOfAmplitudes=_plot.plot();
@@ -1513,6 +1516,7 @@ class gpuControlData:
         self.plotOfAmplitudes.yData.append(self.mAmpSec1*1e4)
         self.plotOfAmplitudes.xData.append(self.time*1000)
         self.plotOfAmplitudes.yLegendLabel.append('GPU-Sec1')
+        self.plotOfAmplitudes.yLim=[0,20]
         if plotEVERYTHING==True:
             self.plotOfAmplitudes.yData.append(self.mAmpSec2*1e4)
             self.plotOfAmplitudes.yData.append(self.mAmpSec3*1e4)
@@ -1535,7 +1539,7 @@ class gpuControlData:
         self.plotOfPhase.linestyle.append('')
         self.plotOfPhase.marker.append('.')
         self.plotOfPhase.xData.append(self.time*1000)
-        self.plotOfPhase.yLegendLabel.append('FBSensors-GPU Sec1')
+        self.plotOfPhase.yLegendLabel.append('GPU-Sec1')
         if plotEVERYTHING==True:
             self.plotOfPhase.yData.append(_process.wrapPhase(self.mPhaseSec2))
             self.plotOfPhase.yData.append(_process.wrapPhase(self.mPhaseSec3))
@@ -1561,7 +1565,7 @@ class gpuControlData:
         self.plotOfFreq.title=str(self.shotno);
         self.plotOfFreq.yData.append(self.mFreqSec1*1e-3)
         self.plotOfFreq.xData.append(self.time*1000)
-        self.plotOfFreq.yLegendLabel.append('FBSensors-GPU Sec1')
+        self.plotOfFreq.yLegendLabel.append('GPU-Sec1')
         if plotEVERYTHING==True:
             self.plotOfFreq.yData.append(self.mFreqSec2*1e-3)
             self.plotOfFreq.yData.append(self.mFreqSec3*1e-3)
@@ -1666,13 +1670,13 @@ class gpuControlData:
         
         import _feedBackTools as _fbt
         DT=0.000006; # should be 0.00006
-        timeOffset=-1.1;# calibrated on shotno 97601.  sig gen on input with 200 Hz triangular wave.  
+#        timeOffset=-1.1;# calibrated on shotno 97601.  sig gen on input with 200 Hz triangular wave.  
         
         GPUBP=_fbt.get_fb(self.shotno);
         
         # the time array is mostly zeros.  removing these from time AND from the data
         indices=_np.where(GPUBP[0,:]!=0)[0]  
-        self.fb.time=GPUBP[0,indices]*DT+timeOffset*1e-3;  # multipling by DT converts sequential numbers into microseconds.  
+        self.fb.time=GPUBP[0,indices]*DT+self.timeOffset;  # multipling by DT converts sequential numbers into microseconds.  
 
         # set feedback variables from loaded data
         print _np.shape(GPUBP)
@@ -1747,7 +1751,7 @@ class gpuControlData:
         self.plotOfGains.xLabel='Time [ms]'
         self.plotOfGains.subtitle='Gains'
         self.plotOfGains.title=str(self.shotno);
-        self.plotOfGains.yLim=[-50, 100]  
+        self.plotOfGains.yLim=[-75, 100]  
         self.plotOfGains.yData.append(self.fb.fb) 
         self.plotOfGains.xData.append(self.fb.time*1e3)
         self.plotOfGains.yLegendLabel.append('fb=P+I')
@@ -1796,6 +1800,9 @@ class gpuControlData:
         self.plotOfPhase.yLegendLabel.append('CPCI')
         self.plotOfPhase.marker.append('.')
         self.plotOfPhase.linestyle.append('')
+        
+        self.plotOfVin.xLim=[3,6]
+        self.plotOfFBFreq.yLim=[0,10]
         
         # construct fb subplot
         self.plotOfFeedback=_plot.subPlot([self.plotOfVin,
@@ -2161,7 +2168,7 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,phi0=0,nModeSensor='FB',method='leastSquares'):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,plotAll=False,phi0=0,nModeSensor='FB',method='leastSquares'):
         
         self.shotno=shotno
         
@@ -2241,7 +2248,7 @@ class nModeData:
             self.plotOfAmps.yLegendLabel=['FB Sensors, n=1','FB Sensors, n=2','FB Sensors, n=2, filtered']
         self.plotOfAmps.title=str(self.title)
         self.plotOfAmps.xLabel='ms'
-        self.plotOfAmps.yLabel='T'    
+        self.plotOfAmps.yLabel='G'    
 
         # n=1 mode amplitude
         self.plotOfN1Amp=_plot.plot()
@@ -2310,10 +2317,13 @@ class nModeData:
                                 
         ## plot data
         if plot==True:
+            _plot.subPlot([self.plotOfN1Amp,self.plotOfN1Phase,self.plotOfN1Freq])
+            
+        if plotAll==True:
             self.plotSlice(index=int(m/4));
             self.plotSlice(index=int(m/2));
             _plot.subPlot([self.plotOfAmps,self.plotOfN1Phase,self.plotOfN1Freq])
-#            self.plotOfPhaseAmp.plot();  #TODO fix this.  still having issues
+            
 
     def plotSlice(self,index=0):
         """
