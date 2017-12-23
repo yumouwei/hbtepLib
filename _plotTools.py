@@ -135,7 +135,7 @@ class subPlot:
         
     def plot(self):
         
-        # make sure x and y are lists
+        # make sure data is a list
         if type(self.subPlots) is not list:
             self.subPlots=[self.subPlots];
             
@@ -145,8 +145,6 @@ class subPlot:
             n=len(self.subPlots[0]);
         else:
             n=1;
-            self.subPlots=[self.subPlots];
-        print "m=%d, n=%d" % (m,n)
                 
         # initialize subplot
         fig, axarr = _plt.subplots(nrows=m,
@@ -175,11 +173,14 @@ class subPlot:
                                 
                               
         # iterate through sub figures (rows and columns)
-        for i in range(0,m):
-            for j in range(0,n):
+        for j in range(0,m): # iterate through rows
+            for i in range(0,n): # iterate through columns
                 
                 # plot instance
-                data = self.subPlots[j][i]; # TODO issue here. some plots only work with [j][i] instead of [i][j]
+                if n==1:
+                    data = self.subPlots[j];
+                else:
+                    data = self.subPlots[j][i]; # TODO issue here. some plots only work with [j][i] instead of [i][j]
                 
                 # axis handle.  plt.subplots has trouble indexing when the 
                 # subplot changes from 0D to 1D to 2D.  these next lines take
@@ -187,7 +188,7 @@ class subPlot:
                 if n==1 and m==1:
                     ax=axarr;
                 elif n==1 and m!=1:
-                    ax=axarr[i];
+                    ax=axarr[j];
                 else:
                     ax=axarr[j][i]; # TODO issue here. some plots only work with [j][i] instead of [i][j]
                     
@@ -198,6 +199,7 @@ class subPlot:
                     
                 # iterate through data within the same plot
                 for k in range(0,len(data.xData)):
+                    
                     # set marker
                     if type(data.marker) is str:
                         data.marker=[data.marker]
@@ -376,4 +378,65 @@ class subPlot:
         # plot
         _plt.show()
         
+
+
+#!/usr/bin/env python
+
+import pygtk
+pygtk.require('2.0')
+import gtk
+
+# Global variables
+b_entry_checkbox = True
+
+class Checkbox:
+
+    def entry_checkbox(self, widget, checkbox):
+        global b_entry_checkbox
+        b_entry_checkbox = checkbox.get_active()
+        if b_entry_checkbox:
+            print "Box checked"
+        else:
+            print "Not checked"
+        return
+
+    # Main program to draw GUI
+    def __init__(self):
+        global b_entry_checkbox
+
+        # create a new window
+        app_window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        app_window.set_size_request(500, 100)
+        app_window.set_border_width(10)
+        app_window.set_title("My program title")
+        app_window.connect("delete_event", lambda w,e: gtk.main_quit())
+
+        frame_checkbox = gtk.Frame("Check for true:")
+#        frame_checkbox.set_shadow_type(gtk.SHADOW_IN)
+
+        app_window.add(frame_checkbox)
+
+        check_box = gtk.CheckButton("Checkbox text string")
+        check_box.connect("toggled", self.entry_checkbox, check_box)
+        check_box.set_active(True)  # Set the defaut
+        check_box.show()
+
+        frame_checkbox.add(check_box)
+        frame_checkbox.show()
+        
+        
+        frame_checkbox2 = gtk.Frame("asdf")
+        app_window.add(frame_checkbox2)
+        frame_checkbox2.show()
+        
+        app_window.show()
+        return
+
+def main():
+    gtk.main()
+    return 0
+
+if __name__ == "__main__":
+    Checkbox()
+    main()
 
