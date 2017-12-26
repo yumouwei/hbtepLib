@@ -134,14 +134,11 @@ def mdsData(shotno=None,
     
     Parameters
     ----------
-#    mdsConn : MDSplus.connection
-#        connection class to mdsplus tree.  i.e. the output from
-#        initMDSConnection 
     shotno : int
-        if shotno is defined, this function will establish its own mdsConn
-#        regardless of whether mdsConn was previously defined
+        shotno of data.  this function will establish its own mdsConn of this 
+        shotno
     dataAddress : list (of strings)
-        address of desired data on tree
+        address of desired data on MDSplus tree
     tStart : float
         trims data before this time
     tStop : float
@@ -208,6 +205,8 @@ class ipData:
     ----------
     shotno : int
         shot number of desired data
+    title : str
+        title to go on all plots
     ip : numpy.ndarray
         plasma current data
     time : numpy.ndarray
@@ -408,10 +407,12 @@ class bpData:
 
         if plot==True:
             self.plot()
-
+        if plot=='all':
+            _plot.subPlot([self.plotOfVoltage,self.plotOfCurrent,self.plotOfGPUVoltageRequest])
+        
     def plot(self):
-        """ Plot all relevant plots """
-        _plot.subPlot([self.plotOfVoltage,self.plotOfCurrent,self.plotOfGPUVoltageRequest])
+        """ Plot relevant plots """
+        _plot.subPlot([self.plotOfVoltage,self.plotOfCurrent])
         
     
 class tpData:
@@ -506,9 +507,6 @@ class tpData:
         
         self.shotno = shotno
         self.title = 'shotno = %s, triple probe data' % shotno
-#        self.vTipA = None  # negative tip? TODO check
-#        self.vTipB = None  # positive tip? TODO check
-#        self.vTipC = None  # floating tip
         
         # enforce probes naming convetion
         if probes=='5':
@@ -683,8 +681,10 @@ class tpData:
             self.plotOfISat.yLegendLabel.append('TPS8')         
             
         if plot==True:
-            self.plotRaw();
             self.plotProcessed();
+        elif plot=='all':
+            self.plotProcessed();            
+            self.plotRaw();
             
     def plotRaw(self):
         _plot.subPlot([self.plotOfTipA,self.plotOfTipB,self.plotOfTipC,
@@ -707,10 +707,10 @@ class paData:
         time (in seconds) to trim data before
     tStart : float
         time (in seconds) to drim data after
-    plotSample : bool
-        plots a single PA1 and PA2 sensor data
-    plotAll : bool
-        plots all 64 sensors.  Warning: this is hard on system memory
+    plot : bool or str
+        True - plots all 64 sensors
+        'sample' - plots one of each (PA1 and PA2)
+        'all' - same as True
     smoothingAlgorithm : str
         informs function as to which smoothing algorithm to use on each PA 
         sensor
@@ -719,13 +719,34 @@ class paData:
     ----------
     shotno : int
         shot number of desired data
-    TODO add all remaining attributes here
+    title : str
+        title to put at the top of figures
+    theta : numpy.ndarray
+        poloidal location of sensors.  
+    namesPA1 : numpy.ndarray
+        1D array of all PA1 sensor names
+    namesPA2 : numpy.ndarray
+        1D array of all PA2 sensor names
+    pa1Raw : list (of numpy.ndarray)
+        raw PA1 sensor data
+    pa2Raw : list (of numpy.ndarray)
+        raw PA2 sensor data
+    pa1Data : list (of numpy.ndarray)
+        PA1 sensor data, processed
+    pa2Data : list (of numpy.ndarray)
+        PA2 sensor data, processed
+    pa1RawFit : list (of numpy.ndarray)
+        fit applied to raw data
+    pa2RawFit : list (of numpy.ndarray)
+        fit applied to raw data
+        
 
     """
     
-    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plotSample=False, plotAll=False,
+    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plot=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
+        self.title = '%d, PA sensors' % shotno
         
         # poloidal location (in degrees)
         self.theta = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
@@ -769,14 +790,14 @@ class paData:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
         
         # plot 
-        if plotSample==True:
+        if plot==True or plot=='all':
+            self.plotAll()
+        if plot=='sample':
             self.plotPA1();
             self.plotPA2();
-        if plotAll==True:
-            self.plotAll()
             
 
-    def plotPA1(self, i=0, alsoPlotRawAndFit=True):
+    def plotPA1(self, i=0, plot=True,alsoPlotRawAndFit=True):
         """ Plot one of the PA1 plots.  based on index, i. """
         p1=_plot.plot();
 #        p1.xLim=[self.tStart,self.tStop]
@@ -801,9 +822,11 @@ class paData:
             p1.yLegendLabel.append('fit')
 
         # plot
-        p1.plot()
+        if plot == True:
+            p1.plot()
+        return p1
         
-    def plotPA2(self, i=0, alsoPlotRawAndFit=True):
+    def plotPA2(self, i=0, plot=True,alsoPlotRawAndFit=True):
         """ Plot one of the PA2 plots.  based on index, i. """
         p1=_plot.plot();
 #        p1.xLim=[self.tStart,self.tStop]
@@ -828,17 +851,43 @@ class paData:
             p1.yLegendLabel.append('fit')
 
         # plot
-        p1.plot()
+        if plot == True:
+            p1.plot()
+            
+        return p1
         
-    def plotAll(self,alsoPlotRawAndFit=True):
-        """
-        Plots poloidal sensor data for all 64 sensors
+#    def plotAll(self,alsoPlotRawAndFit=True):
+#        """
+#        Plots poloidal sensor data for all 64 sensors
+#        
+#        Warning, 64 plots is tough on memory.  
+#        """
+#        for k in range(0,32):
+#            self.plotPA1(k,alsoPlotRawAndFit);
+#            self.plotPA2(k,alsoPlotRawAndFit);
         
-        Warning, 64 plots is tough on memory.  
-        """
-        for k in range(0,32):
-            self.plotPA1(k,alsoPlotRawAndFit);
-            self.plotPA2(k,alsoPlotRawAndFit);
+    def plotAll(self):
+        sp1=[[],[],[],[]]
+        sp2=[[],[],[],[]]
+        count=0
+        for i in range(0,4):
+            for j in range(0,8):
+                newPlot=self.plotPA1(count,plot=False)
+                newPlot.subtitle=self.namesPA1[count]
+                newPlot.yLegendLabel=[]
+                sp1[i].append(newPlot)
+                newPlot=self.plotPA2(count,plot=False)
+                newPlot.subtitle=self.namesPA2[count]
+                newPlot.yLegendLabel=[]
+                sp2[i].append(newPlot)
+                count+=1;
+        sp1[0][0].title=self.title
+        sp2[0][0].title=self.title
+        sp1=_plot.subPlot(sp1,plot=False)
+        sp2=_plot.subPlot(sp2,plot=False)
+#        sp1.shareY=True;
+        sp1.plot()
+        sp2.plot()
             
     
 class fbData:
@@ -853,10 +902,10 @@ class fbData:
         time (in seconds) to trim data before
     tStart : float
         time (in seconds) to drim data after
-    plotSample : bool
-        plots results from only one sensor.  both poloidal and radial data
-    plotAll : bool
-        plots all 40 sensors.  both poloidal and radial data
+    plot : bool or str
+        True - Plots a sample of each FB poloidal and radial data
+        'sample'- same as True
+        'all' - Plots all 80 sensor data
     smoothingAlgorithm : str
         informs function as to which smoothing algorithm to use on each PA 
         sensor
@@ -865,13 +914,32 @@ class fbData:
     ----------
     shotno : int
         shot number of desired data
+    title : str
+        title to be added to each plot
+    fbPolNames : 2D list (of str)
+        name of every poloidal FB sensor
+    fbRadNames : 2D list (of str)
+        name of every radial FB sensor
     phi : numpy.ndarray
-        array of toroidal locations for all sensors.  units in degrees.
-    TODO add all remaining attributes here
+        toroidal locations for all sensors.  units in radians.
+    fbPolRaw : 2D list (of numpy.ndarray)
+        raw FB-poloidal data
+    fbRadRaw : 2D list (of numpy.ndarray)
+        raw FB-radial data
+    fbPolData : 2D list (of numpy.ndarray)
+        FB-poloidal data, processed
+    fbRadData : 2D list (of numpy.ndarray)
+        FB-radial data, processed
+    fbPolRawFit : 2D list (of numpy.ndarray)
+        smoothed fit of raw poloidal data.  subtracted from data to get 
+        fbPolData
+    fbRadRawFit : 2D list (of numpy.ndarray)
+        smoothed fit of raw radial data.  subtracted from data to get fbRadData
         
     """
-    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plotSample=False, plotAll=False,smoothingAlgorithm='tripleBoxCar'):
+    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plot=False,smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
+        self.title = "%d, FB sensors" % shotno
 
         # sensor names
         self.fbPolNames=[['FB01_S1P', 'FB02_S1P', 'FB03_S1P', 'FB04_S1P', 'FB05_S1P', 'FB06_S1P', 'FB07_S1P', 'FB08_S1P', 'FB09_S1P', 'FB10_S1P'], ['FB01_S2P', 'FB02_S2P', 'FB03_S2P', 'FB04_S2P', 'FB05_S2P', 'FB06_S2P', 'FB07_S2P', 'FB08_S2P', 'FB09_S2P', 'FB10_S2P'], ['FB01_S3P', 'FB02_S3P', 'FB03_S3P', 'FB04_S3P', 'FB05_S3P', 'FB06_S3P', 'FB07_S3P', 'FB08_S3P', 'FB09_S3P', 'FB10_S3P'], ['FB01_S4P', 'FB02_S4P', 'FB03_S4P', 'FB04_S4P', 'FB05_S4P', 'FB06_S4P', 'FB07_S4P', 'FB08_S4P', 'FB09_S4P', 'FB10_S4P']]
@@ -927,14 +995,14 @@ class fbData:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
      
         # plot
-        if plotSample==True:
+        if plot==True or plot=='sample':
             self.plotPol();
             self.plotRad();
-        if plotAll==True:
+        if plot=='all':
             self.plotAll()
             
 
-    def plotPol(self, row=0, col=0,alsoPlotRawAndFit=True):
+    def plotOnePol(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
         """
         Plots poloidal data from FB sensors
         """
@@ -944,29 +1012,32 @@ class fbData:
         p1=_plot.plot();
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
-        p1.title=str(self.shotno)+'. '+str(self.fbPolNames[i][j])+' data'
+        p1.title=str(self.shotno)+'. '+str(self.fbPolNames[j][i])+' data'
         
         # smoothed data
-        p1.yData.append(self.fbPolData[i][j]); #[self.taPDataRaw[i]]#
+        p1.yData.append(self.fbPolData[j][i]); #[self.taPDataRaw[i]]#
         p1.xData.append(self.fbPolTime*1000);
         p1.yLegendLabel.append('Smoothed')
         
         if alsoPlotRawAndFit==True:
             # raw data
-            p1.yData.append(self.fbPolRaw[i][j])
+            p1.yData.append(self.fbPolRaw[j][i])
             p1.xData.append(self.fbPolTime*1000);
             p1.yLegendLabel.append('Raw')
             
             # fit data (which is subtracted from raw)
-            p1.yData.append(self.fbPolRawFit[i][j])
+            p1.yData.append(self.fbPolRawFit[j][i])
             p1.xData.append(self.fbPolTime*1000);
             p1.yLegendLabel.append('Fit')
             
         # plot
-        p1.plot()
+        if plot==True:
+            p1.plot()
+            
+        return p1
         
         
-    def plotRad(self, row=0, col=0,alsoPlotRawAndFit=True):
+    def plotOneRad(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
         """
         Plots radial data from FB sensors
         """
@@ -976,35 +1047,56 @@ class fbData:
         p1=_plot.plot();
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
-        p1.title=str(self.shotno)+'. '+str(self.fbRadNames[i][j])+' data'
+        p1.title=str(self.shotno)+'. '+str(self.fbRadNames[j][i])+' data'
         
         # smoothed data
-        p1.yData.append(self.fbRadData[i][j]); #[self.taPDataRaw[i]]#
+        p1.yData.append(self.fbRadData[j][i]); #[self.taPDataRaw[i]]#
         p1.xData.append(self.fbRadTime*1000);
         p1.yLegendLabel.append('Smoothed')
         
         if alsoPlotRawAndFit==True:
             # raw data
-            p1.yData.append(self.fbRadRaw[i][j])
+            p1.yData.append(self.fbRadRaw[j][i])
             p1.xData.append(self.fbRadTime*1000);
             p1.yLegendLabel.append('Raw')
             
             # fit data (which is subtracted from raw)
-            p1.yData.append(self.fbRadRawFit[i][j])
+            p1.yData.append(self.fbRadRawFit[j][i])
             p1.xData.append(self.fbRadTime*1000);
             p1.yLegendLabel.append('Fit')
             
         # plot
-        p1.plot()
+        if plot==True:
+            p1.plot()
         
-    def plotAll(self,alsoPlotRawAndFit=True):
+        return p1
+        
+
+    def plotAll(self):
         """
-        Plots poloidal and radial sensor data for all 40 sensors (80 in total)
+        Plots all 80 poloidal and radial FB sensors
         """
-        for k in range(0,10):
-            for l in range(0,4):
-                self.plotPol(row=k,col=l,alsoPlotRawAndFit=alsoPlotRawAndFit);
-                # self.plotRad(row=k,col=l,alsoPlotRawAndFit=alsoPlotRawAndFit);
+        sp1=[[],[],[],[]]
+        sp2=[[],[],[],[]]
+        count=0
+        for i in range(0,4):
+            for j in range(0,10):
+                newPlot=self.plotOnePol(i,j,plot=False)
+                newPlot.subtitle=self.fbPolNames[i][j]
+                newPlot.yLegendLabel=[]
+                sp1[i].append(newPlot)
+                newPlot=self.plotOneRad(i,j,plot=False)
+                newPlot.subtitle=self.fbRadNames[i][j]
+                newPlot.yLegendLabel=[]
+                sp2[i].append(newPlot)
+                count+=1;
+        sp1[0][0].title=self.title
+        sp2[0][0].title=self.title
+        sp1=_plot.subPlot(sp1,plot=False)
+        sp2=_plot.subPlot(sp2,plot=False)
+        # sp1.shareY=True;
+        sp1.plot()
+        sp2.plot()    
     
     
 class taData:
@@ -1020,10 +1112,10 @@ class taData:
         time (in seconds) to trim data before
     tStart : float
         time (in seconds) to drim data after
-    plotSample : bool
-        plots one PA1 and one PA2 sensor data
-    plotAll : bool
-        plots all 30 poloidal sensors
+    plot : bool or str
+        True - Plots a sample of each FB poloidal and radial data
+        'sample'- same as True
+        'all' - Plots all 80 sensor data
     smoothingAlgorithm : str
         informs function as to which smoothing algorithm to use on each PA 
         sensor
@@ -1032,24 +1124,45 @@ class taData:
     ----------
     shotno : int
         shot number of desired data
-    TODO add all remaining attributes here
+    title : str
+        title to go on all plots
+    namesTAPol : list (of str)
+        names of poloidal-TA sensors
+    namesTARad : list (of str)
+        names of radial-TA sensors
+    phi : numpy.ndarray
+        toroidal location of each poloidal-TA sensor.  units in radians.
+    phiR : numpy.ndarray
+        toroidal location of each raidal-TA sensor.  units in radians.
+    taPolRaw : list (of numpy.ndarray)
+        raw poloidal-TA sensor data
+    taRadRaw : list (of numpy.ndarray)
+        raw radial-TA sensor data
+    taPolTime : numpy.ndarray
+        time data associated with poloidal-TA sensor data
+    taRadTime : numpy.ndarray
+        time data associated with radial-TA sensor data
+    taPolData : list (of numpy.ndarray)
+        poloidal-TA sensor data
+    taRadData : list (of numpy.ndarray)
+        radial-TA sensor data
+    taPolRawFit : list (of numpy.ndarray)
+        fit of raw poloidal-TA sensor data.  subtract this from taPolRaw to get
+        taPolData
+    taRadRawFit : list (of numpy.ndarray)
+        fit of raw radial-TA sensor data.  subtract this from taRadRaw to get
+        taRadData
 
     """
         
-    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plotSample=False,plotAll=False,smoothingAlgorithm='tripleBoxCar'):
+    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plot=False,
+                 smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
-#        self.taPDataRaw = []
-#        self.taPData = []
-#        self.taRDataRaw = []
-#        self.time = None
-#        self.tStart = tStart
-#        self.tStop = tStop
+        self.title = "%d, TA sensor data." % shotno
         
         # names of poloidal and radial sensors
         self.namesTAPol=['TA01_S1P', 'TA01_S2P', 'TA01_S3P', 'TA02_S1P', 'TA02_S2P', 'TA02_S3P', 'TA03_S1P', 'TA03_S2P', 'TA03_S3P', 'TA04_S1P', 'TA04_S2P', 'TA04_S3P', 'TA05_S1P', 'TA05_S2P', 'TA05_S3P', 'TA06_S1P', 'TA06_S2P', 'TA06_S3P', 'TA07_S1P', 'TA07_S2P', 'TA07_S3P', 'TA08_S1P', 'TA08_S2P', 'TA08_S3P', 'TA09_S1P', 'TA09_S2P', 'TA09_S3P', 'TA10_S1P', 'TA10_S2P', 'TA10_S3P'];
         self.namesTARad=['TA01_S2R', 'TA02_S2R', 'TA03_S2R', 'TA04_S2R', 'TA05_S2R', 'TA06_S2R', 'TA07_S2R', 'TA08_S2R', 'TA09_S2R', 'TA10_S2R']
-#        self.phi=_np.zeros(30);
-#        self.phiRc=_np.zeros(10);
         
         # toroidal locations for the poloidal measurements
         self.phi=_np.pi/180.*_np.array([-117., -108.,  -99.,  -81.,  -72.,  -63.,  -45.,  -36.,  -27.,  -9.,    0.,    9.,   27.,   36.,   45.,   63.,   72.,   81.,   99.,  108.,  117.,  135.,  144.,  153.,  171.,  180.,  189.,    207.,  216.,  225.])    
@@ -1092,14 +1205,13 @@ class taData:
                     self.taRadData.append(self.taRadRaw[i]-temp)
         else:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
-                     
-    
-
+             
         # plot
-        if plotSample==True:
+        if plot==True or plot=='sample':
             self.plotPol();
-        if plotAll==True:
+        if plot=='all':
             self.plotAll();
+            
         
     def plotPol(self, i=0, alsoPlotRawAndFit=True):
         """ Plot one of the PA1 plots.  based on index, i. """
@@ -1130,10 +1242,12 @@ class taData:
         
     def plotAll(self,alsoPlotRawAndFit=True):
         """
-        Plots poloidal sensor data for all 64 sensors
+        Plots poloidal sensor data for all 40 sensors
         
-        Warning, 64 plots is tough on memory.  
+        Warning, 40 plots is tough on memory.  
         """
+        # TODO(john) update this so that all poloidal data is on a single 
+        # window. Same with radial
         for k in range(0,30):
             self.plotPol(k,alsoPlotRawAndFit);
   
@@ -1141,6 +1255,45 @@ class taData:
 class externalRogowskiData:
     """
     External rogowski data
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    eRogA : numpy.ndarray
+        external rogowski A data
+    eRogB : numpy.ndarray
+        external rogowski B data
+    eRogC : numpy.ndarray
+        external rogowski C data
+    eRogD : numpy.ndarray
+        external rogowski D data
+    time : numpy.ndarray
+        time data
+    plotOfERogA : _plotTools.plot
+        plot of external rogowski A data
+    plotOfERogB : _plotTools.plot
+        plot of external rogowski B data
+    plotOfERogC : _plotTools.plot
+        plot of external rogowski C data
+    plotOfERogD : _plotTools.plot
+        plot of external rogowski D data
+    plotOfERogAll : _plotTools.plot
+        plot of all 4 external rogowskis
+    
     """
     def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
@@ -1148,11 +1301,11 @@ class externalRogowskiData:
         
         # get data
         data, time=mdsData(shotno=shotno,
-                              dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
-                                           '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_B',
-                                           '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_C',
-                                           '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',],
-                              tStart=tStart, tStop=tStop)
+                           dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
+                                        '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_B',
+                                        '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_C',
+                                        '\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',],
+                           tStart=tStart, tStop=tStop)
         self.eRogA=data[0];
         self.eRogB=data[1];
         self.eRogC=data[2];
@@ -1215,6 +1368,32 @@ class externalRogowskiData:
         
 class spectrometerData:
     """
+    Spectrometer data
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    spect : numpy.ndarray
+        spectrometer current data
+    time : numpy.ndarray
+        time data
+    plotOfSpect : _plotTools.plot
+        plot of sprectrometer data
+    
     """
     def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
@@ -1247,6 +1426,33 @@ class spectrometerData:
         
 class solData:
     """
+    SOL tile sensor data
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    sensorNames : list (of str)
+        names of each SOL sensor
+        
+    solData : list (of numpy.ndarray)
+        SOL sensor data
+    time : numpy.ndarray
+        time data
+    
     """
     def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
@@ -1254,13 +1460,13 @@ class solData:
         self.sensorNames = ['LFS01_S1', 'LFS01_S2', 'LFS01_S3', 'LFS01_S4', 'LFS01_S5', 'LFS01_S6', 'LFS01_S7', 'LFS01_S8', 'LFS04_S1', 'LFS04_S2', 'LFS04_S3', 'LFS04_S4', 'LFS08_S1', 'LFS08_S2', 'LFS08_S3', 'LFS08_S4', 'LFS08_S5', 'LFS08_S6', 'LFS08_S7', 'LFS08_S8']
 
         # compile list of sensor addresses for all 20 SOL tiles
-        self.sensorAddress=[]
+        sensorAddress=[]
         for i in range(0,len(self.sensorNames)):
-            self.sensorAddress.append('\HBTEP2::TOP.SENSORS.SOL:%s' % self.sensorNames[i]) 
+            sensorAddress.append('\HBTEP2::TOP.SENSORS.SOL:%s' % self.sensorNames[i]) 
             
         # get data
         self.solData, self.time=mdsData(shotno=shotno,
-                              dataAddress=self.sensorAddress,
+                              dataAddress=sensorAddress,
                               tStart=tStart, tStop=tStop)
                               
         if plot == True:
@@ -1295,15 +1501,41 @@ class solData:
         sp1=_plot.subPlot(plots,plot=False)
         sp1.shareY=True;
 #        sp1.plot()
-        self.sp1=sp1
+        sp1=sp1
     
         
 class loopVoltageData:
     """
+    loo voltage data
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots        
+    loopVoltage : numpy.ndarray
+        SOL sensor data
+    time : numpy.ndarray
+        time data
+    plotOfLV : _plotTools.plot
+        plot of loop voltage data
     
     """
     def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
+        self.title = "%d, Loop voltage data." % shotno
         
         # get data
         data, time=mdsData(shotno=shotno,
@@ -1332,6 +1564,55 @@ class loopVoltageData:
         
 class capBankData:
     """
+    Capacitor bank data.  Current and fields.  
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots        
+    tfBankField : numpy.ndarray
+        Toroidal mangetic field data
+    tfTime : numpy.ndarray
+        Toroidla field time data
+    vfBankCurrent : numpy.ndarray
+        Vertical Field (VF) bank current data
+    vfTime : numpy.ndarray
+        VF time data
+    ohBankCurrent : numpy.ndarray
+        Ohmic heating (OH) bank current data
+    ohTime : numpy.ndarray
+        OH time data
+    shBankCurrent : numpy.ndarray
+        SHaping (SH) bank current data
+    shTime : numpy.ndarray
+        SH time data
+    plotOfTF : _plotTools.plot
+        plot of TF data
+    plotOfVF : _plotTools.plot
+        plot of VF data
+    plotOfOH : _plotTools.plot
+        plot of OH data
+    plotOfSH : _plotTools.plot
+        plot of SH data
+    
+    Notes
+    -----
+    - Note that all 4 banks have their own time array.  This is because the 
+    data doesn't always have the same length and therefore must have their own
+    time array.  
     """
     def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
         self.shotno = shotno
@@ -1414,6 +1695,8 @@ class capBankData:
 class gpuControlData:
     """
     reads control data from Caliban's control files
+    
+    under active developement.  TODO add comments after development
     """
     def __init__(self,shotno=96496, tStart=0*1e-3, tStop=10*1e-3, plot=False, password='', forceDownload=False, calibrateTime=False, plotEVERYTHING=False):
         # note, shootno=None loads the data generated from FAKE_INPUT        
@@ -2158,7 +2441,7 @@ class nModeData:
     In addtion, this code generates a perturbed B_pol(t) measurement as observed by a sensor at location, phi0
     Function uses either 30 poloidal TA sensors or 10 poloidal FB sensors. 
     
-    Note:  I want to create a "mModeAnalysis" equivalent for measuring "m" mode numebrs.
+    
     """    
 
     def Bn1(self,phi0=0):
@@ -2171,7 +2454,6 @@ class nModeData:
     def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,plotAll=False,phi0=0,nModeSensor='FB',method='leastSquares'):
         
         self.shotno=shotno
-        
         self.title = 'shotno = %d.  %s sensor.  n=1,2 mode analysis' % (shotno,nModeSensor)
 
         if nModeSensor=='TA':

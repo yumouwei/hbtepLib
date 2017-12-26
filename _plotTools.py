@@ -4,8 +4,8 @@ import matplotlib.pyplot as _plt
 #from matplotlib.colors import LinearSegmentedColormap as _lsc
 
 
-# color sequence for plotting.  add more colors if you need more than 8.  
-_cSequence=['b', 'r', 'g', 'k', 'm', 'c', 'y', 'w']
+# color sequence for plotting.  add more colors if you need more than 7.  
+_cSequence=['b', 'r', 'g', 'k', 'm', 'c', 'y']
 
 
 class plot:
@@ -43,9 +43,9 @@ class plot:
              or 
              yData = [np.arange(0,10),np.arange(0,10),np.arange(0,10) ]
     zData : list (of numpy.ndarray)
-        the z-data of the plot.  must be stored as a list of arrays.  multiple
-        entries isn't supported because having multiple 3D plots on a single
-        plot doesn't make sense.  
+        the z-data of the plot.  applicable for contour and scatter plots. 
+        must be stored as a list of arrays.  multiple entries isn't supported 
+        because having multiple 3D plots on a single plot doesn't make sense.  
         e.g. zData = [np.arange(0,10)] 
         Leave empty if not in use.
     yLegendLabel : list (of numpy.ndarray)
@@ -56,9 +56,51 @@ class plot:
         data to be plotted as standard lines.  Alternatively, specify each 
         for something different.
         E.g. linestyles = ['-',':','']
-        
-    # TODO(John) finish entries...
-        
+    marker : list (of str)
+        marker to be plotted for its associated data array.  default is none.
+    xLim : ilst (of two floats)
+        x-limit of the plot
+    yLim : ilst (of two floats)
+        y-limit of the plot
+    legendLoc : str
+        Location on on the plot for the legend.  'upper right' is default.  
+        Other examples include 'lower left', 'center right', etc.
+    showGrid : bool
+        True - creates grid on the plot.  True is default
+    yErData : list (of numpy.ndarray)
+        y-error data to be used on errorbar and errorribbon plots
+    axvspan : list (of floats)
+        TODO(john) this needs an overhaul
+        contains x-boundaries within which to highlight with axvspanColor
+    axvspanColor : list (of floats)
+        list of colors associated with each pair of x-boundaries in axvspan
+    color : list (of char)
+        marker and line color for associated data
+    plotType : str
+        'standard' - default. standard plot with lines.
+        'errorBar' - same as standard but with error bars on y-data
+        'errorRibbon' - same as standard but with colored error ribbons
+                        on y-data
+        'scatter' - scatter plot.  similar to standard above with markers only
+                    but it also allows for the zData to dictate the color of
+                    the points.  The attribute, cmap, is the color map.
+        'contour' - contour plot.  zData governs the color
+                    TODO needs an update to include colormap
+    alpha : list (of floats between 0.0 and 1.0)
+        Transparency of plots.  1 = opaque.  0 = invisible.
+    fileName : str
+        If not an empty string (which is default), plot will automatically 
+        save the plot to the active directory using this filename
+    aspect : str
+        '' - Default.  Does nothing
+        'equal' - Sets the x and y spacing on the graph equal.
+    cmap : str
+        TODO needs an overhaul.  should apply to both scatter and contour plots
+        TODO also include link to list of other pre-defined colormaps
+    shotno : list (of floats or ints)
+        TODO needs an overhaul
+        if not empty, these numbers will be printed in small font to the 
+        lower-right of the plot.  if a subplot, in the top-most subplot
         
     Example #1
     ----------
@@ -71,6 +113,23 @@ class plot:
     fig.xLabel = 'x'
     fig.yLabel = 'y'
     fig.plot()
+    
+    Example #2
+    ----------
+    import hbtepLib as hbt
+    import numpy as np
+    x=np.linspace(0,4*np.pi,1000)
+    y=np.linspace(0,4*np.pi,1000)
+    z=np.zeros((len(x),len(y)))
+    for i in range(0,len(x)):
+        for j in range(0,len(y)):
+            z[i,j]=np.cos(x[i])*np.sin(y[j])
+    p1=hbt.plot.plot()
+    p1.xData=[x]
+    p1.yData=[y]
+    p1.zData=[z]
+    p1.plotType='contour'
+    p1.plot()
         
     """
     
@@ -82,21 +141,19 @@ class plot:
         self.zLabel = ''
         self.xData = [] # possibility of multiple data arrays.  stored as lists.
         self.yData = [] # possibility of multiple data arrays.  stored as lists.
-        self.zData = [] # for contour plot.  must be 2D
+        self.zData = [] # for contour and scatter plot.  
         self.yLegendLabel = [] # possibility of multiple data arrays.  stored as lists.
         self.linestyle=[] # '-' is default
-        self.linewidth=[]
         self.marker=[] # Line2D.markers for list of markers.  '.' should be default ??
         self.xLim = []
         self.yLim = []
         self.legendLoc='upper right'; #'bottom left' 'center right' etc...
         self.showGrid = True
-        self.yErData=[[]]
+        self.yErData=[]
         self.axvspan=[]  # http://stackoverflow.com/questions/8270981/in-a-matplotlib-plot-can-i-highlight-specific-x-value-ranges
-        self.axvspanColor=[[]]
+        self.axvspanColor=[]
         self.color=[]
         self.plotType='' # 'standard', 'errorbar', 'scatter', 'contour'
-        self.colorData=[];  # scatter plot color
         self.alpha=[]#[1.0]
         self.fileName=''
         self.aspect=None  # "equal"
@@ -240,7 +297,6 @@ class subPlot:
                     except IndexError:
                         color=_cSequence[k]
                         
-                       
                     # standard plot
                     if (data.plotType == '') or (data.plotType == 'standard'):
                         ax.plot(data.xData[k], data.yData[k], marker=marker, 
@@ -286,10 +342,13 @@ class subPlot:
                             b.set_label(data.zLabel)
                        
                     # contour plot
-                    elif (data.plotType == 'contour'):                
+                    elif (data.plotType == 'contour'):       
+                        # TODO needs an update to allow for color map
+                        # TODO update so that zData can be a 1D array
+                        # TODO need to check if zData is a list or an array
                         X, Y = _np.meshgrid(data.xData[k], data.yData[k])
-                        X=_np.transpose(X)
-                        Y=_np.transpose(Y)
+                        X=_np.transpose(X) # because the plot function is backwards from how i think it should be
+                        Y=_np.transpose(Y) # because the plot function is backwards from how i think it should be
                         Z=data.zData[k]
                         # Z[Z==0]=_np.nan  ## any value with z=0 is turned white.  
 #                        cp = _plt.contourf(X, Y, Z,100)
@@ -312,6 +371,7 @@ class subPlot:
                         verticalalignment='bottom')
                         
                 ## create shaded regions
+                # TODO(john) update this to be a list of 2 element np.arrays
                 if len(data.axvspan)!= 0:
                     for j in range(0,len(data.axvspanColor[0])):
                         ax.axvspan(data.axvspan[j*2],data.axvspan[j*2+1], color=data.axvspanColor[0][j], alpha=0.25)
