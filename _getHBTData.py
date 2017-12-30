@@ -29,7 +29,8 @@ import _plotTools as _plot
 try:
     import _hbtPreferences as _pref
 except ImportError:
-    _sys.exit("Code hault: _hbtPreferences.py file not found.  See readme.md concerning the creation of hbtPreferences.py")
+    _sys.exit("Code hault: _hbtPreferences.py file not found.  See readme.md" +
+    " concerning the creation of hbtPreferences.py")
         
         
 ###############################################################################
@@ -163,7 +164,7 @@ def mdsData(shotno=None,
     data = [];
     for i in range(0,len(dataAddress)):
         data.append(mdsConn.get(dataAddress[i]).data())
-    time = mdsConn.get('dim_of('+dataAddress[0]+')').data();
+    time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
 
 #    # if tStart is not defined, give it the default values
 #    if tStart is None:
@@ -211,8 +212,13 @@ class ipData:
         plasma current data
     time : numpy.ndarray
         time data
+        
+    Subfunctions
+    ------------
     plotOfIP : 
-        custom plot function
+        returns the plot of IP vs time
+    plot :
+        Plots all relevant plots
     
     """
     def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
@@ -226,22 +232,33 @@ class ipData:
         self.ip=data[0];
         self.time=time;
         
-        # generate plot
-        self.plotOfIP=_plot.plot()
-        self.plotOfIP.yData=[self.ip*1e-3]
-        self.plotOfIP.xData=[self.time*1000]
-#        self.p1.xLim=[self.tStart,self.tStop]
-        self.plotOfIP.yLabel='kA'
-        self.plotOfIP.xLabel='time [ms]'
-        self.plotOfIP.subtitle='Plasma Current'
-        self.plotOfIP.title=str(self.title);
+#        self.plotOfIP=None
         
         if plot == True:
             self.plot()
+        # generate plot
+        
+        
+    def plotOfIP(self):
+        """
+        returns the plot of IP vs time
+        """
+        p1=_plot.plot()
+        p1.yData=[self.ip*1e-3]
+        p1.xData=[self.time*1000]
+        p1.yLabel='kA'
+        p1.xLabel='time [ms]'
+        p1.subtitle='Plasma Current'
+        p1.title=str(self.title);
+        
+        return p1
+        
             
     def plot(self):
-        """ Plot all relevant plots """
-        self.plotOfIP.plot()
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfIP().plot()
         
   
 class bpData:
@@ -280,16 +297,21 @@ class bpData:
     bps9GPURequestVoltage : numpy.ndarray
         CPCI measurement of pre-amp voltage, out from the GPU, and going to 
         control bps9
-    plotOfGPUVoltageRequest : _plotTools.plot 
+        
+    Subfunctions
+    ------------
+    plotOfGPUVoltageRequest : 
         Plot of gpu request voltage (as measured by the CPCI)
-    plotOfVoltage : _plotTools.plot 
+    plotOfVoltage : 
         Plot of both bias probe voltages
-    plotOfCurrent : _plotTools.plot 
+    plotOfCurrent : 
         Plot of both bias probe currents
-    plotOfBPS9Voltage : _plotTools.plot 
+    plotOfBPS9Voltage : 
         Plot of bps9 voltage only
-    plotOfBPS9Current : _plotTools.plot 
+    plotOfBPS9Current : 
         Plot of bps9 current only
+    plot :
+        Plots all relevant plots
         
     Notes
     -----
@@ -343,76 +365,104 @@ class bpData:
                            dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_93'],
                            tStart=tStart, tStop=tStop)
         self.bps9GPURequestVoltage=data[0];
-
-        # initialize gpu voltage request plot
-        self.plotOfGPUVoltageRequest=_plot.plot();
-        self.plotOfGPUVoltageRequest.title=self.title
-        self.plotOfGPUVoltageRequest.yData=[self.bps9GPURequestVoltage]
-        self.plotOfGPUVoltageRequest.xData=[self.time*1000]
-        self.plotOfGPUVoltageRequest.yLabel='V'
-        self.plotOfGPUVoltageRequest.xLabel='ms'
-        self.plotOfGPUVoltageRequest.subtitle='Voltage Request from GPU (pre-amplifier)'
-        self.plotOfGPUVoltageRequest.title=str(self.shotno);
-        self.plotOfGPUVoltageRequest.yLegendLabel='BPS9'
-
-        # initialize voltage plot
-        self.plotOfVoltage=_plot.plot();
-        self.plotOfVoltage.title=self.title
-        self.plotOfVoltage.yLim=[-200,200] # default [-200,200]
-        self.plotOfVoltage.yLabel='V'
-        self.plotOfVoltage.xLabel='Time [ms]'
-        self.plotOfVoltage.subtitle='BP Voltage'
-        self.plotOfVoltage.yData.append(self.bps9Voltage)
-        self.plotOfVoltage.xData.append(self.time*1000)
-        self.plotOfVoltage.yLegendLabel.append('BPS9')
-        self.plotOfVoltage.yData.append(self.bps5Voltage)
-        self.plotOfVoltage.xData.append(self.time*1000)
-        self.plotOfVoltage.yLegendLabel.append('BPS5')
         
-        # initialize current plot
-        self.plotOfCurrent=_plot.plot();
-        self.plotOfCurrent.title=self.title
-        self.plotOfCurrent.yLim=[-5,60]  # default [-10,70]
-        self.plotOfCurrent.yLabel='A'
-        self.plotOfCurrent.subtitle='BP Current'
-        self.plotOfCurrent.xLabel='Time [ms]'
-        self.plotOfCurrent.yData.append(self.bps9Current)
-        self.plotOfCurrent.xData.append(self.time*1000)
-        self.plotOfCurrent.yLegendLabel.append('BPS9')
-        self.plotOfCurrent.yData.append(self.bps5Current)
-        self.plotOfCurrent.xData.append(self.time*1000)
-        self.plotOfCurrent.yLegendLabel.append('BPS5')
-                
-        # initialize BPS9 voltage plot
-        self.plotOfBPS9Voltage=_plot.plot();
-        self.plotOfBPS9Voltage.yLim=[-200,200] # default [-200,200]
-        self.plotOfBPS9Voltage.yLabel='V'
-        self.plotOfBPS9Voltage.xLabel='Time [ms]'
-        self.plotOfBPS9Voltage.subtitle='BP Voltage'
-        self.plotOfBPS9Voltage.yData.append(self.bps9Voltage)
-        self.plotOfBPS9Voltage.xData.append(self.time*1000)
-        self.plotOfBPS9Voltage.yLegendLabel.append('BPS9')
-        
-        # initialize BPS9 current plot
-        self.plotOfBPS9Current=_plot.plot();
-        self.plotOfBPS9Current.yLim=[-5,60]  # default [-10,70]
-        self.plotOfBPS9Current.yLabel='A'
-        self.plotOfBPS9Current.subtitle='BP Current'
-        self.plotOfBPS9Current.xLabel='Time [ms]'
-        self.plotOfBPS9Current.yData.append(self.bps9Current)
-        self.plotOfBPS9Current.xData.append(self.time*1000)
-        self.plotOfBPS9Current.yLegendLabel.append('BPS9')
-        
-        # TODO(john) also make plots for BPS5 only
-
         if plot==True:
             self.plot()
         if plot=='all':
-            _plot.subPlot([self.plotOfVoltage,self.plotOfCurrent,self.plotOfGPUVoltageRequest])
+            self.plot(True)
+
+    def plotOfGPUVoltageRequest(self):
+        """ 
+        returns plot of gpu voltage request 
+        (Preamp signal out from caliban)            
+        """
+        p1=_plot.plot();
+        p1.title=self.title
+        p1.yData=[self.bps9GPURequestVoltage]
+        p1.xData=[self.time*1000]
+        p1.yLabel='V'
+        p1.xLabel='ms'
+        p1.subtitle='Voltage Request from GPU (pre-amplifier)'
+        p1.yLegendLabel='BPS9'
         
-    def plot(self):
+        return p1
+        
+    def plotOfVoltage(self):
+        """ 
+        returns plot of BP voltage          
+        """
+        p1=_plot.plot();
+        p1.title=self.title
+        p1.yLim=[-200,200] # default [-200,200]
+        p1.yLabel='V'
+        p1.xLabel='Time [ms]'
+        p1.subtitle='BP Voltage'
+        p1.yData.append(self.bps9Voltage)
+        p1.xData.append(self.time*1000)
+        p1.yLegendLabel.append('BPS9')
+        p1.yData.append(self.bps5Voltage)
+        p1.xData.append(self.time*1000)
+        p1.yLegendLabel.append('BPS5')
+        
+        return p1
+        
+    def plotOfCurrent(self):
+        """ 
+        returns plot of BP current         
+        """
+        p1=_plot.plot();
+        p1.title=self.title
+        p1.yLim=[-5,60]  # default [-10,70]
+        p1.yLabel='A'
+        p1.subtitle='BP Current'
+        p1.xLabel='Time [ms]'
+        p1.yData.append(self.bps9Current)
+        p1.xData.append(self.time*1000)
+        p1.yLegendLabel.append('BPS9')
+        p1.yData.append(self.bps5Current)
+        p1.xData.append(self.time*1000)
+        p1.yLegendLabel.append('BPS5')
+        
+        return p1
+            
+    def plotOfBPS9Voltage(self):
+        """ 
+        returns plot of BPS9 voltage         
+        """
+        p1=_plot.plot();
+        p1.yLim=[-200,200] # default [-200,200]
+        p1.yLabel='V'
+        p1.xLabel='Time [ms]'
+        p1.subtitle='BP Voltage'
+        p1.yData.append(self.bps9Voltage)
+        p1.xData.append(self.time*1000)
+        p1.yLegendLabel.append('BPS9')
+        
+        return p1
+    
+    def plotOfBPS9Current(self):
+        """ 
+        returns plot of BPS9 current         
+        """
+        p1=_plot.plot();
+        p1.yLim=[-5,60]  # default [-10,70]
+        p1.yLabel='A'
+        p1.subtitle='BP Current'
+        p1.xLabel='Time [ms]'
+        p1.yData.append(self.bps9Current)
+        p1.xData.append(self.time*1000)
+        p1.yLegendLabel.append('BPS9')
+        
+        return p1
+    
+        # TODO(john) also make plots for BPS5 only
+
+    def plot(self,plotAll=False):
         """ Plot relevant plots """
-        _plot.subPlot([self.plotOfVoltage,self.plotOfCurrent])
+        if plotAll==False:
+            _plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent()])
+        else:
+            _plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent(),self.plotOfGPUVoltageRequest()])
         
     
 class tpData:
@@ -474,20 +524,25 @@ class tpData:
         tps8 floating voltage data 
     tps8Density : numpy.ndarray
         tps8 density data
+        
+    Subfunctions
+    ------------
     plotOfISat : _plotTools.plot
-        plot function of ion saturation current
+        ion saturation current
     plotOfTipC : _plotTools.plot
-        plot function of tip C voltages
+        tip C voltages
     plotOfTipB : _plotTools.plot
-        plot function of tip B voltages
+        tip B voltages
     plotOfTipA : _plotTools.plot
-        plot function of tip A voltages
+        tip A voltages
     plotOfVf : _plotTools.plot
-        plot function of floating voltages
+        floating voltages
     plotOfNe : _plotTools.plot
-        plot function of density
+        density
     plotOfKTe : _plotTools.plot
-        plot function of temperature
+        temperature
+    plot :
+        plots all relevant plots
         
     Notes
     -----
@@ -507,6 +562,7 @@ class tpData:
         
         self.shotno = shotno
         self.title = 'shotno = %s, triple probe data' % shotno
+        self.probes=probes
         
         # enforce probes naming convetion
         if probes=='5':
@@ -576,123 +632,135 @@ class tpData:
         else:
             _sys.exit("Requested shot number range not supported yet.  Update code.")
         
-        # initialize temperature plot
-        self.plotOfKTe=_plot.plot();
-        self.plotOfKTe.yLabel='eV'
-        self.plotOfKTe.subtitle='Electron Temperature'
-        self.plotOfKTe.title=self.title
-        self.plotOfKTe.yLim=[-50, 100]       
-        if probes=='both' or probes=='tps5': 
-            self.plotOfKTe.yData.append(self.tps5Temp)
-            self.plotOfKTe.xData.append(self.tps5Time*1000)
-            self.plotOfKTe.yLegendLabel.append('TPS5')
-        if probes=='both' or probes=='tps8':
-            self.plotOfKTe.yData.append(self.tps8Temp)
-            self.plotOfKTe.xData.append(self.tps8Time*1000)
-            self.plotOfKTe.yLegendLabel.append('TPS8')
-        
-        # initialize density plot
-        self.plotOfNe=_plot.plot();
-        self.plotOfNe.yLabel=r'$m^{-3}$ $10^{18}$'
-        self.plotOfNe.subtitle='Density'
-        self.plotOfNe.yLim=[-1, 4.5]
-        if probes=='both' or probes=='tps5':
-            self.plotOfNe.yData.append(self.tps5Density/1e18)
-            self.plotOfNe.xData.append(self.tps5Time*1000)
-            self.plotOfNe.yLegendLabel.append('TPS5')
-        if probes=='both' or probes=='tps8':
-            self.plotOfNe.yData.append(self.tps8Density/1e18)
-            self.plotOfNe.xData.append(self.tps8Time*1000)
-            self.plotOfNe.yLegendLabel.append('TPS8')
-            
-        # initialize floating potential plot
-        self.plotOfVf=_plot.plot();
-        self.plotOfVf.yLabel='V'
-        self.plotOfVf.subtitle='Floating Potential'
-        self.plotOfVf.xLabel='time [ms]'
-        self.plotOfVf.yLim=[-150, 75]
-        if probes=='both' or probes=='tps5':
-            self.plotOfVf.yData.append(self.tps5VFloat)
-            self.plotOfVf.xData.append(self.tps5Time*1000)
-            self.plotOfVf.yLegendLabel.append('TPS5')
-        if probes=='both' or probes=='tps8':
-            self.plotOfVf.yData.append(self.tps8VFloat)
-            self.plotOfVf.xData.append(self.tps8Time*1000)
-            self.plotOfVf.yLegendLabel.append('TPS8')
-            
-        # initialize tip A potential plot
-        self.plotOfTipA=_plot.plot();
-        self.plotOfTipA.yLabel='V'
-        self.plotOfTipA.subtitle='Tip A Potential'
-        self.plotOfTipA.xLabel='time [ms]'
-#        self.plotOfTipA.yLim=[-100, 100]
-        if probes=='both' or probes=='tps5':
-            self.plotOfTipA.yData.append(self.tps5TipA)
-            self.plotOfTipA.xData.append(self.tps5Time*1000)
-            self.plotOfTipA.yLegendLabel.append('TPS5')
-        if probes=='both' or probes=='tps8':
-            self.plotOfTipA.yData.append(self.tps8TipA)
-            self.plotOfTipA.xData.append(self.tps8Time*1000)
-            self.plotOfTipA.yLegendLabel.append('TPS8')
-            
-        # initialize tip B potential plot
-        self.plotOfTipB=_plot.plot();
-        self.plotOfTipB.yLabel='V'
-        self.plotOfTipB.subtitle='Tip B Potential'
-        self.plotOfTipB.xLabel='time [ms]'
-#        self.plotOfTipA.yLim=[-100, 100]
-        if probes=='both' or probes=='tps5':
-            self.plotOfTipB.yData.append(self.tps5TipB)
-            self.plotOfTipB.xData.append(self.tps5Time*1000)
-            self.plotOfTipB.yLegendLabel.append('TPS5')
-        if probes=='both' or probes=='tps8':
-            self.plotOfTipB.yData.append(self.tps8TipB)
-            self.plotOfTipB.xData.append(self.tps8Time*1000)
-            self.plotOfTipB.yLegendLabel.append('TPS8')
-            
-        # initialize tip C potential plot
-        self.plotOfTipC=_plot.plot();
-        self.plotOfTipC.yLabel='V'
-        self.plotOfTipC.subtitle='Tip C Potential'
-        self.plotOfTipC.xLabel='time [ms]'
-#        self.plotOfTipA.yLim=[-100, 100]
-        if probes=='both' or probes=='tps5':
-            self.plotOfTipC.yData.append(self.tps5TipC)
-            self.plotOfTipC.xData.append(self.tps5Time*1000)
-            self.plotOfTipC.yLegendLabel.append('TPS5')
-        if probes=='both' or probes=='tps8':
-            self.plotOfTipC.yData.append(self.tps8TipC)
-            self.plotOfTipC.xData.append(self.tps8Time*1000)
-            self.plotOfTipC.yLegendLabel.append('TPS8')     
-            
-        # initialize ion sat current
-        self.plotOfISat=_plot.plot();
-        self.plotOfISat.yLabel='A'
-        self.plotOfISat.subtitle='Ion Sat. Current'
-        self.plotOfISat.xLabel='time [ms]'
-#        self.plotOfTipA.yLim=[-100, 100]
-        if probes=='both' or probes=='tps5':
-            self.plotOfISat.yData.append(self.tps5Current)
-            self.plotOfISat.xData.append(self.tps5Time*1000)
-            self.plotOfISat.yLegendLabel.append('TPS5')
-        if probes=='both' or probes=='tps8':
-            self.plotOfISat.yData.append(self.tps8Current)
-            self.plotOfISat.xData.append(self.tps8Time*1000)
-            self.plotOfISat.yLegendLabel.append('TPS8')         
-            
         if plot==True:
-            self.plotProcessed();
+            self.plot();
         elif plot=='all':
-            self.plotProcessed();            
-            self.plotRaw();
+            self.plot(True)
+        
+    def plotOfKTe(self):
+        p1=_plot.plot();
+        p1.yLabel='eV'
+        p1.subtitle='Electron Temperature'
+        p1.title=self.title
+        p1.yLim=[-50, 100]       
+        if self.probes=='both' or self.probes=='tps5': 
+            p1.yData.append(self.tps5Temp)
+            p1.xData.append(self.tps5Time*1000)
+            p1.yLegendLabel.append('TPS5')
+        if self.probes=='both' or self.probes=='tps8':
+            p1.yData.append(self.tps8Temp)
+            p1.xData.append(self.tps8Time*1000)
+            p1.yLegendLabel.append('TPS8')
+        return p1
+        
+    def plotOfNe(self):
+        p1=_plot.plot();
+        p1.yLabel=r'$m^{-3}$ $10^{18}$'
+        p1.subtitle='Density'
+        p1.yLim=[-1, 4.5]
+        if self.probes=='both' or self.probes=='tps5':
+            p1.yData.append(self.tps5Density/1e18)
+            p1.xData.append(self.tps5Time*1000)
+            p1.yLegendLabel.append('TPS5')
+        if self.probes=='both' or self.probes=='tps8':
+            p1.yData.append(self.tps8Density/1e18)
+            p1.xData.append(self.tps8Time*1000)
+            p1.yLegendLabel.append('TPS8')
+        return p1
             
-    def plotRaw(self):
-        _plot.subPlot([self.plotOfTipA,self.plotOfTipB,self.plotOfTipC,
-                         self.plotOfISat]);            
+    def plotOfVf(self):
+        p1=_plot.plot();
+        p1.yLabel='V'
+        p1.subtitle='Floating Potential'
+        p1.xLabel='time [ms]'
+        p1.yLim=[-150, 75]
+        if self.probes=='both' or self.probes=='tps5':
+            p1.yData.append(self.tps5VFloat)
+            p1.xData.append(self.tps5Time*1000)
+            p1.yLegendLabel.append('TPS5')
+        if self.probes=='both' or self.probes=='tps8':
+            p1.yData.append(self.tps8VFloat)
+            p1.xData.append(self.tps8Time*1000)
+            p1.yLegendLabel.append('TPS8')
+        return p1
             
-    def plotProcessed(self):
-        _plot.subPlot([self.plotOfKTe,self.plotOfNe,self.plotOfVf]);
+    def plotOfTipA(self):
+        # initialize tip A potential plot
+        p1=_plot.plot();
+        p1.yLabel='V'
+        p1.subtitle='Tip A Potential'
+        p1.xLabel='time [ms]'
+#        self.plotOfTipA.yLim=[-100, 100]
+        if self.probes=='both' or self.probes=='tps5':
+            p1.yData.append(self.tps5TipA)
+            p1.xData.append(self.tps5Time*1000)
+            p1.yLegendLabel.append('TPS5')
+        if self.probes=='both' or self.probes=='tps8':
+            p1.yData.append(self.tps8TipA)
+            p1.xData.append(self.tps8Time*1000)
+            p1.yLegendLabel.append('TPS8')
+        return p1
+            
+    def plotOfTipB(self):
+        # initialize tip B potential plot
+        p1=_plot.plot();
+        p1.yLabel='V'
+        p1.subtitle='Tip B Potential'
+        p1.xLabel='time [ms]'
+#        self.plotOfTipA.yLim=[-100, 100]
+        if self.probes=='both' or self.probes=='tps5':
+            p1.yData.append(self.tps5TipB)
+            p1.xData.append(self.tps5Time*1000)
+            p1.yLegendLabel.append('TPS5')
+        if self.probes=='both' or self.probes=='tps8':
+            p1.yData.append(self.tps8TipB)
+            p1.xData.append(self.tps8Time*1000)
+            p1.yLegendLabel.append('TPS8')
+        return p1
+            
+    def plotOfTipC(self):            
+        # initialize tip C potential plot
+        p1=_plot.plot();
+        p1.yLabel='V'
+        p1.subtitle='Tip C Potential'
+        p1.xLabel='time [ms]'
+#        self.plotOfTipA.yLim=[-100, 100]
+        if self.probes=='both' or self.probes=='tps5':
+            p1.yData.append(self.tps5TipC)
+            p1.xData.append(self.tps5Time*1000)
+            p1.yLegendLabel.append('TPS5')
+        if self.probes=='both' or self.probes=='tps8':
+            p1.yData.append(self.tps8TipC)
+            p1.xData.append(self.tps8Time*1000)
+            p1.yLegendLabel.append('TPS8') 
+        return p1
+        
+    def plotOfISat(self):            
+        # initialize ion sat current
+        p1=_plot.plot();
+        p1.yLabel='A'
+        p1.subtitle='Ion Sat. Current'
+        p1.xLabel='time [ms]'
+#        self.plotOfTipA.yLim=[-100, 100]
+        if self.probes=='both' or self.probes=='tps5':
+            p1.yData.append(self.tps5Current)
+            p1.xData.append(self.tps5Time*1000)
+            p1.yLegendLabel.append('TPS5')
+        if self.probes=='both' or self.probes=='tps8':
+            p1.yData.append(self.tps8Current)
+            p1.xData.append(self.tps8Time*1000)
+            p1.yLegendLabel.append('TPS8')       
+        return p1
 
+            
+    def plot(self,plotAll=False):
+        if plotAll == False:
+            _plot.subPlot([self.plotOfKTe(),self.plotOfNe(),self.plotOfVf()]);
+        else:
+            _plot.subPlot([self.plotOfKTe(),self.plotOfNe(),self.plotOfVf()]);
+            _plot.subPlot([self.plotOfTipA(),self.plotOfTipB(),self.plotOfTipC(),
+                         self.plotOfISat()]);            
+  
     
 class paData:
     """
@@ -740,6 +808,14 @@ class paData:
     pa2RawFit : list (of numpy.ndarray)
         fit applied to raw data
         
+    Subfunctions
+    ------------
+    plotOfPA1 : 
+        returns plot of PA1 sensor based on the provided index
+    plotOfPA2 : 
+        returns plot of PA2 sensor based on the provided index
+    plot :
+        plots all relevant plots        
 
     """
     
@@ -791,16 +867,15 @@ class paData:
         
         # plot 
         if plot==True or plot=='all':
-            self.plotAll()
+            self.plot(True)
         if plot=='sample':
             self.plotPA1();
             self.plotPA2();
             
 
-    def plotPA1(self, i=0, plot=True,alsoPlotRawAndFit=True):
+    def plotOfPA1(self, i=0, alsoPlotRawAndFit=True):
         """ Plot one of the PA1 plots.  based on index, i. """
         p1=_plot.plot();
-#        p1.xLim=[self.tStart,self.tStop]
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
         p1.title=str(self.shotno)+'. '+str(self.namesPA1[i])+' data'
@@ -820,16 +895,12 @@ class paData:
             p1.yData.append(self.pa1RawFit[i])
             p1.xData.append(self.pa1Time*1000);
             p1.yLegendLabel.append('fit')
-
-        # plot
-        if plot == True:
-            p1.plot()
+            
         return p1
         
-    def plotPA2(self, i=0, plot=True,alsoPlotRawAndFit=True):
+    def plotOfPA2(self, i=0, alsoPlotRawAndFit=True):
         """ Plot one of the PA2 plots.  based on index, i. """
         p1=_plot.plot();
-#        p1.xLim=[self.tStart,self.tStop]
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
         p1.title=str(self.shotno)+'. '+str(self.namesPA2[i])+' data'
@@ -850,33 +921,26 @@ class paData:
             p1.xData.append(self.pa2Time*1000);
             p1.yLegendLabel.append('fit')
 
-        # plot
-        if plot == True:
-            p1.plot()
-            
         return p1
         
-#    def plotAll(self,alsoPlotRawAndFit=True):
-#        """
-#        Plots poloidal sensor data for all 64 sensors
-#        
-#        Warning, 64 plots is tough on memory.  
-#        """
-#        for k in range(0,32):
-#            self.plotPA1(k,alsoPlotRawAndFit);
-#            self.plotPA2(k,alsoPlotRawAndFit);
-        
-    def plotAll(self):
+    def plot(self,plotAll=False):
         sp1=[[],[],[],[]]
         sp2=[[],[],[],[]]
         count=0
         for i in range(0,4):
             for j in range(0,8):
-                newPlot=self.plotPA1(count,plot=False)
+                if plotAll==True:
+                    newPlot=self.plotOfPA1(count,alsoPlotRawAndFit=True)
+                else:
+                    newPlot=self.plotOfPA1(count,alsoPlotRawAndFit=False)
                 newPlot.subtitle=self.namesPA1[count]
                 newPlot.yLegendLabel=[]
                 sp1[i].append(newPlot)
-                newPlot=self.plotPA2(count,plot=False)
+                
+                if plotAll==True:
+                    newPlot=self.plotOfPA2(count,alsoPlotRawAndFit=True)
+                else:
+                    newPlot=self.plotOfPA2(count,alsoPlotRawAndFit=False)
                 newPlot.subtitle=self.namesPA2[count]
                 newPlot.yLegendLabel=[]
                 sp2[i].append(newPlot)
@@ -885,7 +949,7 @@ class paData:
         sp2[0][0].title=self.title
         sp1=_plot.subPlot(sp1,plot=False)
         sp2=_plot.subPlot(sp2,plot=False)
-#        sp1.shareY=True;
+        # sp1.shareY=True;
         sp1.plot()
         sp2.plot()
             
@@ -935,6 +999,15 @@ class fbData:
         fbPolData
     fbRadRawFit : 2D list (of numpy.ndarray)
         smoothed fit of raw radial data.  subtracted from data to get fbRadData
+        
+    Subfunctions
+    ------------
+    plotOfSinglePol :
+        returns plot of a specified poloidal sensor
+    plotOfSingleRad :
+        returns plot of a specified radial sensor
+    plot :
+        plots all relevant data
         
     """
     def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plot=False,smoothingAlgorithm='tripleBoxCar'):
@@ -995,14 +1068,14 @@ class fbData:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
      
         # plot
-        if plot==True or plot=='sample':
-            self.plotPol();
-            self.plotRad();
-        if plot=='all':
-            self.plotAll()
+        if plot=='sample':
+            self.plotOfSinglePol();
+            self.plotOfSingleRad();
+        elif plot == True or plot=='all':
+            self.plot(True)
             
 
-    def plotOnePol(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
+    def plotOfSinglePol(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
         """
         Plots poloidal data from FB sensors
         """
@@ -1030,14 +1103,10 @@ class fbData:
             p1.xData.append(self.fbPolTime*1000);
             p1.yLegendLabel.append('Fit')
             
-        # plot
-        if plot==True:
-            p1.plot()
-            
         return p1
         
         
-    def plotOneRad(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
+    def plotOfSingleRad(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
         """
         Plots radial data from FB sensors
         """
@@ -1064,15 +1133,11 @@ class fbData:
             p1.yData.append(self.fbRadRawFit[j][i])
             p1.xData.append(self.fbRadTime*1000);
             p1.yLegendLabel.append('Fit')
-            
-        # plot
-        if plot==True:
-            p1.plot()
         
         return p1
         
 
-    def plotAll(self):
+    def plot(self,plotAll=True):
         """
         Plots all 80 poloidal and radial FB sensors
         """
@@ -1081,11 +1146,17 @@ class fbData:
         count=0
         for i in range(0,4):
             for j in range(0,10):
-                newPlot=self.plotOnePol(i,j,plot=False)
+                if plotAll==True:
+                    newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=True)
+                else:
+                    newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=False)                    
                 newPlot.subtitle=self.fbPolNames[i][j]
                 newPlot.yLegendLabel=[]
                 sp1[i].append(newPlot)
-                newPlot=self.plotOneRad(i,j,plot=False)
+                if plotAll==True:
+                    newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=True)
+                else:
+                    newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=False)
                 newPlot.subtitle=self.fbRadNames[i][j]
                 newPlot.yLegendLabel=[]
                 sp2[i].append(newPlot)
@@ -1152,6 +1223,14 @@ class taData:
     taRadRawFit : list (of numpy.ndarray)
         fit of raw radial-TA sensor data.  subtract this from taRadRaw to get
         taRadData
+        
+    Subfunctions
+    ------------
+    plotOfSinglePol :
+        returns plot function of a single poloidal sensor, based on provided 
+        index
+    plot :
+        plots all relevant datas
 
     """
         
@@ -1207,16 +1286,16 @@ class taData:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
              
         # plot
-        if plot==True or plot=='sample':
-            self.plotPol();
-        if plot=='all':
-            self.plotAll();
+        if plot=='sample':
+            self.plotOfSinglePol();
+        elif plot==True or plot=='all':
+            self.plot(True);
             
-        
-    def plotPol(self, i=0, alsoPlotRawAndFit=True):
+    # TODO Add plotOfSingleRad function
+            
+    def plotOfSinglePol(self, i=0, alsoPlotRawAndFit=True):
         """ Plot one of the PA1 plots.  based on index, i. """
         p1=_plot.plot();
-#        p1.xLim=[self.tStart,self.tStop]
         p1.xLabel='time [ms]'
         p1.yLabel=r'Gauss'
         p1.title=str(self.shotno)+'. '+str(self.namesTAPol[i])+' data'
@@ -1237,10 +1316,9 @@ class taData:
             p1.xData.append(self.taPolTime*1000);
             p1.yLegendLabel.append('fit')
 
-        # plot
-        p1.plot()
+        return p1
         
-    def plotAll(self,alsoPlotRawAndFit=True):
+    def plot(self,plotAll=True):
         """
         Plots poloidal sensor data for all 40 sensors
         
@@ -1248,8 +1326,23 @@ class taData:
         """
         # TODO(john) update this so that all poloidal data is on a single 
         # window. Same with radial
-        for k in range(0,30):
-            self.plotPol(k,alsoPlotRawAndFit);
+        
+        sp1=[[],[],[],[],[]]
+        count=0
+        for i in range(0,5):
+            for j in range(0,6):
+                if plotAll==True:
+                    newPlot=self.plotOfSinglePol(count,alsoPlotRawAndFit=True);
+                else:
+                    newPlot=self.plotOfSinglePol(count,alsoPlotRawAndFit=False);
+                newPlot.subtitle=self.namesTAPol[count]
+                newPlot.yLegendLabel=[]
+                sp1[i].append(newPlot)
+                count+=1;
+        sp1[0][0].title=self.title
+        sp1=_plot.subPlot(sp1,plot=False)
+        sp1.shareY=True;
+        sp1.plot()
   
 
 class externalRogowskiData:
@@ -1283,6 +1376,9 @@ class externalRogowskiData:
         external rogowski D data
     time : numpy.ndarray
         time data
+        
+    Subfunctions
+    ------------
     plotOfERogA : _plotTools.plot
         plot of external rogowski A data
     plotOfERogB : _plotTools.plot
@@ -1293,6 +1389,8 @@ class externalRogowskiData:
         plot of external rogowski D data
     plotOfERogAll : _plotTools.plot
         plot of all 4 external rogowskis
+    plot :
+        plots plotOfERogAll()
     
     """
     def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
@@ -1312,58 +1410,68 @@ class externalRogowskiData:
         self.eRogD=data[3];
         self.time=time;
         
-        # generate rog A plot
-        self.plotOfERogA=_plot.plot()
-        self.plotOfERogA.yData=[self.eRogA]
-        self.plotOfERogA.xData=[self.time*1000]
-        self.plotOfERogA.yLabel='A'
-        self.plotOfERogA.xLabel='time [ms]'
-        self.plotOfERogA.subtitle='Ext. Rog. A'
-        self.plotOfERogA.title=str(self.title);
-        
-        # generate rog B plot
-        self.plotOfERogB=_plot.plot()
-        self.plotOfERogB.yData=[self.eRogB]
-        self.plotOfERogB.xData=[self.time*1000]
-        self.plotOfERogB.yLabel='A'
-        self.plotOfERogB.xLabel='time [ms]'
-        self.plotOfERogB.subtitle='Ext. Rog. B'
-        self.plotOfERogB.title=str(self.title);
-        
-        # generate rog C plot
-        self.plotOfERogC=_plot.plot()
-        self.plotOfERogC.yData=[self.eRogC]
-        self.plotOfERogC.xData=[self.time*1000]
-        self.plotOfERogC.yLabel='A'
-        self.plotOfERogC.xLabel='time [ms]'
-        self.plotOfERogC.subtitle='Ext. Rog. C'
-        self.plotOfERogC.title=str(self.title);
-        
-        # generate rog D plot
-        self.plotOfERogD=_plot.plot()
-        self.plotOfERogD.yData=[self.eRogD]
-        self.plotOfERogD.xData=[self.time*1000]
-        self.plotOfERogD.yLabel='A'
-        self.plotOfERogD.xLabel='time [ms]'
-        self.plotOfERogD.subtitle='Ext. Rog. D'
-        self.plotOfERogD.title=str(self.title);
-        
-        # generate rog All plot
-        self.plotOfERogAll=_plot.plot()
-        self.plotOfERogAll.yData=[self.eRogA,self.eRogB,self.eRogC,self.eRogD]
-        self.plotOfERogAll.xData=[self.time*1000,self.time*1000,self.time*1000,self.time*1000]
-        self.plotOfERogAll.yLabel='A'
-        self.plotOfERogAll.xLabel='time [ms]'
-        self.plotOfERogAll.subtitle='Ext. Rogs.'
-        self.plotOfERogAll.yLegendLabel=['A','B','C','D']
-        self.plotOfERogAll.title=str(self.title);
-        
         if plot == True:
             self.plot()
-            
+        
+    def plotOfERogA(self):
+        # generate rog A plot
+        p1=_plot.plot()
+        p1.yData=[self.eRogA]
+        p1.xData=[self.time*1000]
+        p1.yLabel='A'
+        p1.xLabel='time [ms]'
+        p1.subtitle='Ext. Rog. A'
+        p1.title=str(self.title);
+        return p1
+    
+    def plotOfERogB(self):
+        # generate rog B plot
+        p1=_plot.plot()
+        p1.yData=[self.eRogB]
+        p1.xData=[self.time*1000]
+        p1.yLabel='A'
+        p1.xLabel='time [ms]'
+        p1.subtitle='Ext. Rog. B'
+        p1.title=str(self.title);
+        return p1
+    
+    def plotOfERogC(self):
+        # generate rog C plot
+        p1=_plot.plot()
+        p1.yData=[self.eRogC]
+        p1.xData=[self.time*1000]
+        p1.yLabel='A'
+        p1.xLabel='time [ms]'
+        p1.subtitle='Ext. Rog. C'
+        p1.title=str(self.title);
+        return p1
+        
+    def plotOfERogD(self):
+        # generate rog D plot
+        p1=_plot.plot()
+        p1.yData=[self.eRogD]
+        p1.xData=[self.time*1000]
+        p1.yLabel='A'
+        p1.xLabel='time [ms]'
+        p1.subtitle='Ext. Rog. D'
+        p1.title=str(self.title);
+        return p1
+        
+    def plotOfERogAll(self):        
+        # generate rog All plot
+        p1=_plot.plot()
+        p1.yData=[self.eRogA,self.eRogB,self.eRogC,self.eRogD]
+        p1.xData=[self.time*1000,self.time*1000,self.time*1000,self.time*1000]
+        p1.yLabel='A'
+        p1.xLabel='time [ms]'
+        p1.subtitle='External Rogowski Current'
+        p1.yLegendLabel=['Ext. Rog. A','Ext. Rog. B','Ext. Rog. C','Ext. Rog. D']
+        p1.title=str(self.title);
+        return p1
+        
     def plot(self):
         """ Plot all relevant plots """
-        self.plotOfERogAll.plot()
+        self.plotOfERogAll().plot()
         
         
 class spectrometerData:
@@ -1391,8 +1499,13 @@ class spectrometerData:
         spectrometer current data
     time : numpy.ndarray
         time data
+        
+    Subfunctions
+    ------------
     plotOfSpect : _plotTools.plot
         plot of sprectrometer data
+    plot :
+        plots all relevant data
     
     """
     def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
@@ -1400,28 +1513,29 @@ class spectrometerData:
         self.title = "shotno = %d, Spectrometer Data" % shotno
         
         # get data
-        data, time=mdsData(shotno=shotno,
+        data, self.time=mdsData(shotno=shotno,
                               dataAddress=['\HBTEP2::TOP.SENSORS.SPECTROMETER'],
                               tStart=tStart, tStop=tStop)
         self.spect=data[0];
-        self.time=time;
-        
-        # generate plot
-        self.plotOfSpect=_plot.plot()
-        self.plotOfSpect.yData=[self.spect*1e-3]
-        self.plotOfSpect.xData=[self.time*1000]
-#        self.p1.xLim=[self.tStart,self.tStop]
-        self.plotOfSpect.yLabel='V'
-        self.plotOfSpect.xLabel='time [ms]'
-        self.plotOfSpect.subtitle='Spectrometer'
-        self.plotOfSpect.title=str(self.title);
+#        self.time=time;
         
         if plot == True:
             self.plot()
-            
+        
+    def plotOfSpect(self):
+        # generate plot
+        p1=_plot.plot()
+        p1.yData=[self.spect]
+        p1.xData=[self.time*1000]
+        p1.yLabel='V'
+        p1.xLabel='time [ms]'
+        p1.subtitle='Spectrometer Intensity'
+        p1.title=str(self.title);
+        return p1
+    
     def plot(self):
         """ Plot all relevant plots """
-        self.plotOfSpect.plot()
+        self.plotOfSpect().plot()
         
         
 class solData:
@@ -1447,11 +1561,17 @@ class solData:
         title to go on all plots
     sensorNames : list (of str)
         names of each SOL sensor
-        
     solData : list (of numpy.ndarray)
         SOL sensor data
     time : numpy.ndarray
         time data
+        
+    Subfunctions 
+    ------------
+    plotOfSingleSensor : _plotTools.plot
+        returns plot of single sensor
+    plot :
+        plots all SOL data
     
     """
     def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
@@ -1470,38 +1590,35 @@ class solData:
                               tStart=tStart, tStop=tStop)
                               
         if plot == True:
-            self.plotAll()
+            self.plot()
                               
-    def plotOne(self,name='LFS01_S1',plot=True):
-        index = self.sensorNames.index(name)
+    def plotOfSingleSensor(self,index): #name='LFS01_S1'
+        """ returns plot of a single sol sensor """
+#        index = self.sensorNames.index(name)
         # generate plot
         p1=_plot.plot()
-        p1.yData=[self.solData[index]*1e-3]
+        p1.yData=[self.solData[index]] # *1e-3
         p1.xData=[self.time*1000]
         p1.yLabel='V'
         p1.xLabel='time [ms]'
-#            p1.subtitle=''
-        p1.title=str(self.title+', '+name);
-        
-        if plot == True:
-            p1.plot()
+        p1.subtitle=self.sensorNames[index]
+        p1.title=str(self.title);
             
         return p1
         
-    def plotAll(self):
+    def plot(self):
+        """ plots all 20 sol sensor currents """
         plots=[[],[],[],[]]
         count=0
         for i in range(0,4):
             for j in range(0,5):
-                newPlot=self.plotOne(name=self.sensorNames[count],plot=False)
+                newPlot=self.plotOfSingleSensor(count) #name=self.sensorNames[count]
                 newPlot.subtitle=self.sensorNames[count]
                 plots[i].append(newPlot)
                 count+=1;
-        plots[0][0].title=self.title
         sp1=_plot.subPlot(plots,plot=False)
         sp1.shareY=True;
-#        sp1.plot()
-        sp1=sp1
+        sp1.plot()
     
         
 class loopVoltageData:
@@ -1529,8 +1646,13 @@ class loopVoltageData:
         SOL sensor data
     time : numpy.ndarray
         time data
+        
+    Subfunctions
+    ------------
     plotOfLV : _plotTools.plot
-        plot of loop voltage data
+        returns plot of loop voltage data
+    plot : 
+        plots loop voltage data
     
     """
     def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
@@ -1544,22 +1666,24 @@ class loopVoltageData:
         self.loopVoltage=data[0];
         self.time=time;
         
-        # generate plot
-        self.plotOfLV=_plot.plot()
-        self.plotOfLV.yData=[self.loopVoltage]
-        self.plotOfLV.xData=[self.time*1000]
-        self.plotOfLV.yLabel='V'
-        self.plotOfLV.xLabel='time [ms]'
-        self.plotOfLV.subtitle='Loop Voltage'
-        self.plotOfLV.title=str(self.shotno);
-        self.plotOfLV.yLim=[0,15]
-        
         if plot == True:
             self.plot()
+        
+    def plotOfLoopVoltage(self):
+        # generate plot
+        p1=_plot.plot()
+        p1.yData=[self.loopVoltage]
+        p1.xData=[self.time*1000]
+        p1.yLabel='V'
+        p1.xLabel='time [ms]'
+        p1.subtitle='Loop Voltage'
+        p1.title=str(self.shotno);
+        p1.yLim=[0,15]  # using same axis-limits as hbtplot.py
+        return p1
             
     def plot(self):
         """ Plot all relevant plots """
-        self.plotOfLV.plot()
+        self.plotOfLoopVoltage().plot()
         
         
 class capBankData:
@@ -1599,21 +1723,31 @@ class capBankData:
         SHaping (SH) bank current data
     shTime : numpy.ndarray
         SH time data
+        
+    Subfunctions
+    ------------
     plotOfTF : _plotTools.plot
-        plot of TF data
+        returns plot of TF data
     plotOfVF : _plotTools.plot
-        plot of VF data
+        returns plot of VF data
     plotOfOH : _plotTools.plot
-        plot of OH data
+        returns plot of OH data
     plotOfSH : _plotTools.plot
-        plot of SH data
+        returns plot of SH data
+    plot :
+        plots all relevant data
     
     Notes
     -----
     - Note that all 4 banks have their own time array.  This is because the 
     data doesn't always have the same length and therefore must have their own
     time array.  
+    - Note that tStart and tStop are intentionally left as None because the TF
+    data is so incredibly long next to the other data.
+    - Note that the TF data isn't actually the discharging voltage or current 
+    of the TF bank.  It's the TF field measurement instead.
     """
+    
     def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Capacitor Bank Data" % shotno
@@ -1645,51 +1779,83 @@ class capBankData:
                               tStart=tStart, tStop=tStop) 
         self.shBankCurrent=data[0];    
         self.shTime=time;
-               
-        # generate tf plot
-        self.plotOfTF=_plot.plot()
-        self.plotOfTF.yData=[self.tfBankField]
-        self.plotOfTF.xData=[self.tfTime*1000]
-        self.plotOfTF.yLabel='T'
-        self.plotOfTF.xLabel='time [ms]'
-        self.plotOfTF.subtitle='TF Bank Field'
-        self.plotOfTF.title=str(self.title);
-        
-        # generate vf plot
-        self.plotOfVF=_plot.plot()
-        self.plotOfVF.yData=[self.vfBankCurrent*1e-3]
-        self.plotOfVF.xData=[self.vfTime*1000]
-        self.plotOfVF.yLabel='kA'
-        self.plotOfVF.xLabel='time [ms]'
-        self.plotOfVF.subtitle='VF Bank Current'
-        self.plotOfVF.title=str(self.title);
-        
-        # generate oh plot
-        self.plotOfOH=_plot.plot()
-        self.plotOfOH.yData=[self.ohBankCurrent*1e-3]
-        self.plotOfOH.xData=[self.ohTime*1000]
-        self.plotOfOH.yLabel='kA'
-        self.plotOfOH.xLabel='time [ms]'
-        self.plotOfOH.subtitle='OH Bank Current'
-        self.plotOfOH.title=str(self.title);
-        self.plotOfOH.yLim=[-3.5e1,3.5e1]
-        
-        # generate sh plot
-        self.plotOfSH=_plot.plot()
-        self.plotOfSH.yData=[self.shBankCurrent*1e-3]
-        self.plotOfSH.xData=[self.shTime*1000]
-        self.plotOfSH.yLabel='kA'
-        self.plotOfSH.xLabel='time [ms]'
-        self.plotOfSH.subtitle='SH Bank Current'
-        self.plotOfSH.title=str(self.title);
         
         if plot == True:
             self.plot()
+               
+    def plotOfTF(self,tStart=None,tStop=None):
+        # generate tf plot
+        p1=_plot.plot()
+        p1.yData=[self.tfBankField]
+        p1.xData=[self.tfTime*1000]
+        p1.yLabel='T'
+        p1.xLabel='time [ms]'
+        p1.subtitle='TF Bank Field'
+        p1.title=str(self.title);
+        return p1
+        
+    def plotOfVF(self):
+        # generate vf plot
+        p1=_plot.plot()
+        p1.yData=[self.vfBankCurrent*1e-3]
+        p1.xData=[self.vfTime*1000]
+        p1.yLabel='kA'
+        p1.xLabel='time [ms]'
+        p1.subtitle='VF Bank Current'
+        p1.title=str(self.title);
+        return p1
+        
+    def plotOfOH(self):
+        # generate oh plot
+        p1=_plot.plot()
+        p1.yData=[self.ohBankCurrent*1e-3]
+        p1.xData=[self.ohTime*1000]
+        p1.yLabel='kA'
+        p1.xLabel='time [ms]'
+        p1.subtitle='OH Bank Current'
+        p1.title=str(self.title);
+        p1.yLim=[-3.5e1,3.5e1]
+        return p1
+        
+    def plotOfSH(self):
+        # generate sh plot
+        p1=_plot.plot()
+        p1.yData=[self.shBankCurrent*1e-3]
+        p1.xData=[self.shTime*1000]
+        p1.yLabel='kA'
+        p1.xLabel='time [ms]'
+        p1.subtitle='SH Bank Current'
+        p1.title=str(self.title);
+        return p1
+        
             
     def plot(self):
         """ Plot all relevant plots """
-        _plot.subPlot([self.plotOfVF,self.plotOfOH,self.plotOfSH])
-        self.plotOfTF.plot()
+        
+        # subplot of all 4 bank data
+        # note: most of this code is determining and setting the appropriate
+        # x and y limits
+        sp1=_plot.subPlot([self.plotOfVF(),self.plotOfOH(),self.plotOfSH(),
+                        self.plotOfTF()],plot=False)
+        xMin=_np.min(sp1.subPlots[0].xData)
+        xMax=_np.max(sp1.subPlots[0].xData)
+        sp1.subPlots[0].xLim=[xMin,xMax]
+        subData=sp1.subPlots[3].yData[0]
+        subTime=sp1.subPlots[3].xData[0]
+        iMin=_process.find_nearest(subTime,xMin)
+        iMax=_process.find_nearest(subTime,xMax)
+        yMin=_np.min(subData[iMin:iMax])
+        yMax=_np.max(subData[iMin:iMax])
+        dY=yMax-yMin
+        sp1.subPlots[3].yLim=[yMin,yMax+0.25*dY] #[yMin-0.25*dY,yMax+0.25*dY]
+        sp1.plot()
+        
+        # plot of TF with shaded region representing x-limits in subplot
+        p1=self.plotOfTF()
+        p1.axvspan=[_np.min(sp1.subPlots[0].xData),
+                                _np.max(sp1.subPlots[0].xData)]
+        p1.axvspanColor=['r']
+        p1.plot()
         
             
 class gpuControlData:
@@ -2117,320 +2283,320 @@ def checkBlackList(inData,inName):
     
 # TODO:There are more and better ways to write blacklist functions.  Write more
 
-
-###############################################################################
-### HBTEP shot data format
-
-def loadShotData(shotno=96635,tStart=0.0,tStop=8.0,forceDownload=False,gpu=False,BP=True,TP=False):
-    
-    """
-    Returns shotData structure/class
-    
-    If the data has been previously downloaded, the data is loaded locally. 
-    Otherwise, the data is downloaded (and stored for future access) from Spitzer.
-    """
-    import os
-    
-    # check if shotno is a single entry or an array of entries
-    if type(shotno)==_np.ndarray:
-        m=len(shotno);
-    else:
-        m=1;
-        shotno=_np.array([shotno])
-        
-    # init output list
-    data=[None]*m
-    
-    # iterate through 1 or more shotnumbers
-    for i in range(0,m):
-                
-        # filepath to save pickle file
-        filePath=_FILEDIR + str(int(shotno[i]))+'.pickle'
-        
-        # check if file is alreay downloaded.  download permanently otherwise.  also downloads file if specifically requested.
-        if os.path.isfile(filePath)==False or forceDownload==True:
-            print "downloading "+str(int(shotno[i]))+" shot data from Spitzer"
-            tags=['nMode','r','q','Ip'] # all HBT data will have this information
-            # not all HBT data will have the following.  Check first before loading.
-            if gpu==True:
-                tags.append('gpu')
-            if BP==True:
-                tags.append('BP')
-            if TP==True:
-                tags.append('TP')
-
-            # download shot data to picke file
-            _shotData(shotno[i],save=True,tags=tags)
-            
-        # load file from pickle file
-        with open(filePath) as f:  
-            data[i] = _pk.load(f)
-            
-        # trim time to desired range
-        if True:
-            iStart=_process.find_nearest(data[i].time,tStart/1000.);
-            iStop=_process.find_nearest(data[i].time,tStop/1000.)
-            
-            try:
-                data[i].time=data[i].time[iStart:iStop];
-                data[i].n1Amp=data[i].n1Amp[iStart:iStop];
-                data[i].n1Phase=data[i].n1Phase[iStart:iStop];
-                data[i].n1PhaseVelRaw=data[i].n1PhaseVelRaw[iStart:iStop];
-                data[i].n1PhaseVelStrongFilter=data[i].n1PhaseVelStrongFilter[iStart:iStop];
-                
-            except AttributeError:
-                print "No nMode data. Skipping"
-                
-            try:
-                data[i].minorRadius=data[i].minorRadius[iStart:iStop];
-                data[i].majorRadius=data[i].majorRadius[iStart:iStop];
-            except AttributeError:
-                print "No radial data. Skipping"
-                                
-            try:
-                data[i].q=data[i].q[iStart:iStop];
-                data[i].qUpsample=data[i].qUpsample[iStart:iStop];
-            except AttributeError:
-                print "No q data. Skipping"   
-                            
-            try:
-                data[i].BPV=data[i].BPV[iStart:iStop];
-                data[i].BPI=data[i].BPI[iStart:iStop];
-            except AttributeError:
-                print "No BP data. Skipping"
-                
-            try:
-                data[i].Ip=data[i].Ip[iStart:iStop];
-            except AttributeError:
-                print "No Ip data. Skipping"
-                
-    # return data
-    if m==1:
-        return data[0]
-    else:
-        return data
-    # TODO(John) i would like to combine the loadShotData function and the shotData class, but returning a loaded class is hard to do from that same class.
-                
-       
-class _shotData:
-    """
-    data structure for storing multiple data types for a single shot number
-    """
-#    def __init__(self,shotno=None,tStart=1.0,tStop=8.0,tags=['BP','nMode','r','q'],save=True):
-    def __init__(self,shotno=None,tags=['nMode','r','q','Ip'],save=True):
-
-        self.shotno=shotno;
-        self.tags=tags;
-        tStartFixed=0.0;  # all data downloaded starts at this time
-        tStopFixed=10.0;  # all data downloaded stops at this time
-        
-        import HBTTools as hbt
-#        import loadDataTools as ldt
-
-        if "nMode" in tags:
-            nMode=hbt.nModeAnalysis(shotno=shotno,tStart=tStartFixed,tStop=tStopFixed)
-            
-            self.time=nMode.time;
-            self.n1Amp=nMode.n1Amp;
-            self.n1Phase=nMode.n1Phase;
-            self.n1PhaseVelRaw=nMode.n1PhaseVelRaw;
-            self.n1PhaseVelStrongFilter=nMode.n1PhaseVelStrongFilter;  
-            self.plotOfAmps=nMode.plotOfAmps
-            self.plotOfN1Amp=nMode.plotOfN1Amp
-            self.plotOfN1Phase=nMode.plotOfN1Phase
-            self.plotOfN1Freq=nMode.plotOfN1Freq
-            self.plotOfN1PhaseAndAmp=nMode.plotOfPhaseAmp
-           
-        if "BP" in tags:
-#            self.BP=ldt.BPData(shotno,tStart=tStartFixed,tStop=tStopFixed,loadMethod='new')
-            BP=BPData(shotno,tStart=tStartFixed,tStop=tStopFixed,loadMethod='new')
-            
-            self.BPV=BP.voltageBPS9;
-            self.BPI=BP.currentBPS9;
-            self.plotOfBPV=BP.plotOfVoltage
-            self.plotOfBPI=BP.plotOfCurrent
-            
-        if "r" in tags:
-            r=hbt.plasmaRadius(shotno,tStart=tStartFixed,tStop=tStopFixed)
-            
-            self.minorRadius=r.minorRadius;
-            self.majorRadius=r.majorRadius;
-            self.plotOfMajorRadius=r.plotOfMajorRadius;
-            self.plotOfMinorRadius=r.plotOfMinorRadius;
-            
-        if "q" in tags:
-            q=hbt.qStar(shotno,tStart=tStartFixed,tStop=tStopFixed)
-            
-            self.q=q.q;
-            self.qUpsample=q.qUpsample;
-            self.plotOfQ=q.plotOfQ
-            
-        if "gpu" in tags:
-            gpu=gpuControlData(shotno,tStart=tStartFixed,tStop=tStopFixed, password='',download=True)
-
-            self.gpuBPV=gpu.BPS9Voltage
-            self.gpuAoBPV=gpu.aoBP
-            self.gpuTime=gpu.time
-            self.gpuN1Amp=gpu.mAmpSec4
-            self.gpuN1Freq=gpu.mFreqSec4
-            self.gpuN1Phase=gpu.mPhaseSec4
-            self.plotOfGpuAmp=gpu.plotOfAmplitudes
-            self.plotOfGpuBPV=gpu.plotOfBPS9Voltage
-            self.plotOfGpuFreq=gpu.plotOfFreq
-            self.plotOfGpuPhase=gpu.plotOfPhase
-
-            self.gpuIndices=self.getTimeIndices()
-            
-        if "IP" in tags or "Ip" in tags:
-            IPdata=IP(shotno,tStart=tStartFixed,tStop=tStopFixed) 
-            self.Ip=IPdata.ip
-            self.plotOfIp=IPdata.plotOfIP
-            
-        if "TP" in tags:
-            TP=TPData(shotno,tStart=tStartFixed,tStop=tStopFixed)
-            self.TPS2vf=TP.Vf2
-            self.TPS8vf=TP.Vf8
-            self.TPS2n=TP.ne2
-            self.TPS8n=TP.ne8
-            self.TPS2kTe=TP.kTe2
-            self.TPS8kTe=TP.kTe8
-        
-        if save==True:
-            self.save()
-            
-        
-    def getTimeIndices(self):
-        """
-        provides indices of CPCI time that matches GPU time.  effectively downsamples CPCI data to GPU data
-        """              
-        gpuIndices=_np.zeros(len(self.gpuTime),dtype=int)
-        for i in range(0,len(self.gpuTime)):
-            gpuIndices[i]=_process.find_nearest(self.time,self.gpuTime[i])
-            
-        return gpuIndices
-        
-    def save(self):
-#        import pickle
-        filePath=_FILEDIR+str(int(self.shotno))+'.pickle'
-#            pk.saveAsPickle(fileName)
-        with open(filePath, 'w') as f:  # Python 3: open(..., 'wb')
-            _pk.dump(self, f)
-            
-        
-###############################################################################
-### Concatenated shotno data format
-"""
-A different type of shot data structure.  This structure concatenates hbtep 
-data so that it is easier to anayze data across multiple shot numbers. 
-"""
-class appendShotData:
-    """
-    Combines list of shotData() into a class structure of single arrays per data type.
-    This makes processing lots of shot data easier as everything is an appended array.
-    """
-    
-    def __init__(self,data):
-        self.time=_np.zeros(0)
-        self.n1Amp=_np.zeros(0)
-        self.n1Phase=_np.zeros(0)
-        self.n1PhaseVelRaw=_np.zeros(0)
-        self.n1PhaseVelStrongFilter=_np.zeros(0)
-        self.minorRadius=_np.zeros(0)
-        self.majorRadius=_np.zeros(0)
-        self.q=_np.zeros(0)
-        self.qUpsample=_np.zeros(0)
-        self.BPV=_np.zeros(0)
-        self.BPI=_np.zeros(0)
-        self.shotNos=_np.zeros(0,dtype=int)
-        
-        for i in range(0,len(data)):
-            dataIn=data[i];
-            
-            try:
-#                print "len(data.time) = %d" % len(dataIn.time)
-#                print "len(data.q) = %d" % len(dataIn.q)
-                self.time=_np.append(self.time,dataIn.time);
-                self.n1Amp=_np.append(self.n1Amp,dataIn.n1Amp);
-                self.n1Phase=_np.append(self.n1Phase,dataIn.n1Phase);
-                self.n1PhaseVelRaw=_np.append(self.n1PhaseVelRaw,dataIn.n1PhaseVelRaw);
-                self.n1PhaseVelStrongFilter=_np.append(self.n1PhaseVelStrongFilter,dataIn.n1PhaseVelStrongFilter);  
-                self.shotNos=_np.append(self.shotNos,_np.array([int(dataIn.shotno)]*len(dataIn.time)))
-            except AttributeError:
-                print "shotno %d has no nMode data. Skipping" % (dataIn.shotno)
-                
-            try:
-                self.minorRadius=_np.append(self.minorRadius,dataIn.minorRadius);
-                self.majorRadius=_np.append(self.majorRadius,dataIn.majorRadius);
-            except AttributeError:
-                print "shotno %d has no radius data. Skipping" % (dataIn.shotno)
-                                
-            try:
-#                self.q=_np.append(self.q,dataIn.q);
-                # note that q had a different time base.  qUpsample is safe.
-                self.qUpsample=_np.append(self.qUpsample,dataIn.qUpsample);
-            except AttributeError:
-                print "shotno %d has no q data. Skipping" % (dataIn.shotno)  
-                            
-            try:
-                self.BPV=_np.append(self.BPV,dataIn.BPV);
-                self.BPI=_np.append(self.BPI,dataIn.BPI);
-            except AttributeError:
-                print "shotno %d has no BP data. Skipping" % (dataIn.shotno)
-                
-            try:
-                self.TPS2n=_np.append(self.TPS2n,dataIn.TPS2n);
-                self.TPS2kTe=_np.append(self.TPS2kTe,dataIn.TPS2kTe);
-                self.TPS2vf=_np.append(self.TPS2vf,dataIn.TPS2vf);
-                self.TPS8n=_np.append(self.TPS8n,dataIn.TPS8n);
-                self.TPS8kTe=_np.append(self.TPS8kTe,dataIn.TPS8kTe);
-                self.TPS8vf=_np.append(self.TPS8vf,dataIn.TPS8vf);
-            except AttributeError:
-                print "shotno %d has no TP data. Skipping" % (dataIn.shotno)
-                
-    def filterData(self,indices): #e.g. indices=_np.where(self.n1Amp>2.)
-        """
-        Using a function call like indices=_np.where(self.n1Amp>2.), an array
-        of indices can be generated.  This function removes all data for self 
-        that does not match these indices
-        """
-        
-        try:
-            self.time=self.time[indices];
-            self.n1Amp=self.n1Amp[indices];
-            self.n1Phase=self.n1Phase[indices];
-            self.n1PhaseVelRaw=self.n1PhaseVelRaw[indices];
-            self.n1PhaseVelStrongFilter=self.n1PhaseVelStrongFilter[indices];
-        except AttributeError:
-            print "data has no nMode data. Skipping" 
-            
-        try:
-            self.minorRadius=self.minorRadius[indices];
-            self.majorRadius=self.majorRadius[indices];
-        except AttributeError:
-            print "data has no radius data. Skipping" 
-                            
-        try:
-#            self.q=self.q[indices];  # note that q has a different time base
-            self.qUpsample=self.qUpsample[indices];
-        except AttributeError:
-            print "data has no q data. Skipping" 
-                        
-        try:
-            self.BPV=self.BPV[indices];
-            self.BPI=self.BPI[indices];
-        except AttributeError:
-            print "data has no BP data. Skipping"
-            
-        try:
-            self.TPS2n=self.TPS2n[indices];
-            self.TPS2kTe=self.TPS2kTe[indices];
-            self.TPS2vf=self.TPS2vf[indices];
-            self.TPS8n=self.TPS8n[indices];
-            self.TPS8kTe=self.TPS8kTe[indices];
-            self.TPS8vf=self.TPS8vf[indices];
-        except AttributeError:
-            print "data has no TP data. Skipping"
-            
+# TODO(John):  the code below is legacy code that needs to be overhauled
+################################################################################
+#### HBTEP shot data format
+#
+#def loadShotData(shotno=96635,tStart=0.0,tStop=8.0,forceDownload=False,gpu=False,BP=True,TP=False):
+#    
+#    """
+#    Returns shotData structure/class
+#    
+#    If the data has been previously downloaded, the data is loaded locally. 
+#    Otherwise, the data is downloaded (and stored for future access) from Spitzer.
+#    """
+#    import os
+#    
+#    # check if shotno is a single entry or an array of entries
+#    if type(shotno)==_np.ndarray:
+#        m=len(shotno);
+#    else:
+#        m=1;
+#        shotno=_np.array([shotno])
+#        
+#    # init output list
+#    data=[None]*m
+#    
+#    # iterate through 1 or more shotnumbers
+#    for i in range(0,m):
+#                
+#        # filepath to save pickle file
+#        filePath=_FILEDIR + str(int(shotno[i]))+'.pickle'
+#        
+#        # check if file is alreay downloaded.  download permanently otherwise.  also downloads file if specifically requested.
+#        if os.path.isfile(filePath)==False or forceDownload==True:
+#            print "downloading "+str(int(shotno[i]))+" shot data from Spitzer"
+#            tags=['nMode','r','q','Ip'] # all HBT data will have this information
+#            # not all HBT data will have the following.  Check first before loading.
+#            if gpu==True:
+#                tags.append('gpu')
+#            if BP==True:
+#                tags.append('BP')
+#            if TP==True:
+#                tags.append('TP')
+#
+#            # download shot data to picke file
+#            _shotData(shotno[i],save=True,tags=tags)
+#            
+#        # load file from pickle file
+#        with open(filePath) as f:  
+#            data[i] = _pk.load(f)
+#            
+#        # trim time to desired range
+#        if True:
+#            iStart=_process.find_nearest(data[i].time,tStart/1000.);
+#            iStop=_process.find_nearest(data[i].time,tStop/1000.)
+#            
+#            try:
+#                data[i].time=data[i].time[iStart:iStop];
+#                data[i].n1Amp=data[i].n1Amp[iStart:iStop];
+#                data[i].n1Phase=data[i].n1Phase[iStart:iStop];
+#                data[i].n1PhaseVelRaw=data[i].n1PhaseVelRaw[iStart:iStop];
+#                data[i].n1PhaseVelStrongFilter=data[i].n1PhaseVelStrongFilter[iStart:iStop];
+#                
+#            except AttributeError:
+#                print "No nMode data. Skipping"
+#                
+#            try:
+#                data[i].minorRadius=data[i].minorRadius[iStart:iStop];
+#                data[i].majorRadius=data[i].majorRadius[iStart:iStop];
+#            except AttributeError:
+#                print "No radial data. Skipping"
+#                                
+#            try:
+#                data[i].q=data[i].q[iStart:iStop];
+#                data[i].qUpsample=data[i].qUpsample[iStart:iStop];
+#            except AttributeError:
+#                print "No q data. Skipping"   
+#                            
+#            try:
+#                data[i].BPV=data[i].BPV[iStart:iStop];
+#                data[i].BPI=data[i].BPI[iStart:iStop];
+#            except AttributeError:
+#                print "No BP data. Skipping"
+#                
+#            try:
+#                data[i].Ip=data[i].Ip[iStart:iStop];
+#            except AttributeError:
+#                print "No Ip data. Skipping"
+#                
+#    # return data
+#    if m==1:
+#        return data[0]
+#    else:
+#        return data
+#    # TODO(John) i would like to combine the loadShotData function and the shotData class, but returning a loaded class is hard to do from that same class.
+#                
+#       
+#class _shotData:
+#    """
+#    data structure for storing multiple data types for a single shot number
+#    """
+##    def __init__(self,shotno=None,tStart=1.0,tStop=8.0,tags=['BP','nMode','r','q'],save=True):
+#    def __init__(self,shotno=None,tags=['nMode','r','q','Ip'],save=True):
+#
+#        self.shotno=shotno;
+#        self.tags=tags;
+#        tStartFixed=0.0;  # all data downloaded starts at this time
+#        tStopFixed=10.0;  # all data downloaded stops at this time
+#        
+#        import HBTTools as hbt
+##        import loadDataTools as ldt
+#
+#        if "nMode" in tags:
+#            nMode=hbt.nModeAnalysis(shotno=shotno,tStart=tStartFixed,tStop=tStopFixed)
+#            
+#            self.time=nMode.time;
+#            self.n1Amp=nMode.n1Amp;
+#            self.n1Phase=nMode.n1Phase;
+#            self.n1PhaseVelRaw=nMode.n1PhaseVelRaw;
+#            self.n1PhaseVelStrongFilter=nMode.n1PhaseVelStrongFilter;  
+#            self.plotOfAmps=nMode.plotOfAmps
+#            self.plotOfN1Amp=nMode.plotOfN1Amp
+#            self.plotOfN1Phase=nMode.plotOfN1Phase
+#            self.plotOfN1Freq=nMode.plotOfN1Freq
+#            self.plotOfN1PhaseAndAmp=nMode.plotOfPhaseAmp
+#           
+#        if "BP" in tags:
+##            self.BP=ldt.BPData(shotno,tStart=tStartFixed,tStop=tStopFixed,loadMethod='new')
+#            BP=BPData(shotno,tStart=tStartFixed,tStop=tStopFixed,loadMethod='new')
+#            
+#            self.BPV=BP.voltageBPS9;
+#            self.BPI=BP.currentBPS9;
+#            self.plotOfBPV=BP.plotOfVoltage
+#            self.plotOfBPI=BP.plotOfCurrent
+#            
+#        if "r" in tags:
+#            r=hbt.plasmaRadius(shotno,tStart=tStartFixed,tStop=tStopFixed)
+#            
+#            self.minorRadius=r.minorRadius;
+#            self.majorRadius=r.majorRadius;
+#            self.plotOfMajorRadius=r.plotOfMajorRadius;
+#            self.plotOfMinorRadius=r.plotOfMinorRadius;
+#            
+#        if "q" in tags:
+#            q=hbt.qStar(shotno,tStart=tStartFixed,tStop=tStopFixed)
+#            
+#            self.q=q.q;
+#            self.qUpsample=q.qUpsample;
+#            self.plotOfQ=q.plotOfQ
+#            
+#        if "gpu" in tags:
+#            gpu=gpuControlData(shotno,tStart=tStartFixed,tStop=tStopFixed, password='',download=True)
+#
+#            self.gpuBPV=gpu.BPS9Voltage
+#            self.gpuAoBPV=gpu.aoBP
+#            self.gpuTime=gpu.time
+#            self.gpuN1Amp=gpu.mAmpSec4
+#            self.gpuN1Freq=gpu.mFreqSec4
+#            self.gpuN1Phase=gpu.mPhaseSec4
+#            self.plotOfGpuAmp=gpu.plotOfAmplitudes
+#            self.plotOfGpuBPV=gpu.plotOfBPS9Voltage
+#            self.plotOfGpuFreq=gpu.plotOfFreq
+#            self.plotOfGpuPhase=gpu.plotOfPhase
+#
+#            self.gpuIndices=self.getTimeIndices()
+#            
+#        if "IP" in tags or "Ip" in tags:
+#            IPdata=IP(shotno,tStart=tStartFixed,tStop=tStopFixed) 
+#            self.Ip=IPdata.ip
+#            self.plotOfIp=IPdata.plotOfIP
+#            
+#        if "TP" in tags:
+#            TP=TPData(shotno,tStart=tStartFixed,tStop=tStopFixed)
+#            self.TPS2vf=TP.Vf2
+#            self.TPS8vf=TP.Vf8
+#            self.TPS2n=TP.ne2
+#            self.TPS8n=TP.ne8
+#            self.TPS2kTe=TP.kTe2
+#            self.TPS8kTe=TP.kTe8
+#        
+#        if save==True:
+#            self.save()
+#            
+#        
+#    def getTimeIndices(self):
+#        """
+#        provides indices of CPCI time that matches GPU time.  effectively downsamples CPCI data to GPU data
+#        """              
+#        gpuIndices=_np.zeros(len(self.gpuTime),dtype=int)
+#        for i in range(0,len(self.gpuTime)):
+#            gpuIndices[i]=_process.find_nearest(self.time,self.gpuTime[i])
+#            
+#        return gpuIndices
+#        
+#    def save(self):
+##        import pickle
+#        filePath=_FILEDIR+str(int(self.shotno))+'.pickle'
+##            pk.saveAsPickle(fileName)
+#        with open(filePath, 'w') as f:  # Python 3: open(..., 'wb')
+#            _pk.dump(self, f)
+#            
+#        
+################################################################################
+#### Concatenated shotno data format
+#"""
+#A different type of shot data structure.  This structure concatenates hbtep 
+#data so that it is easier to anayze data across multiple shot numbers. 
+#"""
+#class appendShotData:
+#    """
+#    Combines list of shotData() into a class structure of single arrays per data type.
+#    This makes processing lots of shot data easier as everything is an appended array.
+#    """
+#    
+#    def __init__(self,data):
+#        self.time=_np.zeros(0)
+#        self.n1Amp=_np.zeros(0)
+#        self.n1Phase=_np.zeros(0)
+#        self.n1PhaseVelRaw=_np.zeros(0)
+#        self.n1PhaseVelStrongFilter=_np.zeros(0)
+#        self.minorRadius=_np.zeros(0)
+#        self.majorRadius=_np.zeros(0)
+#        self.q=_np.zeros(0)
+#        self.qUpsample=_np.zeros(0)
+#        self.BPV=_np.zeros(0)
+#        self.BPI=_np.zeros(0)
+#        self.shotNos=_np.zeros(0,dtype=int)
+#        
+#        for i in range(0,len(data)):
+#            dataIn=data[i];
+#            
+#            try:
+##                print "len(data.time) = %d" % len(dataIn.time)
+##                print "len(data.q) = %d" % len(dataIn.q)
+#                self.time=_np.append(self.time,dataIn.time);
+#                self.n1Amp=_np.append(self.n1Amp,dataIn.n1Amp);
+#                self.n1Phase=_np.append(self.n1Phase,dataIn.n1Phase);
+#                self.n1PhaseVelRaw=_np.append(self.n1PhaseVelRaw,dataIn.n1PhaseVelRaw);
+#                self.n1PhaseVelStrongFilter=_np.append(self.n1PhaseVelStrongFilter,dataIn.n1PhaseVelStrongFilter);  
+#                self.shotNos=_np.append(self.shotNos,_np.array([int(dataIn.shotno)]*len(dataIn.time)))
+#            except AttributeError:
+#                print "shotno %d has no nMode data. Skipping" % (dataIn.shotno)
+#                
+#            try:
+#                self.minorRadius=_np.append(self.minorRadius,dataIn.minorRadius);
+#                self.majorRadius=_np.append(self.majorRadius,dataIn.majorRadius);
+#            except AttributeError:
+#                print "shotno %d has no radius data. Skipping" % (dataIn.shotno)
+#                                
+#            try:
+##                self.q=_np.append(self.q,dataIn.q);
+#                # note that q had a different time base.  qUpsample is safe.
+#                self.qUpsample=_np.append(self.qUpsample,dataIn.qUpsample);
+#            except AttributeError:
+#                print "shotno %d has no q data. Skipping" % (dataIn.shotno)  
+#                            
+#            try:
+#                self.BPV=_np.append(self.BPV,dataIn.BPV);
+#                self.BPI=_np.append(self.BPI,dataIn.BPI);
+#            except AttributeError:
+#                print "shotno %d has no BP data. Skipping" % (dataIn.shotno)
+#                
+#            try:
+#                self.TPS2n=_np.append(self.TPS2n,dataIn.TPS2n);
+#                self.TPS2kTe=_np.append(self.TPS2kTe,dataIn.TPS2kTe);
+#                self.TPS2vf=_np.append(self.TPS2vf,dataIn.TPS2vf);
+#                self.TPS8n=_np.append(self.TPS8n,dataIn.TPS8n);
+#                self.TPS8kTe=_np.append(self.TPS8kTe,dataIn.TPS8kTe);
+#                self.TPS8vf=_np.append(self.TPS8vf,dataIn.TPS8vf);
+#            except AttributeError:
+#                print "shotno %d has no TP data. Skipping" % (dataIn.shotno)
+#                
+#    def filterData(self,indices): #e.g. indices=_np.where(self.n1Amp>2.)
+#        """
+#        Using a function call like indices=_np.where(self.n1Amp>2.), an array
+#        of indices can be generated.  This function removes all data for self 
+#        that does not match these indices
+#        """
+#        
+#        try:
+#            self.time=self.time[indices];
+#            self.n1Amp=self.n1Amp[indices];
+#            self.n1Phase=self.n1Phase[indices];
+#            self.n1PhaseVelRaw=self.n1PhaseVelRaw[indices];
+#            self.n1PhaseVelStrongFilter=self.n1PhaseVelStrongFilter[indices];
+#        except AttributeError:
+#            print "data has no nMode data. Skipping" 
+#            
+#        try:
+#            self.minorRadius=self.minorRadius[indices];
+#            self.majorRadius=self.majorRadius[indices];
+#        except AttributeError:
+#            print "data has no radius data. Skipping" 
+#                            
+#        try:
+##            self.q=self.q[indices];  # note that q has a different time base
+#            self.qUpsample=self.qUpsample[indices];
+#        except AttributeError:
+#            print "data has no q data. Skipping" 
+#                        
+#        try:
+#            self.BPV=self.BPV[indices];
+#            self.BPI=self.BPI[indices];
+#        except AttributeError:
+#            print "data has no BP data. Skipping"
+#            
+#        try:
+#            self.TPS2n=self.TPS2n[indices];
+#            self.TPS2kTe=self.TPS2kTe[indices];
+#            self.TPS2vf=self.TPS2vf[indices];
+#            self.TPS8n=self.TPS8n[indices];
+#            self.TPS8kTe=self.TPS8kTe[indices];
+#            self.TPS8vf=self.TPS8vf[indices];
+#        except AttributeError:
+#            print "data has no TP data. Skipping"
+#            
             
             
 ###############################################################################
@@ -2451,10 +2617,11 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,plotAll=False,phi0=0,nModeSensor='FB',method='leastSquares'):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,phi0=0,nModeSensor='FB',method='leastSquares'):
         
         self.shotno=shotno
-        self.title = 'shotno = %d.  %s sensor.  n=1,2 mode analysis' % (shotno,nModeSensor)
+        self.title = 'shotno = %d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
+        self.nModeSensor=nModeSensor
 
         if nModeSensor=='TA':
             ## load TA data
@@ -2519,76 +2686,97 @@ class nModeData:
             self.n1AmpFiltered=_process.boxCar(self.n1Amp,30)
         else:
             _sys.exit("Invalid mode analysis method provided.")
+            
         
+        ## plot data
+        if plot==True:
+            _plot.subPlot([self.plotOfN1Amp(),self.plotOfN1Phase(),self.plotOfN1Freq()])
+            
+        elif plot == 'all':
+            self.plotOfSlice(index=int(m/4)).plot();
+            self.plotOfSlice(index=int(m/2)).plot();
+            _plot.subPlot([self.plotOfAmps(),self.plotOfN1Phase(),self.plotOfN1Freq()])
+        
+    def plotOfAmps(self):
         ## mode amplitude plots  
-        self.plotOfAmps=_plot.plot()
-        self.plotOfAmps.yData=[self.n1Amp,self.n2Amp,self.n1AmpFiltered]
-        self.plotOfAmps.xData=[self.time*1000,self.time*1000,self.time*1000]
-        if nModeSensor=='TA':
-            self.plotOfAmps.yLegendLabel=['TA Sensors, n=1','TA Sensors, n=2','TA Sensors, n=2, filtered']
-        elif nModeSensor=='FB':
-            self.plotOfAmps.yLegendLabel=['FB Sensors, n=1','FB Sensors, n=2','FB Sensors, n=2, filtered']
-        self.plotOfAmps.title=str(self.title)
-        self.plotOfAmps.xLabel='ms'
-        self.plotOfAmps.yLabel='G'    
+        p1=_plot.plot()
+        p1.yData=[self.n1Amp,self.n2Amp,self.n1AmpFiltered]
+        p1.xData=[self.time*1000,self.time*1000,self.time*1000]
+        if self.nModeSensor=='TA':
+            p1.yLegendLabel=['TA Sensors, n=1','TA Sensors, n=2','TA Sensors, n=2, filtered']
+        elif self.nModeSensor=='FB':
+            p1.yLegendLabel=['FB Sensors, n=1','FB Sensors, n=2','FB Sensors, n=2, filtered']
+        p1.title=self.title
+        p1.xLabel='ms'
+        p1.yLabel='G'   
+        return p1
 
+    def plotOfN1Amp(self):
         # n=1 mode amplitude
-        self.plotOfN1Amp=_plot.plot()
-        self.plotOfN1Amp.subtitle='n=1 mode amp'
-        self.plotOfN1Amp.yLim=[0,10]
-        self.plotOfN1Amp.yData=[self.n1Amp]
-        self.plotOfN1Amp.xData=[self.time*1000]
-        if nModeSensor=='TA':
-            self.plotOfN1Amp.yLegendLabel=['TA Sensors']
-        elif nModeSensor=='FB':
-            self.plotOfN1Amp.yLegendLabel=['FB Lower Sensors']
-        self.plotOfN1Amp.title=str(self.title)
-        self.plotOfN1Amp.xLabel='ms'
-        self.plotOfN1Amp.yLabel='G'                                      
-                     
+        p1=_plot.plot()
+        p1.subtitle='n=1 mode amp'
+        p1.yLim=[0,10]
+        p1.yData=[self.n1Amp]
+        p1.xData=[self.time*1000]
+        if self.nModeSensor=='TA':
+            p1.yLegendLabel=['TA Sensors']
+        elif self.nModeSensor=='FB':
+            p1.yLegendLabel=['FB Lower Sensors']
+        p1.title=str(self.title)
+        p1.xLabel='ms'
+        p1.yLabel='G'
+        return p1
+
+    def  plotOfN1Phase(self):
         # n=1 mode phase
-        self.plotOfN1Phase=_plot.plot()
-        self.plotOfN1Phase.subtitle='n=1 mode phase'
-        self.plotOfN1Phase.yLim=[-_np.pi,_np.pi]
-        self.plotOfN1Phase.yData=[self.n1Phase]
-        self.plotOfN1Phase.xData=[self.time*1000]
-        self.plotOfN1Phase.linestyle=['']
-        self.plotOfN1Phase.marker=['.']
-        if nModeSensor=='TA':
-            self.plotOfN1Phase.yLegendLabel=['TA Sensors']
-        elif nModeSensor=='FB':
-            self.plotOfN1Phase.yLegendLabel=['FB Lower Sensors']
-        self.plotOfN1Phase.title=str(self.title)
-        self.plotOfN1Phase.xLabel='ms'
-        self.plotOfN1Phase.yLabel='phi'
+        p1=_plot.plot()
+        p1.subtitle='n=1 mode phase'
+        p1.yLim=[-_np.pi,_np.pi]
+        p1.yData=[self.n1Phase]
+        p1.xData=[self.time*1000]
+        p1.linestyle=['']
+        p1.marker=['.']
+        if self.nModeSensor=='TA':
+            p1.yLegendLabel=['TA Sensors']
+        elif self.nModeSensor=='FB':
+            p1.yLegendLabel=['FB Lower Sensors']
+        p1.title=self.title
+        p1.xLabel='ms'
+        p1.yLabel='phi'
+        return p1
         
+    def plotOfN1Freq(self):
         # n=1 mode freq
-        self.plotOfN1Freq=_plot.plot()        
-        self.plotOfN1Freq.subtitle='n=1 mode frequency'
-        self.plotOfN1Freq.yData=[self.n1Freq/1000.,self.n1FreqStrongFilter/1000.,self.n1FreqWeakFilter/1000.]
-        self.plotOfN1Freq.xData=[self.time*1000,self.time*1000,self.time*1000]
-        self.plotOfN1Freq.yLegendLabel=['raw','strong filter','weak filter']
-        self.plotOfN1Freq.title=str(self.title)
-        self.plotOfN1Freq.xLabel='ms'
-        self.plotOfN1Freq.yLabel='kHz'
-        self.plotOfN1Freq.yLim=[-20,20]
+        p1=_plot.plot()        
+        p1.subtitle='n=1 mode frequency'
+        p1.yData=[self.n1Freq/1000.,self.n1FreqStrongFilter/1000.,self.n1FreqWeakFilter/1000.]
+        p1.xData=[self.time*1000,self.time*1000,self.time*1000]
+        p1.yLegendLabel=['raw','strong filter','weak filter']
+        p1.title=self.title
+        p1.xLabel='ms'
+        p1.yLabel='kHz'
+        p1.yLim=[-20,20]
+        return p1
+        
+    def plotOfPhaseAmp(self):
                    
         # hybrid plot of phase AND amplitude
         # TODO(John) implement in new plot function
-        self.plotOfPhaseAmp=_plot.plot() 
-        self.plotOfPhaseAmp.yData=[self.n1Phase]
-        self.plotOfPhaseAmp.xData=[self.time*1000]
-        self.plotOfPhaseAmp.colorData=[self.n1AmpFiltered]#[self.n1Amp]
-        self.plotOfPhaseAmp.linestyle=['']
-        self.plotOfPhaseAmp.marker=['.']
-        self.plotOfPhaseAmp.subtitle='n=1 Phase and Filtered Amplitude'
-        self.plotOfPhaseAmp.title=str(shotno)
-        self.plotOfPhaseAmp.xLabel='ms'
-        self.plotOfPhaseAmp.yLabel=r'$\phi$'
-        self.plotOfPhaseAmp.zLabel='Gauss'
-        self.plotOfPhaseAmp.yLegendLabel=['TA sensors']
-        self.plotOfPhaseAmp.plotType='scatter'
-        self.plotOfPhaseAmp.yLim=[-_np.pi,_np.pi]
+        p1=_plot.plot() 
+        p1.yData=[self.n1Phase]
+        p1.xData=[self.time*1000]
+        p1.colorData=[self.n1AmpFiltered]#[self.n1Amp]
+        p1.linestyle=['']
+        p1.marker=['.']
+        p1.subtitle='n=1 Phase and Filtered Amplitude'
+        p1.title=self.title
+        p1.xLabel='ms'
+        p1.yLabel=r'$\phi$'
+        p1.zLabel='Gauss'
+        p1.yLegendLabel=['TA sensors']
+        p1.plotType='scatter'
+        p1.yLim=[-_np.pi,_np.pi]
+        return p1
         
 #       TODO fix this code        
 #        mx=_np.max(self.n1AmpFiltered)
@@ -2597,17 +2785,9 @@ class nModeData:
 #        cm = _processt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
 #        self.plotOfPhaseAmp.cmap=cm
                                 
-        ## plot data
-        if plot==True:
-            _plot.subPlot([self.plotOfN1Amp,self.plotOfN1Phase,self.plotOfN1Freq])
-            
-        if plotAll==True:
-            self.plotSlice(index=int(m/4));
-            self.plotSlice(index=int(m/2));
-            _plot.subPlot([self.plotOfAmps,self.plotOfN1Phase,self.plotOfN1Freq])
             
 
-    def plotSlice(self,index=0):
+    def plotOfSlice(self,index=0):
         """
         Plots fit data for a single time value
         """
@@ -2616,21 +2796,21 @@ class nModeData:
         y=_np.zeros(n);
         for i in range(0,n):
                 y[i]=self._data[i][j]*1e4
-        self.p1=_plot.plot()
+        p1=_plot.plot()
         phi=_np.linspace(self._phi[0],self._phi[-1],100)
         n1Fit=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)
         n2Fit=self._x[0,j]+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
         fitTotal=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
 
         # plot
-        self.p1.yData=[y,n1Fit,n2Fit,fitTotal]
-        self.p1.xData=[self._phi,phi,phi,phi]
-        self.p1.linestyle=['','-','-','-']
-        self.p1.marker=['.','','','']
-        self.p1.yLegendLabel=['raw','n=1','n=2','n=1 + n=2']
-        self.p1.color=['black','red','blue','green']
-        self.p1.title='t='+str(self.time[j]*1000)+'ms.  '+str(self.shotno)
-        self.p1.plot()
+        p1.yData=[y,n1Fit,n2Fit,fitTotal]
+        p1.xData=[self._phi,phi,phi,phi]
+        p1.linestyle=['','-','-','-']
+        p1.marker=['.','','','']
+        p1.yLegendLabel=['raw','n=1','n=2','n=1 + n=2']
+        p1.color=['black','red','blue','green']
+        p1.title='t='+str(self.time[j]*1000)+'ms.  '+str(self.shotno)
+        return p1
         
 
 class mModeData:
@@ -2713,22 +2893,30 @@ class mModeData:
         
         # TODO:  add frequency data, raw and smoothed
         
-        # plot amplitudes
-        self.plotOfAmplitudes=_plot.plot()
-        self.plotOfAmplitudes.yData=[self.m1Amp,self.m2Amp,self.m3Amp,self.m4Amp,self.m5Amp]
-        self.plotOfAmplitudes.xData=[self.time*1000,self.time*1000,self.time*1000,self.time*1000,self.time*1000]
-        self.plotOfAmplitudes.yLegendLabel=[r'$|B_{pol, m=1}|$',r'$|B_{pol, m=2}|$',r'$|B_{pol, m=3}|$',r'$|B_{pol, m=4}|$',r'$|B_{pol, m=5}|$']
-        self.plotOfAmplitudes.title=str(self.title)
-        self.plotOfAmplitudes.xLabel='ms'
-        self.plotOfAmplitudes.yLabel='G'
         
         if plot == True:
-            self.plotSlice(index=int(m/4));
-            self.plotSlice(index=int(m/2));
-            self.plotOfAmplitudes.plot()
+            self.plotOfAmplitudes().plot()
+        elif plot == 'all':
+            self.plotOfSlice(index=int(m/4)).plot();
+            self.plotOfSlice(index=int(m/2)).plot();
+            self.plotOfAmplitudes().plot()
+            
+        
+    def plotOfAmplitudes(self):
+        # plot amplitudes
+        p1=_plot.plot()
+        p1.yData=[self.m1Amp,self.m2Amp,self.m3Amp,self.m4Amp,self.m5Amp]
+        p1.xData=[self.time*1000,self.time*1000,self.time*1000,self.time*1000,self.time*1000]
+        p1.yLegendLabel=[r'$|B_{pol, m=1}|$',r'$|B_{pol, m=2}|$',r'$|B_{pol, m=3}|$',r'$|B_{pol, m=4}|$',r'$|B_{pol, m=5}|$']
+        p1.title=str(self.title)
+        p1.xLabel='ms'
+        p1.yLabel='G'
+        return p1
+        
+    # TODO:  add other plots
         
         
-    def plotSlice(self,index=0):
+    def plotOfSlice(self,index=0):
         """
         Plot fits for a single instant in time
         """
@@ -2752,7 +2940,8 @@ class mModeData:
         p1.marker=['.','','','','','','']
         p1.yLegendLabel=['raw','m=1','m=2','m=3','m=4','m=5','m=1-5']
         p1.title='t=%.3f ms. %s ' % (self.time[j]*1000, self.title)
-        p1.plot()
+#        p1.plot()
+        return p1
         
 
 ###############################################################################
@@ -2761,7 +2950,7 @@ class mModeData:
 def _debugPlotExamplesOfAll():
     """ 
     This code plots an example of most every function in this file.  
-    Effectively, this allows the testing of most every function. 
+    Effectively, this allows the testing of most every function all in one go.
     """
     bpData(plot=True)
     capBankData(plot=True)

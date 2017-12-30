@@ -30,3 +30,5 @@ You need to create a preferences.py file in the hbtep directory if you want to u
 _HBT_SERVER_ADDRESS = 'str'
 
 which points at our data server.  Because I don't wish for this address to be public knowledge, you will need to get this address from me.  This is also why preferences.py is an ignored file with the project.  
+
+When you clone the library from github, DO NOT INCLUDE www in the address.  I don't know why, but I'm not able to push if the project was setup with www in the address.  
