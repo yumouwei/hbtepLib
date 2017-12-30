@@ -6,7 +6,7 @@ This file is intended for several reasons:
 
 Notes
 -----
-If you are NOT using this remotely from the HBTEP server, you must fill in the following variables immediately after cloning the library.  If you don't know what they are, ask someone who does.  
+When you first clone this library, you must fill in the following variables.  If you don't know what they are, ask someone who does.  
 """
 
 # hbt server address
