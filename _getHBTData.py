@@ -2954,12 +2954,12 @@ def _debugPlotExamplesOfAll():
     """
     bpData(plot=True)
     capBankData(plot=True)
-    fbData(plotSample=True)
+    fbData(plot=True)
     ipData(plot=True)
     loopVoltageData(plot=True)
     mModeData(plot=True)
     nModeData(plot=True)
-    paData(plotSample=True)
-    taData(plotSample=True)
+    paData(plot=True)
+    taData(plot=True)
     tpData(plot=True)
     
