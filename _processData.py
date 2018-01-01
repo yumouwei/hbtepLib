@@ -17,7 +17,7 @@ import _plotTools as _plot
 
             
 ###############################################################################
-### functions
+### misc functions
             
 def find_nearest(array,value):
     """
@@ -41,7 +41,9 @@ def find_nearest(array,value):
     http://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
     """
     index = (_np.abs(array-value)).argmin()
-    return index #array[idx] #index instead of value
+    # value = array[index] 
+    return index 
+    # return index, value # uncomment to return both the index AND the value
     
     
 def rmse(data, targets=0):
@@ -113,42 +115,7 @@ def rejectOutliers(data, sigma=2):
     """
     return data[abs(data - _np.mean(data)) < sigma* _np.std(data)]
                 
-      
-def boxCar(data,c=25):
-    """
-    box car smoothing algorithm.  home brew.
-    
-    Parameters
-    ----------
-    data : numpy.ndarray
-        data being smoothed
-    c : int
-        plus and minus number of points to include in box car.  I.e. c=25 means
-        that the function is smoothing over 51 points
-        
-    Return
-    ------
-    sData : numpy.ndarray
-        smoothed data array
-        
-    Notes
-    -----
-    TODO(John) Check indices.  I'm not 100% this function works EXACTLY as 
-    stated above.  
-    
-    """
-    n=len(data);
-    sData=_np.zeros(n);
-    for i in range(0,n):
-        if i < c:  # left edge
-            sData[i]=_np.sum(data[0:i+c])/(i+c)
-        elif i > n-c:  # right edge
-            sData[i]=_np.sum(data[i-c:n])/(n-i+c+1)            
-        else:
-            sData[i]=_np.sum(data[i-c:i+c+1])/(2.*c+1)
-    return sData
-                
-                
+            
 def wrapPhase(data): 
     """
     Wraps phase data so that it repeats every 2pi.
@@ -259,20 +226,29 @@ def sortArrays(arrays,sortIndex):
     return arrays
     
     
-def downSampleData(downX,data,xIndex=0):
+def downSampleData(downX,upX,data):
     """
-    Down samples data by finding the nearest x values on data that match the downselecting x (downX)
+    Down samples data by finding the nearest x values on data that match the 
+    downselecting x (downX)
     
-    downX = the pre-down selected x array
-    data = list of arrays to be down sized
-    xIndex = index of data array to be compared against downX
+    Sometimes, you want to compare two different sets of data that do not have
+    the same time basis.  This function down-samples the data set with more 
+    data points so that its x-data matches the other
+    
+    Parameters
+    ----------
+        
+    Returns
+    -------
+    out : list (of np.ndarray)
+        list of trimmed y-data
     """
     m=len(downX)
     indices=_np.zeros(m,dtype=_np.int16)
     out = []
     
     for i in range(0,m):
-        indices[i]=int(find_nearest(data[xIndex],downX[i]))
+        indices[i]=int(find_nearest(upX,downX[i]))
 
     for i in range(0,len(data)):
         out.append(data[i][indices])
@@ -283,11 +259,25 @@ def upSampleData(upX,downX,data):
     """
     Up samples data by linear interpolating 
     
-    upX = the x-data that we are sampling up to
-    downX = the x-data that we are sampling from
-    data = single array of data associated with downX
+    Similar to downSampleData() but up-samples instead
+    
+    Parameters
+    ----------
+    upX : np.ndarray
+        the x-data that will be used in up-sampling the under-sampled data
+    downX : np.ndarray
+        the undersampled x-data
+    data : list (of np.ndarray)
+        the y-data to be up-samples.  downX is its time-base before 
+        up-sampling.  upX will be its time-base after up-sampling
+    
+    Returns
+    -------
+    out : list (of np.ndarray)
+        list of up-sampled y-data
     """
-    return _np.interp(upX,downX,data)
+    out = _np.interp(upX,downX,data)
+    return out
     
 
     
@@ -304,6 +294,170 @@ def linearizeDataMatrix(data):
         temp=_np.append(temp,data[i])
     return temp
     
+    
+###############################################################################
+### filters and smoothing algorithms
+    
+def boxCar(data,c=25):
+    """
+    box car smoothing algorithm.  home brew.
+    
+    Parameters
+    ----------
+    data : numpy.ndarray
+        data being smoothed
+    c : int
+        plus and minus number of points to include in box car.  I.e. c=25 means
+        that the function is smoothing over 51 points
+        
+    Return
+    ------
+    sData : numpy.ndarray
+        smoothed data array
+        
+    Notes
+    -----
+    TODO(John) Check indices.  I'm not 100% this function works EXACTLY as 
+    stated above.  I think it may be using 2*c points instead of 2*c+1
+    
+    References
+    ----------
+    https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
+    """
+    n=len(data);
+    sData=_np.zeros(n);
+    for i in range(0,n):
+        if i < c:  # left edge
+            sData[i]=_np.sum(data[0:i+c])/(i+c)
+        elif i > n-c:  # right edge
+            sData[i]=_np.sum(data[i-c:n])/(n-i+c+1)            
+        else:
+            sData[i]=_np.sum(data[i-c:i+c+1])/(2.*c+1)
+    return sData
+    
+    
+def butterworthFilter(y, x,filterOrder=2, samplingRate=1/(2*1e-6), cutoffFreq=20*1e3, filterType='low',plot=False):
+    """
+    Apply a digital butterworth filter on your data
+    
+    Parameters
+    ----------
+    y : numpy.ndarray
+        unfiltered dependent data
+    x : numpy.ndarray
+        independent data
+    filterOrder : int
+        Butterworth filter order
+    samplingRate : float
+        Data sampling rate.  
+    cutoffFreq : float
+        cutoff frequency for the filter
+    filterType : str
+        filter type.  'low' is lowpass filter
+    plot : bool or str
+        - True - plots filter results. 
+        - 'all'- plots filter results and filter response (psuedo-BODE plot)
+        
+    Returns
+    -------
+    filteredData : numpy.ndarray
+        Filtered dependent data
+        
+    References
+    ----------
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.freqz.html
+    https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
+    """    
+    
+    
+    from scipy.signal import butter, lfilter, freqz
+    
+    def butter_lowpass(cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = butter(order, normal_cutoff, btype=filterType, analog=False)
+        return b, a
+    
+    def butter_lowpass_filter(data, cutoff, fs, order=5):
+        b, a = butter_lowpass(cutoff, fs, order=order)
+        y = lfilter(b, a, data)
+        return y
+        
+    def plotOfFreqResponse():
+        
+        # Get the filter coefficients so we can check its frequency response.
+        b, a = butter_lowpass(cutoffFreq, samplingRate, filterOrder)
+        
+        # calc frequency response 
+        w, h = freqz(b, a, worN=8000)
+        gain=_np.abs(h)
+        phase=_np.unwrap(_np.angle(h))*180/_np.pi
+        
+        # generate gain plot        
+        p1=_plot.plot()
+        p1.xLim=[0, 0.5*samplingRate]
+        p1.xLabel='Frequency [Hz]'
+        p1.subtitle="Gain Response"
+        p1.yLabel='Gain'
+        p1.yLim=[0,1.]
+        p1.title='Butterworth filter. Order=%d. Cutoff Freq=%.1f. Sampling Rate = %.1f Hz. Type = %s.' % (filterOrder, cutoffFreq, samplingRate, filterType)
+        
+        p1.xData.append(0.5*samplingRate*w/_np.pi)
+        p1.yData.append(gain)
+        p1.yLegendLabel.append('Frequency Response')
+        
+        p1.xData.append(_np.array([cutoffFreq,cutoffFreq]))
+        p1.yData.append(_np.array([0,1])) #0.5*_np.sqrt(2)
+        p1.yLegendLabel.append('Cuttoff Frequency')
+        
+        # generate phase plot        
+        p2=_plot.plot()
+        p2.xLim=[0, 0.5*samplingRate]
+        p2.xLabel='Frequency [Hz]'
+        p2.subtitle="Phase Response"
+        p2.yLabel='Phase [Degrees]'
+        p2.yLim=[_np.min(phase),0]
+        
+        p2.xData.append(0.5*samplingRate*w/_np.pi)
+        p2.yData.append(phase)
+        p2.yLegendLabel.append('Frequency Response')
+        
+        p2.xData.append(_np.array([cutoffFreq,cutoffFreq]))
+        p2.yData.append(_np.array([_np.min(phase),0])) #0.5*_np.sqrt(2)
+        p2.yLegendLabel.append('Cuttoff Frequency')
+        
+        # combine into subplot
+        sp1=_plot.subPlot([p1,p2],plot=False)
+
+        return sp1
+        
+    def plotOfResults():
+        p1=_plot.plot()
+        
+        p1.xData.append(x)
+        p1.yData.append(y)
+        p1.yLegendLabel.append('Unfiltered Data')
+        
+        p1.xData.append(x)
+        p1.yData.append(filteredData)
+        p1.yLegendLabel.append('Filtered Data')
+        
+        return p1
+        
+        
+    filteredData=butter_lowpass_filter(y, cutoffFreq,
+                                       samplingRate, filterOrder)
+                                       
+    if plot==True:
+        plotOfResults().plot()
+       
+    if plot == 'all':
+        plotOfResults().plot()
+        plotOfFreqResponse().plot()
+        
+    return filteredData
+        
+                
     
     
 ###############################################################################

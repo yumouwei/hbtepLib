@@ -5,10 +5,10 @@ specific)
 """
 
 
-#import numpy as _np
-#import pickle as _pk
+#import numpy as _npd
 import _hbtPreferences as _pref
 reload(_pref)
+import pickle as _pk
 
 
 ###############################################################################
@@ -181,3 +181,53 @@ class scpData:
     def __del__(self):
         """ upon deletion of object, close ssh/scp connections """
         self.closeConnection();
+
+
+    
+###############################################################################
+### save/read pickle files
+    
+def saveToPickle(data,fileName):
+    """
+    Save data (any object) to file
+    
+    Parameters
+    ----------
+    data : any object or class instance
+        data to be saved
+    fileName : str
+        the COMPLETE file and directory name.  Also please include an extension
+        e.g. fileName='/home/john/shotData/98030.pickle'
+        
+    Notes
+    -----
+    Pickles are very large files and shouldn't be used excessively
+
+    """
+    fileHandler = open(fileName,'w')
+    _pk.dump(data,fileHandler)
+    
+    
+def loadFromPickle(fileName):
+    """
+    Load and return data (any object) from a pickle file
+    
+    Parameters
+    ----------
+    fileName : str
+        the COMPLETE file and directory name.  Also please include an extension
+        e.g. fileName='/home/john/shotData/98030.pickle'
+        
+    Returns
+    -------
+    data : any object or class instance
+        loaded data
+        
+    Notes
+    -----
+    Pickles are very large files and shouldn't be used excessively
+
+    """
+    fileHandler = open(fileName,'r')
+    data=_pk.load(fileHandler)
+    return data

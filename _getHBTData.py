@@ -3,10 +3,12 @@ _rwHBTData.py - load HBT data, both processed and unprocessed
 
 NOTES
 -----
--The convention for units is to maintain everything in SI until they are
+The convention for units is to maintain everything in SI until they are
 plotted.  
--A few of these functions are merely wrappers for other people's code
--In most of the functions below, I've specified default shotno's.  This is 
+
+A few of these functions are merely wrappers for other people's code
+
+In most of the functions below, I've specified default shotno's.  This is 
 largely to make bebugging easier as there is nothing special about the 
 provided shotnos.  
 """
@@ -18,9 +20,10 @@ provided shotnos.
 import numpy as _np
 import MDSplus as _mds
 from copy import copy as _copy
-import pickle as _pk
+#import pickle as _pk
 import sys as _sys
 import _socket
+import os as _os
 
 # hbtepLib libraries
 import _rwDataTools as _rwData
@@ -153,7 +156,7 @@ def mdsData(shotno=None,
         time associated with data array
     """
     # if shotno is specified, this function gets its own mdsConn
-    if type(shotno) is float or type(shotno) is int:
+    if type(shotno) is float or type(shotno) is int or type(shotno) is _np.int64:
         mdsConn=_initMDSConnection(shotno);
         
 #    return mdsConn
@@ -232,11 +235,8 @@ class ipData:
         self.ip=data[0];
         self.time=time;
         
-#        self.plotOfIP=None
-        
         if plot == True:
             self.plot()
-        # generate plot
         
         
     def plotOfIP(self):
@@ -259,6 +259,94 @@ class ipData:
         Plot all relevant plots 
         """
         self.plotOfIP().plot()
+        
+        
+class cos1Rogowski:
+    """
+    Gets cos 1 rogowski data
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    cos1 : numpy.ndarray
+        cos1 data
+    time : numpy.ndarray
+        time data
+    cos2Raw : numpy.ndarray
+        raw cos1 data
+        
+    Subfunctions
+    ------------
+    plotOfIP : 
+        returns the plot of IP vs time
+    plot :
+        Plots all relevant plots
+    
+    Notes
+    -----
+    This function initially grabs data starting at -1 ms.  This is because it 
+    needs time data before 0 ms to calculate the cos1RawOffset value.  After 
+    calculating this value, the code trims off the time before tStart.
+    """
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+        self.shotno = shotno
+        self.title = "shotno = %d, Cos1 Rog. Data" % shotno
+        
+        # get data.  need early time data for offset subtraction
+        data, time=mdsData(shotno=shotno,
+                              dataAddress=['\HBTEP2::TOP.SENSORS.ROGOWSKIS:COS_1',
+                                           '\HBTEP2::TOP.SENSORS.ROGOWSKIS:COS_1:RAW'],
+                              tStart=-1*1e-3, tStop=tStop)
+        
+        # calculate offset
+        self.cos1Raw=data[1]
+        indices=time<0.0*1e-3
+        self.cos1RawOffset=_np.mean(self.cos1Raw[indices])
+        
+        # trime time before tStart
+        iStart=_process.find_nearest(time,tStart)
+        self.cos1=data[0][iStart:];
+        self.time=time[iStart:];
+        self.cos1Raw=self.cos1Raw[iStart:]
+        
+        if plot == True:
+            self.plot()
+        
+        
+    def plotOfCos1(self):
+        """
+        returns the plot of cos1 rog vs time
+        """
+        p1=_plot.plot()
+        p1.yData=[self.cos1]
+        p1.xData=[self.time*1000]
+        p1.yLabel=''
+        p1.xLabel='time [ms]'
+        p1.subtitle='Cos1 Rogowski'
+        p1.title=str(self.title);
+        
+        return p1
+        
+            
+    def plot(self):
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfCos1().plot()
         
   
 class bpData:
@@ -327,7 +415,7 @@ class bpData:
     # how to handle this
     # TODO(John) these probes have been periodically moved to different nodes.  
     # implement if lowerbound < shotno < upperbound conditions to handle these cases
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10,plot=False):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
         self.title = "shotno=%s, BP Data." % shotno
 
@@ -546,12 +634,13 @@ class tpData:
         
     Notes
     -----
-    - I am not using the same time array for the section 5 or the section 8 
+    I am not using the same time array for the section 5 or the section 8 
     triple probes.  I do this because different data acq. systems (e.g. north
     rack CPCI vs south rack CPCI) doesn't always return the EXACT same array.  
     I've run into issues where the length of the time arrays weren't the same
     length which causes problems during plotting. 
-    - TPS2 was moved to section 5 (now called TPS5) during the summer of 2017.
+    
+    TPS2 was moved to section 5 (now called TPS5) during the summer of 2017.
     This may cause variable naming issues.  Be warned.  
     
     TODO The other cases for shotnumbers need to finalized so that legacy data
@@ -1686,9 +1775,9 @@ class loopVoltageData:
         self.plotOfLoopVoltage().plot()
         
         
-class capBankData:
+class tfData:
     """
-    Capacitor bank data.  Current and fields.  
+    Toroidal field data  
     
     Parameters
     ----------
@@ -1709,7 +1798,92 @@ class capBankData:
         title to go on all plots        
     tfBankField : numpy.ndarray
         Toroidal mangetic field data
-    tfTime : numpy.ndarray
+    time : numpy.ndarray
+        Toroidla field time data
+        
+    Subfunctions
+    ------------
+    plotOfTF : _plotTools.plot
+        returns plot of TF data
+    plot :
+        plots all relevant data
+    upSample :
+        upsamples TF's normal A14 time base (1e-5 s period) to the CPCI time 
+        base (2e-6 s) using a linear interpolation method
+    
+    Notes
+    -----
+    note that the TF field data is recorded on an A14 where most of HBTEP data
+    is stored with the CPCI.  Because the A14 has a slower sampling rate, this
+    means that the TF data has fewer poitns than the rest of the HBTEP data, 
+    and this makes comparing data difficult.  
+    """
+    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,upSample=False):
+        self.shotno = shotno
+        self.title = "shotno = %d, Capacitor Bank Data" % shotno
+        
+        # get tf data
+        data, self.time=mdsData(shotno=shotno,
+                                  dataAddress=['\HBTEP2::TOP.SENSORS.TF_PROBE'],
+                                  tStart=tStart, tStop=tStop) 
+        self.tfBankField=data[0];
+
+        if upSample==True:
+            self.upSample()
+        if plot == True:
+            self.plot()
+            
+    def upSample(self):
+        
+        # time step sizes
+        dtUp=2*1e-6 # CPCI sampling period
+        dtDown=self.time[-1]-self.time[-2] # A14 sampling period
+        
+        # reconstruct CPCI time base
+        upTime=_np.arange(self.time[0],self.time[-1]+dtDown-dtUp,dtUp) # note that there is some trickery here with reconstructing the CPCI time base.  
+        
+        # upsample data
+        self.tfBankField=_process.upSampleData(upTime,self.time,self.tfBankField)
+        self.time=upTime
+            
+               
+    def plotOfTF(self,tStart=None,tStop=None):
+        # generate tf plot
+        p1=_plot.plot()
+        p1.yData=[self.tfBankField]
+        p1.xData=[self.time*1000]
+        p1.yLabel='T'
+        p1.xLabel='time [ms]'
+        p1.subtitle='TF Bank Field'
+        p1.title=str(self.title);
+        return p1
+            
+    def plot(self):
+        """ Plot all relevant plots """
+        self.plotOfTF().plot()
+        
+        
+class capBankData:
+    """
+    Capacitor bank data.  Currents.  
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots       
         Toroidla field time data
     vfBankCurrent : numpy.ndarray
         Vertical Field (VF) bank current data
@@ -1726,8 +1900,6 @@ class capBankData:
         
     Subfunctions
     ------------
-    plotOfTF : _plotTools.plot
-        returns plot of TF data
     plotOfVF : _plotTools.plot
         returns plot of VF data
     plotOfOH : _plotTools.plot
@@ -1739,25 +1911,17 @@ class capBankData:
     
     Notes
     -----
-    - Note that all 4 banks have their own time array.  This is because the 
+    Note that all 3 banks have their own time array.  This is because the 
     data doesn't always have the same length and therefore must have their own
-    time array.  
-    - Note that tStart and tStop are intentionally left as None because the TF
+    time array. 
+    
+    Note that tStart and tStop are intentionally left as None because the TF
     data is so incredibly long next to the other data.
-    - Note that the TF data isn't actually the discharging voltage or current 
-    of the TF bank.  It's the TF field measurement instead.
     """
     
     def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Capacitor Bank Data" % shotno
-        
-        # get tf data
-        data, time=mdsData(shotno=shotno,
-                              dataAddress=['\HBTEP2::TOP.SENSORS.TF_PROBE'],
-                              tStart=tStart, tStop=tStop) 
-        self.tfBankField=data[0];    
-        self.tfTime=time;
         
         # get vf data
         data, time=mdsData(shotno=shotno,
@@ -1779,20 +1943,9 @@ class capBankData:
                               tStart=tStart, tStop=tStop) 
         self.shBankCurrent=data[0];    
         self.shTime=time;
-        
+
         if plot == True:
             self.plot()
-               
-    def plotOfTF(self,tStart=None,tStop=None):
-        # generate tf plot
-        p1=_plot.plot()
-        p1.yData=[self.tfBankField]
-        p1.xData=[self.tfTime*1000]
-        p1.yLabel='T'
-        p1.xLabel='time [ms]'
-        p1.subtitle='TF Bank Field'
-        p1.title=str(self.title);
-        return p1
         
     def plotOfVF(self):
         # generate vf plot
@@ -1831,12 +1984,14 @@ class capBankData:
             
     def plot(self):
         """ Plot all relevant plots """
+        # load tf data because it's always nice to compare it with the cap banks
+        tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
         
         # subplot of all 4 bank data
         # note: most of this code is determining and setting the appropriate
         # x and y limits
         sp1=_plot.subPlot([self.plotOfVF(),self.plotOfOH(),self.plotOfSH(),
-                        self.plotOfTF()],plot=False)
+                        tf.plotOfTF()],plot=False)
         xMin=_np.min(sp1.subPlots[0].xData)
         xMax=_np.max(sp1.subPlots[0].xData)
         sp1.subPlots[0].xLim=[xMin,xMax]
@@ -1851,11 +2006,229 @@ class capBankData:
         sp1.plot()
         
         # plot of TF with shaded region representing x-limits in subplot
-        p1=self.plotOfTF()
-        p1.axvspan=[_np.min(sp1.subPlots[0].xData),
-                                _np.max(sp1.subPlots[0].xData)]
+        p1=tf.plotOfTF()
+        p1.axvspan=[self.ohTime[0]*1e3,self.ohTime[-1]*1e3]
         p1.axvspanColor=['r']
         p1.plot()
+        
+        
+     
+#####################################################
+class plasmaRadiusData:
+    """
+    Calculate the major and minor radius.
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    majorRadius : numpy.ndarray
+        plasma major radius in meters
+    minorRadius : numpy.ndarray
+        plasma minor radius in meters
+    time : numpy.ndarray
+        time (in seconds) associated with data
+        
+    Subfunctions
+    ------------
+    plotOfMajorRadius : 
+        returns the plot of major radius vs time
+    plotOfMinorRadius : 
+        returns the plot of major radius vs time
+    plot :
+        Plots all relevant plots
+        
+    Notes
+    -----
+    The radius calculations below are pulled from Paul Hughes's 
+    pauls_MDSplus_toolbox.py code.  In that code, he attributes Niko Rath for 
+    its implementation
+    
+    """
+    
+    def __init__(self,shotno=95782,tStart=0*1e-3,tStop=10*1e-3, plot=False, probeRadius=[]):
+        self.shotno=shotno;
+        self.title = "%d, plasma radius" % shotno
+        
+        # Determined by Daisuke during copper plasma calibration
+        a=.00643005
+        b=-1.10423
+        c=48.2567
+        
+        # Calculated by Jeff, but still has errors
+        vf_pickup = 0.0046315133 * -1e-3
+        oh_pickup = 7.0723416e-08
+        
+        # get vf and oh data
+        capBank=capBankData(shotno=shotno,tStart=tStart,tStop=tStop)
+        vf=capBank.vfBankCurrent
+        oh=capBank.ohBankCurrent
+        self.time=capBank.vfTime
+        
+        # get plasma current
+        ip=ipData(shotno=shotno,tStart=tStart,tStop=tStop)
+        ip=ip.ip*1212*1e-9  # ip gain
+        
+        # get cos-1 raw data
+        cos1=cos1Rogowski(shotno=shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
+        
+        # subtract offset
+        cos1Raw=cos1.cos1Raw-cos1.cos1RawOffset        
+        
+        # integrate cos-1 raw 
+        from scipy.integrate import cumtrapz
+        cos1 = cumtrapz(cos1Raw,cos1.time) + cos1Raw[:-1]*.004571
+        
+        # r-major calculations
+        pickup = vf * vf_pickup + oh * oh_pickup
+        ratio = ip / (cos1 - pickup)
+        arg = b**2 - 4 * a * (c-ratio)
+        arg[arg < 0] = 0
+        r_major = (-b + _np.sqrt(arg)) / (2*a)
+        self.majorRadius  = r_major / 100 # Convert to meters
+#        self.majorRadius -= 0.45/100
+        
+        # r-minor calculations
+        self.minorRadius=_np.ones(len(self.majorRadius))*0.15
+        outwardLimitedIndices=self.majorRadius > (0.92)
+        self.minorRadius[outwardLimitedIndices] = 1.07 - self.majorRadius[outwardLimitedIndices] # Outboard limited
+        inwardLimitedIndices=self.majorRadius < (0.92 - 0.01704)   
+        self.minorRadius[inwardLimitedIndices] = self.majorRadius[inwardLimitedIndices] - 0.75296 # inward limited
+        
+        if plot==True:
+            self.plot();
+
+        
+    def plotOfMajorRadius(self):
+        # limited data
+        innerLimiter=_np.array([0.90296,0.90296])*100
+        innerLimiterTime=_np.array([self.time[0],self.time[-1]]);
+        outerLimiter=_np.array([0.92,0.92])*100        
+        outerLimiterTime=_np.array([self.time[0],self.time[-1]]);
+        
+        # plot
+        p1=_plot.plot()
+        p1.yData=[self.majorRadius*100,innerLimiter,outerLimiter]
+        p1.xData=[self.time*1000,innerLimiterTime*1000,outerLimiterTime*1000]
+        p1.yLegendLabel=['major radius','HFS limited','LFS limited']
+        p1.subtitle='major radius'
+        p1.title=self.title
+        p1.xLabel='time [ms]'
+        p1.yLabel='cm'
+        p1.yLim=[89, 95]
+        return p1
+        
+    def plotOfMinorRadius(self):
+        p1=_plot.plot()
+        p1.yData=[self.minorRadius*100.]
+        p1.xData=[self.time*1000]
+        p1.subtitle='minor radius'
+        p1.yLegendLabel=['minor radius']
+        p1.title=self.title
+        p1.xLabel='time [ms]'
+        p1.yLabel='cm'
+        p1.yLim=[10, 16]
+        return p1
+
+
+    def plot(self):
+        self.p=_plot.subPlot([self.plotOfMajorRadius(),self.plotOfMinorRadius()]);
+
+
+class qStarData:
+    """
+    Gets qstar data
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+    tStart : float
+        time (in seconds) to drim data after
+    plot : bool
+        plots all relevant plots if true
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    qStar : numpy.ndarray
+        plasma current data
+    time : numpy.ndarray
+        time data
+        
+    Subfunctions
+    ------------
+    plotOfQStar : 
+        returns the plot of IP vs time
+    plot :
+        Plots all relevant plots
+    """
+    
+    def __init__(self,shotno=96496, tStart=0*1e-3, tStop=10*1e-3, plot=False):
+        self.shotno = shotno
+        self.title = r"shotno = %d, q$^*$ Data" % shotno
+        
+        # get data
+        ip=ipData(shotno=shotno,tStart=tStart,tStop=tStop)
+        plasmaRadius=plasmaRadiusData(shotno=shotno,tStart=tStart,tStop=tStop)
+        tfProbeData,tfProbeTime=mdsData(shotno=96496,
+                                        dataAddress=['\HBTEP2::TOP.SENSORS.TF_PROBE'],
+                                        tStart=tStart,tStop=tStop)
+                                        
+        # upsample tfprobe data  (its recorded on the A14)      
+        data=_process.upSampleData(ip.time,tfProbeTime,tfProbeData[0])
+        
+        # more tf calculations
+        tfProbeData=data*1.23/plasmaRadius.majorRadius
+        
+        # calc q star
+        self.qStar= plasmaRadius.minorRadius**2 * tfProbeData / (2e-7 * ip.ip * plasmaRadius.majorRadius)
+        self.time=ip.time
+        
+                
+        if plot == True:
+            self.plot()
+        
+        
+    def plotOfQStar(self):
+        """
+        returns the plot of IP vs time
+        """
+        p1=_plot.plot()
+        p1.yData=[self.qStar]
+        p1.xData=[self.time*1000]
+        p1.yLabel=''
+        p1.xLabel='time [ms]'
+        p1.subtitle=r'q$^*$'
+        p1.title=str(self.title);
+        p1.yLim=[2,5]
+        
+        return p1
+        
+            
+    def plot(self):
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfQStar().plot()
         
             
 class gpuControlData:
@@ -2281,6 +2654,287 @@ def checkBlackList(inData,inName):
     return outData
     
     
+################################################################################
+#### HBTEP shot data format
+    
+def shotData(shotnos=_np.array([98119,98120],dtype=int), #,
+                     tStart=0.0*1e-3, tStop=8.0*1e-3, saveData=False, 
+                     tags=['nMode','bp','tp','eRog','spect','sol','lv','ip','radius','qStar']):
+
+    """
+    Loads multiple shot data files.  
+    
+    Parameters
+    ----------
+    
+    Returns 
+    -------
+    data : list (of _getHBTData.shotData)
+        list of shot data structures
+    """
+                     
+    # make sure shotnos is a np array
+    if type(shotnos) is int or type(shotnos) is float:
+        shotnos=_np.array([shotnos]);
+    elif type(shotnos) is list:
+        shotnos=_np.array(shotnos);
+    m=len(shotnos)
+        
+    # make sure tStart and tStop are also lists (actually np arrays)
+    if type(tStart) is int or type(tStart) is float: 
+        tStart=_np.ones(m)*tStart
+    if type(tStop) is int or type(tStop) is float: 
+        tStop=_np.ones(m)*tStop
+        
+    # load each shotData
+    data=[]
+    for i in range(0,m):
+        data.append(_getShotData(shotno=shotnos[i],
+                                tStart=tStart[i],
+                                tStop=tStop[i],
+                                saveData=saveData,
+                                tags=tags))
+                                         
+    # return
+    return data
+                 
+    
+class _getShotData:
+    """
+    Downloads HBTEP data into a single class for a single shotno.  
+    If the file is present locally, it loads it from there.  If the file is NOT
+    present at the local save directory, the data is loaded from the HBTEP 
+    server
+    
+    Parameters
+    ----------
+    
+    Attributes
+    ----------
+    
+    """
+    def __init__(self,shotno=98030,tStart=0.0*1e-3,tStop=8.0*1e-3,saveData=False,
+                 tags=['nMode','bp','tp','eRog','spect','sol','lv','ip','radius','qStar']):
+        self.shotno=shotno
+        # download data
+        
+        # check if file is alreay downloaded.  download permanently otherwise.  also downloads file if specifically requested.
+        
+        localFilePath=_pref._LOCAL_DATA_DIR+'shotData_'+str(shotno)+'.pickle'
+        filePresent =_os.path.isfile(localFilePath)
+
+        # load from existing file        
+        if filePresent==True: # and forceDownload!=True:
+            saveData=False
+            data=_rwData.loadFromPickle(localFilePath)
+            try:
+                if 'nMode' in tags:
+                    self.nMode=data.nMode
+                if 'bp' in tags:
+                    self.bp=data.bp
+                if 'tp' in tags:
+                    self.tp=data.tp
+                if 'eRog' in tags:
+                    self.eRog=data.eRog
+                if 'spect' in tags:
+                    self.spectrometer=data.spectrometer
+                if 'sol' in tags:
+                    self.sol=data.sol
+                if 'lv' in tags:
+                    self.lv=data.lv
+                if 'ip' in tags:
+                    self.ip=data.ip
+                if 'capBank' in tags:
+                    self.capBank=data.capBank
+                if 'radius' in tags:
+                    self.radius=data.radius
+                if 'qStar' in tags:
+                    self.qStar=data.qStar
+                print "loading "+str(int(shotno))+" shot data from local storage"
+                    
+            except AttributeError:
+                print str(int(shotno))+" shot data is incomplete. " + "Getting from HBTEP server instead and rewriting old data"
+                filePresent=False
+#                saveData=True
+            
+        # if file is not already downloaded locally, download from HBTEP serer
+        if filePresent==False: # or forceDownload==True:
+            saveData=True
+            print "downloading "+str(int(shotno))+" shot data from HBTEP server"
+            if 'nMode' in tags:
+                self.nMode=nModeData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'bp' in tags:
+                self.bp=bpData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'tp' in tags:
+                self.tp=tpData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'eRog' in tags:
+                self.eRog=externalRogowskiData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'spect' in tags:
+                self.spectrometer=spectrometerData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'sol' in tags:
+                self.sol=solData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'lv' in tags:
+                self.lv=loopVoltageData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'ip' in tags:
+                self.ip=ipData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'capBank' in tags:
+                self.capBank=capBankData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'radius' in tags:
+                self.radius=plasmaRadiusData(shotno=shotno,tStart=tStart,tStop=tStop)
+            if 'qStar' in tags:
+                self.qStar=qStarData(shotno=shotno,tStart=tStart,tStop=tStop)
+        
+        # save data to file
+        if saveData==True:
+            print "Writing to %s" % localFilePath
+            _rwData.saveToPickle(self,localFilePath)
+            
+            
+class appendedShotData:
+    """
+    
+    Notes
+    -----
+    This function is appending data from multiple sources all over the 
+    experiment.  It is therefore CRUCIAL to this code that all of these data
+    sources have the EXACT SAME time base (same number of data points). If you 
+    are adding more functionality to this function, make sure that it has the
+    same number of data points.
+    """
+    def __init__(self, shotnos=_np.array([98119,98120],dtype=int), #,
+                 tStart=0.0*1e-3, tStop=8.0*1e-3, saveData=False, 
+                 tags=['nMode','bp','tp','eRog','spect','sol','lv','ip','radius','qStar']):
+                     
+        self.shotnos=shotnos
+        self.tags=tags
+                     
+        # make sure shotnos is a np array
+        if type(shotnos) is int or type(shotnos) is float:
+            shotnos=_np.array([shotnos]);
+        elif type(shotnos) is list:
+            shotnos=_np.array(shotnos);
+        m=len(shotnos)
+            
+        # make sure tStart and tStop are also lists (actually np arrays)
+        if type(tStart) is int or type(tStart) is float: 
+            tStart=_np.ones(m)*tStart
+        if type(tStop) is int or type(tStop) is float: 
+            tStop=_np.ones(m)*tStop
+            
+        # get shot data
+        data=shotData(shotnos=shotnos,tStart=tStart,tStop=tStop,
+                              saveData=saveData,tags = tags)
+
+        
+        self.time=_np.zeros(0)
+        if 'nMode' in tags:
+            self.n1ModeAmp=_np.zeros(0)
+            self.n1ModePhase=_np.zeros(0)
+            self.n1ModeFreq=_np.zeros(0)
+        if 'bp' in tags:
+            self.bps9Voltage=_np.zeros(0)
+            self.bps9Current=_np.zeros(0)
+        if 'tp' in tags:
+            self.tps5VF=_np.zeros(0)
+            self.tps5Temp=_np.zeros(0)
+            self.tps5Density=_np.zeros(0)
+        if 'eRog' in tags:
+            self.eRogA=_np.zeros(0)
+            self.eRogB=_np.zeros(0)
+            self.eRogC=_np.zeros(0)
+            self.eRogD=_np.zeros(0)
+        if 'spect' in tags:
+            self.spectrometer=_np.zeros(0)
+#        if 'sol' in tags:
+#            self.sol=_np.zeros(0)
+        if 'lv' in tags:
+            self.lv=_np.zeros(0)
+        if 'ip' in tags:
+            self.ip=_np.zeros(0)
+        if 'radius' in tags:
+            self.majorRadius=_np.zeros(0)  
+            self.minorRadius=_np.zeros(0)  
+        if 'qStar' in tags:
+            self.qStar=_np.zeros(0) 
+        for i in range(0,m):
+            if 'nMode' in tags:
+                self.time=_np.append(self.time,data[i].nMode.time)
+                self.n1ModeAmp=_np.append(self.n1ModeAmp,data[i].nMode.n1Amp)
+                self.n1ModePhase=_np.append(self.n1ModePhase,data[i].nMode.n1Phase)
+                self.n1ModeFreq=_np.append(self.n1ModeFreq,data[i].nMode.n1Freq)
+            if 'bp' in tags:
+                self.bps9Voltage=_np.append(self.bps9Voltage,data[i].bp.bps9Voltage)
+                self.bps9Current=_np.append(self.bps9Current,data[i].bp.bps9Current)
+            if 'tp' in tags:
+                self.tps5VF=_np.append(self.tps5VF,data[i].tp.tps5VFloat)
+                self.tps5Temp=_np.append(self.tps5Temp,data[i].tp.tps5Temp)
+                self.tps5Density=_np.append(self.tps5Density,data[i].tp.tps5Density)
+            if 'eRog' in tags:
+                self.eRogA=_np.append(self.eRogA,data[i].eRog.eRogA)
+                self.eRogB=_np.append(self.eRogB,data[i].eRog.eRogB)
+                self.eRogC=_np.append(self.eRogC,data[i].eRog.eRogC)
+                self.eRogD=_np.append(self.eRogD,data[i].eRog.eRogD)
+            if 'spect' in tags:
+                self.spectrometer=_np.append(self.spectrometer,data[i].spectrometer.spect)
+#            if 'sol' in tags:
+#                self.sol=_np.zeros(0)
+            if 'lv' in tags:
+                self.lv=_np.append(self.lv,data[i].lv.loopVoltage)
+            if 'ip' in tags:
+                self.ip=_np.append(self.ip,data[i].ip.ip)
+            if 'radius' in tags:
+                self.majorRadius=_np.append(self.majorRadius,data[i].radius.majorRadius)
+                self.minorRadius=_np.append(self.minorRadius,data[i].radius.minorRadius)
+            if 'qStar' in tags:
+                self.qStar=_np.append(self.qStar,data[i].qStar.qStar)
+                
+    def filterData(self,conditionalIndices):
+        """
+        Provide a condition related to the data (e.g self.time<2.0*1e-3), and
+        this function will trow away all data that does not match this
+        condition
+        
+        Example use
+        -----------
+        import hbtepLib as hbt
+        a=hbt.get.appendedShotData()
+        plt.plot(a.time,a.bps9Current,'.')
+        a.filterData(conditionalIndices=a.bps9Current<20)
+        a.filterData(conditionalIndices=a.time>2*1e-3)
+        plt.plot(a.time,a.bps9Current,'.')
+        
+        """
+        
+        if 'nMode' in self.tags:
+            self.time=self.time[conditionalIndices]
+            self.n1ModeAmp=self.n1ModeAmp[conditionalIndices]
+            self.n1ModePhase=self.n1ModePhase[conditionalIndices]
+            self.n1ModeFreq=self.n1ModeFreq[conditionalIndices]
+        if 'bp' in self.tags:
+            self.bps9Voltage=self.bps9Voltage[conditionalIndices]
+            self.bps9Current=self.bps9Current[conditionalIndices]
+        if 'tp' in self.tags:
+            self.tps5VF=self.tps5VF[conditionalIndices]
+            self.tps5Temp=self.tps5Temp[conditionalIndices]
+            self.tps5Density=self.tps5Density[conditionalIndices]
+        if 'eRog' in self.tags:
+            self.eRogA=self.eRogA[conditionalIndices]
+            self.eRogB=self.eRogB[conditionalIndices]
+            self.eRogC=self.eRogC[conditionalIndices]
+            self.eRogD=self.eRogD[conditionalIndices]
+        if 'spect' in self.tags:
+            self.spectrometer=self.spectrometer[conditionalIndices]
+        if 'lv' in self.tags:
+            self.lv=self.lv[conditionalIndices]
+        if 'ip' in self.tags:
+            self.ip=self.ip[conditionalIndices]
+        if 'radius' in self.tags:
+            self.majorRadius=self.majorRadius[conditionalIndices]
+            self.minorRadius=self.minorRadius[conditionalIndices]
+        if 'qStar' in self.tags:
+            self.qStar=self.qStar[conditionalIndices]
+    
+    
 # TODO:There are more and better ways to write blacklist functions.  Write more
 
 # TODO(John):  the code below is legacy code that needs to be overhauled
@@ -2603,10 +3257,68 @@ def checkBlackList(inData,inName):
 ### Processed data from HBTEP
 class nModeData:
     """
-    This function performs a least squares fit to a toroidal array of sensors and analyzes n=1 and n=2 modes.  Mode amplitude, phase, and phase velocity. 
-    In addtion, this code generates a perturbed B_pol(t) measurement as observed by a sensor at location, phi0
-    Function uses either 30 poloidal TA sensors or 10 poloidal FB sensors. 
+    This function performs n-mode (toroidal) mode analysis on the plasma.
+    Provides mode amplitude, phase, and frequency
     
+    Parameters
+    ----------
+    shotno : int
+        shotnumber to be analyzed
+    tStart : float
+        start time
+    tStop : float
+        end time
+    plot : bool or str
+        True - plots relevant data
+        'all' - plots all data
+    nModeSensor : str
+        sensors to be used to calculate the modes
+        'FB' - feedback sensors
+        'TA' - toroidal array sensors
+    method : str
+        method to calculate mode analysis
+        'leastSquares' - performs a matrix least squares analysis
+        
+    Attributes
+    ----------
+    shotno : int
+        data shot number
+    title : str
+        title to be placed on each plot
+    nModeSensor : str
+        sensors to be used to calculate the modes
+    n1Amp : numpy.ndarray
+        n=1 mode amplitude data
+    n2Amp : numpy.ndarray
+        n=2 mode amplitude data
+    n1Phase : numpy.ndarray
+        n=1 mode phase data
+    n2Phase : numpy.ndarray
+        n=2 mode phase data
+    n1Freq : numpy.ndarray
+        n=1 mode frequency data
+    n2Freq : numpy.ndarray
+        n=2 mode frequency data
+    n1FreqWeakFilter : numpy.ndarray
+        weak filter on n=1 frequency data
+    n1FreqStrongFilter : numpy.ndarray
+        strong filter on n=1 frequency data
+        
+    Subfunctions
+    ------------
+    plot :
+        plots relevant plots
+    Bn1 : 
+        Generates a pretend B_{n=1} signal at the toroidal location, phi0
+        Not presently in use
+    plotOfAmps : 
+        returns a plot of n=1 and n=2 mode amplitudes
+    plotOfN1Phase
+        returns a plot of the n=1 mode phase
+    self.plotOfN1Freq
+        returns a plot of the n=1 mode frequency
+    self.plotOfN1Amp
+        returns a plot of the n=1 mode amplitude
     
     """    
 
@@ -2617,11 +3329,12 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,phi0=0,nModeSensor='FB',method='leastSquares'):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,nModeSensor='FB',method='leastSquares',frequencyFilter='2ndOrderButterworth'):
         
         self.shotno=shotno
         self.title = 'shotno = %d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
         self.nModeSensor=nModeSensor
+        self.frequencyFilter=frequencyFilter
 
         if nModeSensor=='TA':
             ## load TA data
@@ -2676,11 +3389,21 @@ class nModeData:
             ## Calculate frequency (in Hz) using second order deriv 
             self.n1Freq=_np.gradient(_process.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)
             
-            # boxcar filter of frequency
-            self.n1FreqWeakFilter=_process.boxCar(self.n1Freq,10)
-            self.n1FreqTimeWeakFilter = self.time        
-            self.n1FreqStrongFilter=_process.boxCar(self.n1Freq,40)
-            self.n1FreqTimeStrongFilter = self.time
+            if frequencyFilter=='2ndOrderButterworth':
+                self.n1FreqFiltered=_process.butterworthFilter(self.n1Freq,
+                                                               self.time,
+                                                               filterOrder=2,
+                                                               samplingRate=1./(2*1e-6),
+                                                               cutoffFreq=20*1e3,
+                                                               filterType='low')
+            elif frequencyFilter=='boxcar':
+                # boxcar filter of frequency
+                # n1FreqWeakFilter=_process.boxCar(self.n1Freq,10)
+                self.n1FreqFiltered=_process.boxCar(self.n1Freq,40)
+            elif frequencyFilter=='' or frequencyFilter==None:
+                self.n1FreqFiltered=self.n1Freq
+            else:
+                _sys.exit("Invalid frequency filter provided.")
             
             # boxcar filter of n1 amplitude
             self.n1AmpFiltered=_process.boxCar(self.n1Amp,30)
@@ -2690,12 +3413,17 @@ class nModeData:
         
         ## plot data
         if plot==True:
-            _plot.subPlot([self.plotOfN1Amp(),self.plotOfN1Phase(),self.plotOfN1Freq()])
+            self.plot()
             
         elif plot == 'all':
             self.plotOfSlice(index=int(m/4)).plot();
             self.plotOfSlice(index=int(m/2)).plot();
+            self.plot()
             _plot.subPlot([self.plotOfAmps(),self.plotOfN1Phase(),self.plotOfN1Freq()])
+        
+    def plot(self):
+        _plot.subPlot([self.plotOfN1Amp(),self.plotOfN1Phase(),self.plotOfN1Freq()])
+        
         
     def plotOfAmps(self):
         ## mode amplitude plots  
@@ -2749,9 +3477,9 @@ class nModeData:
         # n=1 mode freq
         p1=_plot.plot()        
         p1.subtitle='n=1 mode frequency'
-        p1.yData=[self.n1Freq/1000.,self.n1FreqStrongFilter/1000.,self.n1FreqWeakFilter/1000.]
-        p1.xData=[self.time*1000,self.time*1000,self.time*1000]
-        p1.yLegendLabel=['raw','strong filter','weak filter']
+        p1.yData=[self.n1Freq/1000.,self.n1FreqFiltered/1000.]
+        p1.xData=[self.time*1000,self.time*1000]
+        p1.yLegendLabel=['raw',self.frequencyFilter]
         p1.title=self.title
         p1.xLabel='ms'
         p1.yLabel='kHz'
