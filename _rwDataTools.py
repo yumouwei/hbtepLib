@@ -5,7 +5,7 @@ specific)
 """
 
 
-#import numpy as _npd
+import numpy as _np
 import _hbtPreferences as _pref
 reload(_pref)
 import pickle as _pk
@@ -206,6 +206,7 @@ def saveToPickle(data,fileName):
     """
     fileHandler = open(fileName,'w')
     _pk.dump(data,fileHandler)
+    fileHandler.close()
     
     
 def loadFromPickle(fileName):
@@ -231,3 +232,62 @@ def loadFromPickle(fileName):
     fileHandler = open(fileName,'r')
     data=_pk.load(fileHandler)
     return data
+    
+  
+###############################################################################
+### dictionaries
+  
+class dictionary:
+    """
+    Wrapper for python's dictionary tool
+    
+    Notes
+    -----
+    It's probably easier to just use the dictionary tool without this wrapper.
+    However, I plan on keeping this wrapper around because it's nice to remind
+    myself of the dictionaries functionality
+    
+    References
+    ----------
+    https://www.tutorialspoint.com/python/python_dictionary.htm
+    """
+    def __init__(self,listOfKeys=[],listOfEntries=[]):
+        m=len(listOfKeys)
+        
+        # initialize empty dictionary
+        self.dict={}
+        
+        # add elements
+        if listOfEntries==[]:
+#            for i in range(0,m):
+            self.initializeKeysWithNumpyArrays(listOfKeys)
+        else:
+            for i in range(0,m):
+                self.addEntry(listOfKeys[i],listOfEntries[i])
+            
+    def initializeKeysWithNumpyArrays(self,listOfKeys):
+        for i in range(0,len(listOfKeys)):
+            self.addEntry(listOfKeys[i],_np.zeros(0));
+            
+    def indexEntry(self,key):
+        """ pulls entry from dictionary """
+        return self.dict[key]
+        
+    def addEntry(self, key, entry):
+        """ add entry """
+        self.dict[key]=entry
+        
+    def updateEntry(self, key, entry):
+        """ same as add entry but the key should already exist """
+        self.addEntry(key,entry) 
+        
+    def delEntry(self,key):
+        """ delete entry """
+        del self.dict[key]
+        
+    def returnListOfKeys(self):
+        """ returns a list of the keys """
+        return self.dict.keys()
+        
+    def appendNumpyArrayToEntry(self,key,entry):
+        self.dict[key]=_np.append(self.dict[key],entry)

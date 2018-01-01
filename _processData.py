@@ -237,12 +237,27 @@ def downSampleData(downX,upX,data):
     
     Parameters
     ----------
+    downX : numpy.ndarray
+        the x-data that will provide the down smpaled reference to the 
+        upsampled x-data
+    upX : numpy.ndarray
+        the upsampled x-data that will be downsampled
+    data : list (of numpy.array)
+        the upsampled y-data that will be downsampled
         
     Returns
     -------
     out : list (of np.ndarray)
         list of trimmed y-data
+        
+    Notes
+    -----
+    upX is not actually trimmed in this instance.  it is assumed that you user
+    will use downX as their new time basis
     """
+    if type(data) is not list:
+        data=[data]
+    
     m=len(downX)
     indices=_np.zeros(m,dtype=_np.int16)
     out = []

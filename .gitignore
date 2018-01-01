@@ -4,7 +4,7 @@ gitCommands
 # preferences file.  keeps user specific settings as well as hides the HBTEP server address from the public
 _hbtPreferences.py
 
-# misc files that aren't necessary and glutter the repository.  
+# misc files that aren't necessary and clutter the repository.  
 .gitignore~
 readme.md~
 *.py~

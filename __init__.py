@@ -15,11 +15,21 @@ reload(process)
 import _plotTools as plot
 reload(plot)
 
+# old feedback tools
+import _feedBackTools
+reload(_feedBackTools)
+
+# misc data read/write tools
+import _rwDataTools
+reload(_rwDataTools)
+    
+
 """
-how to reload modules.  This allows the all subpackages to be reloaded when the main package is reloaded.
+how to reload modules.  This allows the all subpackages to be reloaded when 
+the main package is reloaded.
 
 # e.g.
-import HBT_0.01 as hbt
+import hbtepLib as hbt
 # then after you make modification to _rwHBTDataTools.py, type:
 reload(hbt)
 # now, hbt and its subfunctions are up to date.  
