@@ -218,9 +218,9 @@ class subPlot:
 #        self.showOnlyTopTitle==True
         
         if plot==True:
-            self.plot()
+            self.plot(plotMe=plot)
         
-    def plot(self):
+    def plot(self,plotMe=True):
         
         # make sure data is a list
         if type(self.subPlots) is not list:
@@ -466,7 +466,8 @@ class subPlot:
             fig.savefig(self.fileName+'.png')   
                 
         # plot
-        _plt.show()
+        if plotMe==True:
+            _plt.show()
         
 #
 #

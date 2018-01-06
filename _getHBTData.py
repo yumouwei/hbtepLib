@@ -96,8 +96,8 @@ def _trimTime(time,data,tStart,tStop):
         iStop=len(time);
     else:
         # determine indices of cutoff regions
-        iStart=_process.find_nearest(time,tStart);   # index of lower cutoff
-        iStop=_process.find_nearest(time,tStop);     # index of higher cutoff
+        iStart=_process.findNearest(time,tStart);   # index of lower cutoff
+        iStop=_process.findNearest(time,tStop);     # index of higher cutoff
         
     # trim time
     time=time[iStart:iStop];
@@ -168,11 +168,6 @@ def mdsData(shotno=None,
     for i in range(0,len(dataAddress)):
         data.append(mdsConn.get(dataAddress[i]).data())
     time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
-
-#    # if tStart is not defined, give it the default values
-#    if tStart is None:
-#        tStart = _TSTART;
-#        tStop  = _TSTOP;
         
     # check to see if units are in seconds and NOT in milliseconds
     if tStop > 1:
@@ -184,7 +179,6 @@ def mdsData(shotno=None,
         
     # return data and time
     return data, time
-    # TODO is there a way to make time an optional return??
     
     
 ###############################################################################
@@ -192,7 +186,7 @@ def mdsData(shotno=None,
     
 class ipData:
     """
-    Gets plasma current data
+    Gets plasma current (I_p) data
     
     Parameters
     ----------
@@ -200,10 +194,13 @@ class ipData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -271,10 +268,13 @@ class cos1Rogowski:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -318,7 +318,7 @@ class cos1Rogowski:
         self.cos1RawOffset=_np.mean(self.cos1Raw[indices])
         
         # trime time before tStart
-        iStart=_process.find_nearest(time,tStart)
+        iStart=_process.findNearest(time,tStart)
         self.cos1=data[0][iStart:];
         self.time=time[iStart:];
         self.cos1Raw=self.cos1Raw[iStart:]
@@ -359,10 +359,13 @@ class bpData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -563,10 +566,13 @@ class tpData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
     probes : str
         This parameter allows the user to specify which probe from which to 
         load data.  There are two triple probes: tps5 (triple probe section 5) 
@@ -858,13 +864,18 @@ class paData:
     
     Parameters
     ----------
+
     shotno : int
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
-    plot : bool or str
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
         True - plots all 64 sensors
         'sample' - plots one of each (PA1 and PA2)
         'all' - same as True
@@ -940,15 +951,15 @@ class paData:
         if smoothingAlgorithm=='tripleBoxCar':
             # jeff's triple boxcar smoothing
             for i in range(0,32):
-                temp=_copy(_process.boxCar(data=self.pa1Raw[i][:],c=50))
-                temp=_copy(_process.boxCar(data=temp,c=50))
-                temp=_copy(_process.boxCar(data=temp,c=10))
+                temp=_process.convolutionSmoothing(self.pa1Raw[i][:],101,'box')
+                temp=_process.convolutionSmoothing(temp,101,'box')
+                temp=_process.convolutionSmoothing(temp,21,'box')
                 self.pa1RawFit.append(temp)
                 self.pa1Data.append(self.pa1Raw[i]-temp)
                 
-                temp=_copy(_process.boxCar(data=self.pa2Raw[i][:],c=50))
-                temp=_copy(_process.boxCar(data=temp,c=50))
-                temp=_copy(_process.boxCar(data=temp,c=10))
+                temp=_process.convolutionSmoothing(self.pa2Raw[i][:],101,'box')
+                temp=_process.convolutionSmoothing(temp,101,'box')
+                temp=_process.convolutionSmoothing(temp,21,'box')
                 self.pa2RawFit.append(temp)
                 self.pa2Data.append(self.pa2Raw[i]-temp)
         else:
@@ -958,8 +969,8 @@ class paData:
         if plot==True or plot=='all':
             self.plot(True)
         if plot=='sample':
-            self.plotPA1();
-            self.plotPA2();
+            self.plotOfPA1().plot();
+            self.plotOfPA2().plot();
             
 
     def plotOfPA1(self, i=0, alsoPlotRawAndFit=True):
@@ -1049,13 +1060,18 @@ class fbData:
     
     Parameters
     ----------
+
     shotno : int
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
-    plot : bool or str
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
         True - Plots a sample of each FB poloidal and radial data
         'sample'- same as True
         'all' - Plots all 80 sensor data
@@ -1142,15 +1158,15 @@ class fbData:
             # jeff's triple boxcar smoothing
             for j in range(0,4):
                 for i in range(0,10):
-                    temp=_copy(_process.boxCar(data=self.fbPolRaw[j][i][:],c=50))
-                    temp=_copy(_process.boxCar(data=temp,c=50))
-                    temp=_copy(_process.boxCar(data=temp,c=10))
+                    temp=_process.convolutionSmoothing(self.fbPolRaw[j][i][:],101,'box')
+                    temp=_process.convolutionSmoothing(temp,101,'box')
+                    temp=_process.convolutionSmoothing(temp,21,'box')
                     self.fbPolRawFit[j].append(temp)
                     self.fbPolData[j].append(self.fbPolRaw[j][i]-temp)
                     
-                    temp=_copy(_process.boxCar(data=self.fbRadRaw[j][i][:],c=50))
-                    temp=_copy(_process.boxCar(data=temp,c=50))
-                    temp=_copy(_process.boxCar(data=temp,c=10))
+                    temp=_process.convolutionSmoothing(self.fbRadRaw[j][i][:],101,'box')
+                    temp=_process.convolutionSmoothing(temp,101,'box')
+                    temp=_process.convolutionSmoothing(temp,21,'box')
                     self.fbRadRawFit[j].append(temp)
                     self.fbRadData[j].append(self.fbRadRaw[j][i]-temp)
         else:
@@ -1158,8 +1174,8 @@ class fbData:
      
         # plot
         if plot=='sample':
-            self.plotOfSinglePol();
-            self.plotOfSingleRad();
+            self.plotOfSinglePol().plot();
+            self.plotOfSingleRad().plot();
         elif plot == True or plot=='all':
             self.plot(True)
             
@@ -1266,13 +1282,18 @@ class taData:
     
     Parameters
     ----------
+
     shotno : int
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
-    plot : bool or str
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
         True - Plots a sample of each FB poloidal and radial data
         'sample'- same as True
         'all' - Plots all 80 sensor data
@@ -1359,16 +1380,16 @@ class taData:
         if smoothingAlgorithm=='tripleBoxCar':
             # jeff's triple boxcar smoothing
             for i in range(0,30):
-                temp=_copy(_process.boxCar(data=self.taPolRaw[i][:],c=50))
-                temp=_copy(_process.boxCar(data=temp,c=50))
-                temp=_copy(_process.boxCar(data=temp,c=10))
+                temp=_process.convolutionSmoothing(self.taPolRaw[i][:],101,'box')
+                temp=_process.convolutionSmoothing(temp,101,'box')
+                temp=_process.convolutionSmoothing(temp,21,'box')
                 self.taPolRawFit.append(temp)
                 self.taPolData.append(self.taPolRaw[i]-temp)
                 
                 if i < 10:
-                    temp=_copy(_process.boxCar(data=self.taRadRaw[i][:],c=50))
-                    temp=_copy(_process.boxCar(data=temp,c=50))
-                    temp=_copy(_process.boxCar(data=temp,c=10))
+                    temp=_process.convolutionSmoothing(self.taRadRaw[i][:],101,'box')
+                    temp=_process.convolutionSmoothing(temp,101,'box')
+                    temp=_process.convolutionSmoothing(temp,21,'box')
                     self.taRadRawFit.append(temp)
                     self.taRadData.append(self.taRadRaw[i]-temp)
         else:
@@ -1376,7 +1397,7 @@ class taData:
              
         # plot
         if plot=='sample':
-            self.plotOfSinglePol();
+            self.plotOfSinglePol().plot();
         elif plot==True or plot=='all':
             self.plot(True);
             
@@ -1440,14 +1461,18 @@ class externalRogowskiData:
     
     Parameters
     ----------
+
     shotno : int
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -1573,10 +1598,13 @@ class spectrometerData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -1637,10 +1665,13 @@ class solData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -1720,10 +1751,13 @@ class loopVoltageData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -1785,10 +1819,13 @@ class tfData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -1820,7 +1857,7 @@ class tfData:
     """
     def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,upSample=False):
         self.shotno = shotno
-        self.title = "shotno = %d, Capacitor Bank Data" % shotno
+        self.title = "shotno = %d, TF Field Data" % shotno
         
         # get tf data
         data, self.time=mdsData(shotno=shotno,
@@ -1873,10 +1910,13 @@ class capBankData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -1997,8 +2037,8 @@ class capBankData:
         sp1.subPlots[0].xLim=[xMin,xMax]
         subData=sp1.subPlots[3].yData[0]
         subTime=sp1.subPlots[3].xData[0]
-        iMin=_process.find_nearest(subTime,xMin)
-        iMax=_process.find_nearest(subTime,xMax)
+        iMin=_process.findNearest(subTime,xMin)
+        iMax=_process.findNearest(subTime,xMax)
         yMin=_np.min(subData[iMin:iMax])
         yMax=_np.max(subData[iMin:iMax])
         dY=yMax-yMin
@@ -2024,10 +2064,13 @@ class plasmaRadiusData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -2158,10 +2201,13 @@ class qStarData:
         shot number of desired data
     tStart : float
         time (in seconds) to trim data before
-    tStart : float
-        time (in seconds) to drim data after
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
     plot : bool
         plots all relevant plots if true
+        default is False
         
     Attributes
     ----------
@@ -2403,12 +2449,16 @@ class nModeData:
     Parameters
     ----------
     shotno : int
-        shotnumber to be analyzed
+        shot number of desired data
     tStart : float
-        start time
+        time (in seconds) to trim data before
+        default is 0 ms
     tStop : float
-        end time
-    plot : bool or str
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
         True - plots relevant data
         'all' - plots all data
     nModeSensor : str
@@ -2432,17 +2482,13 @@ class nModeData:
     n2Amp : numpy.ndarray
         n=2 mode amplitude data
     n1Phase : numpy.ndarray
-        n=1 mode phase data
-    n2Phase : numpy.ndarray
-        n=2 mode phase data
+        filtered n=1 mode phase data
+    n1PhaseRaw : numpy.ndarray
+        raw n=1 mode phase data
     n1Freq : numpy.ndarray
-        n=1 mode frequency data
-    n2Freq : numpy.ndarray
-        n=2 mode frequency data
-    n1FreqWeakFilter : numpy.ndarray
-        weak filter on n=1 frequency data
-    n1FreqStrongFilter : numpy.ndarray
-        strong filter on n=1 frequency data
+        filtered n=1 mode frequency data
+    n1FreqRaw : numpy.ndarray
+        raw n=1 mode frequency data
         
     Subfunctions
     ------------
@@ -2459,6 +2505,11 @@ class nModeData:
         returns a plot of the n=1 mode frequency
     self.plotOfN1Amp
         returns a plot of the n=1 mode amplitude
+        
+    Notes
+    -----
+    The convolution filters used with the phase and frequency "mess up" the 
+    last tenth of a millisecond of data
     
     """    
 
@@ -2469,23 +2520,24 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,nModeSensor='FB',method='leastSquares',frequencyFilter='2OrderButterworthCutoffHz1000'):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',frequencyFilter=''):
         
         self.shotno=shotno
         self.title = 'shotno = %d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
         self.nModeSensor=nModeSensor
-        self.frequencyFilter=frequencyFilter
+#        self.frequencyFilter=frequencyFilter
+#        self._phaseFilter=phaseFilter
 
         if nModeSensor=='TA':
             ## load TA data
-            temp=taData(self.shotno,tStart,tStop);
+            temp=taData(self.shotno,tStart,tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
             data=temp.taPolData
             self.time=temp.tbPolTime
             phi=temp.phi
             [n,m]=_np.shape(data)
         elif nModeSensor=='FB':
             ## load FB data
-            temp=fbData(self.shotno,tStart=tStart,tStop=tStop);
+            temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
             data=temp.fbPolData[0]  ## top toroidal array = 0
             self.time=temp.fbPolTime
             phi=temp.phi
@@ -2505,82 +2557,137 @@ class nModeData:
             
             ## Solve for coefficients, x, for every time step and assign values to appropriate arrays 
             x=_np.zeros([5,m]);
-            # self.n0Offset=_np.zeros(m)
             self.n1Amp=_np.zeros(m)
-            self.n1Phase=_np.zeros(m)
+            self.n1PhaseRaw=_np.zeros(m)
             self.n2Amp=_np.zeros(m)
-            self.n2Phase=_np.zeros(m)
             # TODO(John): remove for loop and convert into all matrix math 
-            # should simplify code and make it run faster
+            #             Should simplify code and make it run faster
             for j in range(0,m):
                 y=_np.zeros(n);
                 for i in range(0,n):
                     y[i]=data[i][j]*1e4
                 x[:,j]=Ainv.dot(y)
-                # self.n0Offset=self.x[0,j]
                 self.n1Amp[j]=_np.sqrt(x[1,j]**2+x[2,j]**2)
                 self.n2Amp[j]=_np.sqrt(x[3,j]**2+x[4,j]**2)
-                self.n1Phase[j]=_np.arctan2(x[1,j],x[2,j])
-                self.n2Phase[j]=_np.arctan2(x[3,j],x[4,j])
+                self.n1PhaseRaw[j]=_np.arctan2(x[1,j],x[2,j])
             self._x=x
-            self.n1Phase*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
-            self.n2Phase*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
-            
-            ## Calculate frequency (in Hz) using second order deriv 
-            self.n1Freq=_np.gradient(_process.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)
-            
-            if 'Butterworth' in frequencyFilter:
-                # extract order and cutoff freq. parameters from string
-                import re
-                params=re.findall(r'\d+',frequencyFilter)
-                filterOrder=float(params[0])
-                cutoffFreq=float(params[1])
+            self.n1PhaseRaw*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
 
-                # implement filter
-                self.n1FreqFiltered=_process.butterworthFilter(self.n1Freq,
-                                                               self.time,
-                                                               filterOrder=filterOrder,
-                                                               samplingRate=1./(2*1e-6),
-                                                               cutoffFreq=cutoffFreq,
-                                                               filterType='low')
-            elif frequencyFilter=='boxcar':
-                # boxcar filter of frequency
-                # n1FreqWeakFilter=_process.boxCar(self.n1Freq,10)
-                self.n1FreqFiltered=_process.boxCar(self.n1Freq,40)
-            elif frequencyFilter=='' or frequencyFilter==None:
-                self.n1FreqFiltered=self.n1Freq
-            else:
-                _sys.exit("Invalid frequency filter provided.")
             
-            # boxcar filter of n1 amplitude
-            self.n1AmpFiltered=_process.boxCar(self.n1Amp,30)
         else:
-            _sys.exit("Invalid mode analysis method provided.")
+            _sys.exit("Invalid mode analysis method requested.")
             
+        # filter phase
+        self.n1Phase=_np.zeros(len(self.n1PhaseRaw))   
+        if phaseFilter == 'gaussian':
+            self.n1Phase=_process.wrapPhase(
+                            _process.convolutionSmoothing(
+                                _process.unwrapPhase(self.n1PhaseRaw),101,'gaussian'))
+        elif phaseFilter == 'box' or phaseFilter == 'boxcar':
+            self.n1Phase=_process.wrapPhase(
+                            _process.convolutionSmoothing(
+                                _process.unwrapPhase(self.n1PhaseRaw),101,'box'))
+        elif phaseFilter == 'savgol':
+            self.n1Phase=_process.wrapPhase(
+                            _process.savgolFilter(
+                                _process.unwrapPhase(self.n1PhaseRaw),41,1))
+            
+        elif phaseFilter == '' or phaseFilter == None:
+            self.n1Phase=_copy(self.n1PhaseRaw)
+        else:
+            _sys.exit("Invalid phase filter requested.")
+        
+            
+            
+        ## Calculate frequency (in Hz) using second order deriv 
+        self.n1FreqRaw=_np.gradient(_process.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)        
+        
+        # filter frequency
+        self.n1Freq=_np.zeros(len(self.n1FreqRaw)) 
+        if 'Butterworth' in frequencyFilter or 'butterworth' in frequencyFilter:
+            
+            filterOrder=1
+            cutoffFreq=1000
+
+            # implement filter
+            self.n1Freq=_process.butterworthFilter(self.n1FreqRaw,
+                                                           self.time,
+                                                           filterOrder=filterOrder,
+                                                           samplingRate=1./(2*1e-6),
+                                                           cutoffFreq=cutoffFreq,
+                                                           filterType='low')
+                                                           
+        elif frequencyFilter=='boxcar' or frequencyFilter=='boxCar':
+            self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,81,'box')
+            
+        elif frequencyFilter=='gaussian':
+            self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,101,'gaussian')
+            
+        elif frequencyFilter=='' or frequencyFilter==None:
+            self.n1Freq=_copy(self.n1FreqRaw)
+            
+        else:
+            _sys.exit("Invalid frequency filter requested.")
+            
+            
+        # trim off extra half millisecond (see Notes)
+        self.time, temp=_trimTime(self.time,
+                                  [self.n1Amp,self.n2Amp,self.n1Phase,
+                                   self.n1PhaseRaw,self.n1Freq,self.n1FreqRaw],
+                                  tStart,tStop)
+        self.n1Amp=temp[0]
+        self.n2Amp=temp[1]
+        self.n1Phase=temp[2]
+        self.n1PhaseRaw=temp[3]
+        self.n1Freq=temp[4]
+        self.n1FreqRaw=temp[5]
         
         ## plot data
         if plot==True:
-            self.plot()
+            self.plot(includeRaw=True)
             
         elif plot == 'all':
             self.plotOfSlice(index=int(m/4)).plot();
             self.plotOfSlice(index=int(m/2)).plot();
-            self.plot()
-            _plot.subPlot([self.plotOfAmps(),self.plotOfN1Phase(),self.plotOfN1Freq()])
+            self.plotOfAmps().plot()
+            self.plot(includeRaw=True)
+            
+    def plot(self,includeRaw=True):
+        """
+        plots and returns a subplot of n=1 mode amplitude, phase, and frequency
         
-    def plot(self):
-        _plot.subPlot([self.plotOfN1Amp(),self.plotOfN1Phase(),self.plotOfN1Freq()])
-        
+        Parameters
+        ----------
+        includeRaw : bool
+            if True, also plots the raw (unfiltered) phase and frequency
+        """
+        sp1=_plot.subPlot([self.plotOfN1Amp(),self.plotOfN1Phase(),
+                           self.plotOfN1Freq()],plot=False)
+        if includeRaw==True:
+            # add phase raw data
+            sp1.subPlots[1].yData.append(self.n1PhaseRaw)
+            sp1.subPlots[1].xData.append(self.time*1000)
+            sp1.subPlots[1].linestyle.append('')
+            sp1.subPlots[1].marker.append('.')
+            sp1.subPlots[1].yLegendLabel.append('raw')
+            
+            # add frequency raw data
+            sp1.subPlots[2].yData.append(self.n1FreqRaw/1000.)
+            sp1.subPlots[2].xData.append(self.time*1000)
+            sp1.subPlots[2].yLegendLabel.append('raw')
+            
+        sp1.plot()
+        return sp1
         
     def plotOfAmps(self):
         ## mode amplitude plots  
         p1=_plot.plot()
-        p1.yData=[self.n1Amp,self.n2Amp,self.n1AmpFiltered]
-        p1.xData=[self.time*1000,self.time*1000,self.time*1000]
+        p1.yData=[self.n1Amp,self.n2Amp]
+        p1.xData=[self.time*1000,self.time*1000]
         if self.nModeSensor=='TA':
-            p1.yLegendLabel=['TA Sensors, n=1','TA Sensors, n=2','TA Sensors, n=2, filtered']
+            p1.yLegendLabel=['TA Sensors, n=1','TA Sensors, n=2']
         elif self.nModeSensor=='FB':
-            p1.yLegendLabel=['FB Sensors, n=1','FB Sensors, n=2','FB Sensors, n=2, filtered']
+            p1.yLegendLabel=['FB Sensors, n=1','FB Sensors, n=2']
         p1.title=self.title
         p1.xLabel='ms'
         p1.yLabel='G'   
@@ -2607,40 +2714,42 @@ class nModeData:
         p1=_plot.plot()
         p1.subtitle='n=1 mode phase'
         p1.yLim=[-_np.pi,_np.pi]
-        p1.yData=[self.n1Phase]
-        p1.xData=[self.time*1000]
-        p1.linestyle=['']
-        p1.marker=['.']
-        if self.nModeSensor=='TA':
-            p1.yLegendLabel=['TA Sensors']
-        elif self.nModeSensor=='FB':
-            p1.yLegendLabel=['FB Lower Sensors']
         p1.title=self.title
         p1.xLabel='ms'
         p1.yLabel='phi'
+        
+        p1.yData.append(self.n1Phase)
+        p1.xData.append(self.time*1000)
+        p1.linestyle.append('')
+        p1.marker.append('.')
+        p1.yLegendLabel.append('filtered')
+        
         return p1
         
     def plotOfN1Freq(self):
         # n=1 mode freq
         p1=_plot.plot()        
         p1.subtitle='n=1 mode frequency'
-        p1.yData=[self.n1Freq/1000.,self.n1FreqFiltered/1000.]
-        p1.xData=[self.time*1000,self.time*1000]
-        p1.yLegendLabel=['raw',self.frequencyFilter]
         p1.title=self.title
         p1.xLabel='ms'
         p1.yLabel='kHz'
-        p1.yLim=[-20,20]
+        p1.yLim=[-20,20]        
+        
+        p1.yData.append(self.n1Freq/1000.)
+        p1.xData.append(self.time*1000)
+        p1.yLegendLabel.append('filtered')
+        
         return p1
         
     def plotOfPhaseAmp(self):
                    
         # hybrid plot of phase AND amplitude
         # TODO(John) implement in new plot function
+                   # TODO(john) subfunction needs overhaul
         p1=_plot.plot() 
         p1.yData=[self.n1Phase]
         p1.xData=[self.time*1000]
-        p1.colorData=[self.n1AmpFiltered]#[self.n1Amp]
+        p1.colorData=[self.n1Amp]#[self.n1Amp]
         p1.linestyle=['']
         p1.marker=['.']
         p1.subtitle='n=1 Phase and Filtered Amplitude'
@@ -2651,17 +2760,13 @@ class nModeData:
         p1.yLegendLabel=['TA sensors']
         p1.plotType='scatter'
         p1.yLim=[-_np.pi,_np.pi]
-        return p1
-        
-#       TODO fix this code        
+        return p1      
 #        mx=_np.max(self.n1AmpFiltered)
 #        lCutoff=2.5
 #        uCutoff=8.
 #        cm = _processt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
 #        self.plotOfPhaseAmp.cmap=cm
-                                
-            
-
+                        
     def plotOfSlice(self,index=0):
         """
         Plots fit data for a single time value
@@ -2693,6 +2798,23 @@ class mModeData:
     This function performs a least squares fit to a poloidal array of sensors and analyzes m=2,3 and 4 modes.  Mode amplitude, phase, and phase velocity. 
     In addtion, this code generates a perturbed B_pol(t) measurement as observed by a sensor at location, theta0
     Function uses either 32 poloidal PA1 or PA2 sensors
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
+        
+    Attributes
+    ----------
     
     
     """  
@@ -2766,7 +2888,7 @@ class mModeData:
 #        m4PhaseUnwrapped=_process.unwrapPhase(self.m4Phase)
 #        m5PhaseUnwrapped=_process.unwrapPhase(self.m5Phase)
         
-        # TODO:  add frequency data, raw and smoothed
+        # TODO:  add frequency and phase data, raw and filtered
         
         
         if plot == True:
