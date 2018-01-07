@@ -150,7 +150,10 @@ class scpData:
     --------
     
     """        
-    def __init__(self,password=getPwd(),username=_pref._HBT_SERVER_USERNAME,
+#    def __init__(self,password=getPwd(),username=_pref._HBT_SERVER_USERNAME,
+#                 address=_pref._HBT_SERVER_ADDRESS,port=22):
+                     
+    def __init__(self,password,username=_pref._HBT_SERVER_USERNAME,
                  address=_pref._HBT_SERVER_ADDRESS,port=22):
         from paramiko import SSHClient
         from scp import SCPClient

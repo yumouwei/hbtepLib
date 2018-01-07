@@ -358,7 +358,7 @@ class bpData:
     shotno : int
         shot number of desired data
     tStart : float
-        time (in seconds) to trim data before
+        time (in seconds) to trim data before \line
         default is 0 ms
     tStop : float
         time (in seconds) to trim data after

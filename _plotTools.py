@@ -267,7 +267,7 @@ class subPlot:
                 if n==1:
                     data = self.subPlots[j];
                 else:
-                    data = self.subPlots[j][i]; # TODO issue here. some plots only work with [j][i] instead of [i][j]
+                    data = self.subPlots[j][i];
                 
                 # axis handle.  plt.subplots has trouble indexing when the 
                 # subplot changes from 0D to 1D to 2D.  these next lines take
@@ -277,7 +277,7 @@ class subPlot:
                 elif n==1 and m!=1:
                     ax=axarr[j];
                 else:
-                    ax=axarr[j][i]; # TODO issue here. some plots only work with [j][i] instead of [i][j]
+                    ax=axarr[j][i]; 
                     
                 # check xData formatting
                 if type(data.xData) is _np.ndarray:
@@ -443,7 +443,8 @@ class subPlot:
                         
                 ## create legend
                 if data.yLegendLabel!=[]:
-                    ax.legend(loc=data.legendLoc) #, fontsize=10 # not compatible with HBTEP server???  #TODO fix this
+#                    ax.legend(loc=data.legendLoc, fontsize=10)
+                    ax.legend(loc=data.legendLoc, prop={'size': 6})#, fontsize=10 # not compatible with HBTEP server???  #TODO fix this
                     
                 ## hide the top y tick label on each subplot
                 if n!=1 and m!=1:
