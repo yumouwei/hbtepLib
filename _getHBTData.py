@@ -2696,7 +2696,7 @@ class nModeData:
     def plotOfN1Amp(self):
         # n=1 mode amplitude
         p1=_plot.plot()
-        p1.subtitle='n=1 mode amp'
+        p1.subtitle='Mode amplitude, n=1'
         p1.yLim=[0,10]
         p1.yData=[self.n1Amp]
         p1.xData=[self.time*1000]
@@ -2712,7 +2712,7 @@ class nModeData:
     def  plotOfN1Phase(self):
         # n=1 mode phase
         p1=_plot.plot()
-        p1.subtitle='n=1 mode phase'
+        p1.subtitle='Mode phase, n=1'
         p1.yLim=[-_np.pi,_np.pi]
         p1.title=self.title
         p1.xLabel='ms'
@@ -2729,7 +2729,7 @@ class nModeData:
     def plotOfN1Freq(self):
         # n=1 mode freq
         p1=_plot.plot()        
-        p1.subtitle='n=1 mode frequency'
+        p1.subtitle='Mode frequency, n=1'
         p1.title=self.title
         p1.xLabel='ms'
         p1.yLabel='kHz'

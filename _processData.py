@@ -174,7 +174,7 @@ def unwrapPhase(inData):
 
 def hasNan(inArray):
     """
-    searches input array, inArray, for any occurances of NaN.  returns True if
+    searches array, inArray, for any occurances of NaN.  returns True if
     yes, returns False if no.
     
     Parameters
