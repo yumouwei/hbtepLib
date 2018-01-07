@@ -475,6 +475,7 @@ class bpData:
         p1.xLabel='ms'
         p1.subtitle='Voltage Request from GPU (pre-amplifier)'
         p1.yLegendLabel='BPS9'
+        p1.shotno=[self.shotno]
         
         return p1
         
@@ -494,6 +495,7 @@ class bpData:
         p1.yData.append(self.bps5Voltage)
         p1.xData.append(self.time*1000)
         p1.yLegendLabel.append('BPS5')
+        p1.shotno=[self.shotno]
         
         return p1
         
@@ -513,6 +515,7 @@ class bpData:
         p1.yData.append(self.bps5Current)
         p1.xData.append(self.time*1000)
         p1.yLegendLabel.append('BPS5')
+        p1.shotno=[self.shotno]
         
         return p1
             
@@ -528,6 +531,7 @@ class bpData:
         p1.yData.append(self.bps9Voltage)
         p1.xData.append(self.time*1000)
         p1.yLegendLabel.append('BPS9')
+        p1.shotno=[self.shotno]
         
         return p1
     
@@ -543,6 +547,7 @@ class bpData:
         p1.yData.append(self.bps9Current)
         p1.xData.append(self.time*1000)
         p1.yLegendLabel.append('BPS9')
+        p1.shotno=[self.shotno]
         
         return p1
     

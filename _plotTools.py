@@ -1,5 +1,6 @@
 import numpy as _np
 import matplotlib.pyplot as _plt
+import sys as _sys
 #import _processData as _process
 #from matplotlib.colors import LinearSegmentedColormap as _lsc
 
@@ -70,7 +71,7 @@ class plot:
     yErData : list (of numpy.ndarray)
         y-error data to be used on errorbar and errorribbon plots
     axvspan : list (of floats)
-        TODO(john) this needs an overhaul
+        TODO (john) this needs an overhaul
         contains x-boundaries within which to highlight with axvspanColor
     axvspanColor : list (of floats)
         list of colors associated with each pair of x-boundaries in axvspan
@@ -135,14 +136,18 @@ class plot:
     
     def __init__(self):
         self.title = ''
+        self.titleFontSize=18
         self.subtitle = ''
+        self.subtitleFontSize=14
         self.xLabel = ''
         self.yLabel = ''
         self.zLabel = ''
+        self.axisLabelFontSize=16
         self.xData = [] # possibility of multiple data arrays.  stored as lists.
         self.yData = [] # possibility of multiple data arrays.  stored as lists.
         self.zData = [] # for contour and scatter plot.  
         self.yLegendLabel = [] # possibility of multiple data arrays.  stored as lists.
+        self.legendFontSize=10;
         self.linestyle=[] # '-' is default
         self.marker=[] # Line2D.markers for list of markers.  '.' should be default ??
         self.xLim = []
@@ -157,14 +162,15 @@ class plot:
         self.alpha=[]#[1.0]
         self.fileName=''
         self.aspect=None  # "equal"
-        self.cmap='nipy_spectral'
+        self.colorMap='nipy_spectral' #https://matplotlib.org/examples/color/colormaps_reference.html
         self.shotno=[]
+        self.shotnoFontSize=8
             
         
     def plot(self):
         subPlot([self])
         
-    # TODO(John) add the other subfunctions from the previous prePlot class
+    # TODO (John) add the other subfunctions from the previous prePlot class
         
         
         
@@ -192,7 +198,8 @@ class subPlot:
     shareY : bool
         True - y-axes are shared.  
     fileName : str
-        file name that the subfig is saved as
+        file name that the subfig is saved as.  if not an empty string, the 
+        image is saved.  
     subPlots : list (of _plotTools.plot)
         the list of plot functions that are composed into a subplot function
         
@@ -208,14 +215,8 @@ class subPlot:
         self.shareX=True;
         self.shareY=False;
         
-        # show x label on only bottom-most subplot
-        self._showOnlyBottomXLabel=True
-        
         self.fileName=fileName;
         self.subPlots=subPlots;
-        
-#        # show title on only top-most title
-#        self.showOnlyTopTitle==True
         
         if plot==True:
             self.plot(plotMe=plot)
@@ -244,20 +245,22 @@ class subPlot:
                                    # 1) find a way to maximize the figure window such that the tools in the bottom left remain 
                                    # or
                                    # 2) settle into a standard window size.  prev code:   figsize=(15*n, 2.5*m)
-                                   figsize=(16, 8), # units in inches
+                                   figsize=(16, 8), # units in inches.  not sure how this actually maps to a screen though since it doesn't actually measure 16 inches ...
                                     dpi=80);
                                     
         # vertical space between sub figures
-        fig.subplots_adjust(hspace=0);
+        if self.shareX==True:
+            fig.subplots_adjust(hspace=0);
+        else:
+            fig.subplots_adjust(hspace=0.25);
         
         # horizontal space between sub figures
         fig.subplots_adjust(wspace=0.1);
         
         ## adjust margins
-        marginWidth=0.075;
+        marginWidth=0.075; # 0 to 1.0
         fig.subplots_adjust(top=1-marginWidth,bottom=marginWidth,
                             left=marginWidth, right=1-marginWidth)
-                                
                               
         # iterate through sub figures (rows and columns)
         for j in range(0,m): # iterate through rows
@@ -350,24 +353,41 @@ class subPlot:
                         
                     # scatter plot
                     elif (data.plotType == 'scatter'):
-                        cmap='BuPu';
-                        markerSize=35;
-                        lineWidth=0.1; # lineWidth=0.5;
+                        # NOTE this will not work well if there are multiple columns of subplots
                         
+                        # the color can be an array (from zData) or a single value (from color)
+                        if data.zData!=[]:
+                            c=data.zData[k]
+                        else:
+                            c=color
+                            
+                        # if there is more than 1 column, increase horizontal spacing between subfigures
+                        if m>1:
+                            if i==0 and j==0:
+                                fig.subplots_adjust(wspace=0.35);
+                        
+                        # colormap
+                        cmap=data.colorMap;
                         cm = _plt.cm.get_cmap(cmap)
-                        sc = _plt.scatter(data.xData[k], data.yData[k], 
-                                          c=color, s=markerSize, cmap=cm,
-                                          lw=lineWidth,alpha=data.alpha) 
-                                          #vmin=0, vmax=20, 
-    #                    f.colorbar(sc, axarr[i])
                         
-                        #cax = f.add_axes([0.6, 0.05, 0.3, 0.02])  # [left, bottom, width, height]
-                        #f.colorbar(sc,cax,orientation='horizontal')
-                        a=ax.get_position()
-                        cax = fig.add_axes([a.x0+a.width+0.005, a.y0, 0.01, 
-                                            a.height*1.13])  
+                        # marker parameters
+                        markerSize=35;
+                        lineWidth=0.1; # the circles look silly without at least a very small outline
+                        
+                        # make scatter plot
+                        print c
+                        sc = ax.scatter(data.xData[k], data.yData[k], 
+                                          c=c, s=markerSize, cmap=cm,
+                                          lw=lineWidth,alpha=alpha) 
+                                          
+                        # place color bar                  
+                        a=ax.get_position() # position of subfigure
+                        cax = fig.add_axes([a.x0+a.width+0.010, a.y0+0.01, 0.01, 
+                                            a.height*0.95])  
                                             # [left, bottom, width, height]
                         b=fig.colorbar(sc,cax)
+                        
+                        # zLabel
                         if data.zLabel!=None:
                             b.set_label(data.zLabel)
                        
@@ -405,12 +425,12 @@ class subPlot:
                     # place string
                     axarr[0].annotate(name, xy=(0.999,0.01), 
                         xycoords='axes fraction', 
-                        fontsize=8, # 6
+                        fontsize=data.shotnoFontSize, # 6
                         horizontalalignment='right', 
                         verticalalignment='bottom')
                         
                 ## create shaded regions
-                # TODO(john) update this to be a list of 2 element np.arrays
+                # TODO (john) update this to be a list of 2 element np.arrays
                 if len(data.axvspan)!= 0:
                     for j in range(0,len(data.axvspanColor[0])):
                         ax.axvspan(data.axvspan[j*2],data.axvspan[j*2+1], color=data.axvspanColor[0][j], alpha=0.25)
@@ -421,13 +441,15 @@ class subPlot:
                     
                 ## create yaxis label
                 if data.yLabel!=None:
-                    # TODO if y-axis is shared, turn off yaxis label on all
-                    # but the left most subplots
-                    ax.set_ylabel(data.yLabel,fontsize=16)
+                    if self.shareY==False:
+                        ax.set_ylabel(data.yLabel,fontsize=data.axisLabelFontSize)
+                    elif self.shareY==True and i==0:
+                        # if y-axes are shared on all subplots, show only y-labels on left-most plots
+                        ax.set_ylabel(data.yLabel,fontsize=data.axisLabelFontSize)
                     
                 # implement equal aspect ratio on plot if requested.  
                 if data.aspect == "equal" or data.aspect == "Equal": 
-                    # TODO(John) Not working at 100%.  Seems to have issues with xlim.  Fix
+                    # TODO (John) Not working at 100%.  Seems to have issues with xlim.  Fix.  Not sure how...
                     try:
                         ax.set_aspect('equal',adjustable='box') 
                     except ValueError:
@@ -443,35 +465,34 @@ class subPlot:
                         
                 ## create legend
                 if data.yLegendLabel!=[]:
-#                    ax.legend(loc=data.legendLoc, fontsize=10)
-                    ax.legend(loc=data.legendLoc, prop={'size': 6})#, fontsize=10 # not compatible with HBTEP server???  #TODO fix this
+                    ax.legend(loc=data.legendLoc, prop={'size': data.legendFontSize})
                     
                 ## hide the top y tick label on each subplot
-                if n!=1 and m!=1:
+                if j!=0: 
                     ax.get_yticklabels()[-1].set_visible(False)
                 
                 ## create x label 
                 if data.xLabel != []:
-                    # on bottom most plot only
-                    if self._showOnlyBottomXLabel==True:
+                    if self.shareX==True: # on bottom most plot only
                         if j==m-1:
-                            ax.set_xlabel(data.xLabel,fontsize=16);
-                    # on every subplot        
-                    else:
-                        ax.set_xlabel(data.xLabel,fontsize=16);
-                
+                            ax.set_xlabel(data.xLabel,fontsize=data.axisLabelFontSize);
+                    else: # on every subplot 
+                        ax.set_xlabel(data.xLabel,fontsize=data.axisLabelFontSize);
+                          
                 ## create subtitle
                 if not (data.subtitle==None or data.subtitle==''):
-
-                    ax.annotate(data.subtitle, xy=(0.5, 0.98), xycoords='axes fraction', fontsize=14,
-                        horizontalalignment='center', verticalalignment='top', bbox=dict(pad=5.0, facecolor="w"))
+                    ax.annotate(data.subtitle, xy=(0.5, 0.98), 
+                                xycoords='axes fraction', 
+                                fontsize=data.subtitleFontSize,
+                                horizontalalignment='center', 
+                                verticalalignment='top', 
+                                bbox=dict(pad=5.0, facecolor="w"))
                     
-            
                 ## create title on top most plot only
                 if i==0 and j==0:
                     if not (data.title==None or data.title==''):
                         fig.suptitle(data.title, #verticalalignment='bottom',
-                                     fontsize=18)
+                                     fontsize=data.titleFontSize)
 
         ## save figure
         if self.fileName != '':
