@@ -19,7 +19,7 @@ import _plotTools as _plot
 ###############################################################################
 ### misc functions
             
-def find_nearest(array,value):
+def findNearest(array,value):
     """
     search through `array` and returns the `index` of the cell closest to the 
     `value`.
@@ -174,7 +174,7 @@ def unwrapPhase(inData):
 
 def hasNan(inArray):
     """
-    searches input array, inArray, for any occurances of NaN.  returns True if
+    searches array, inArray, for any occurances of NaN.  returns True if
     yes, returns False if no.
     
     Parameters
@@ -263,7 +263,7 @@ def downSampleData(downX,upX,data):
     out = []
     
     for i in range(0,m):
-        indices[i]=int(find_nearest(upX,downX[i]))
+        indices[i]=int(findNearest(upX,downX[i]))
 
     for i in range(0,len(data)):
         out.append(data[i][indices])
@@ -310,48 +310,233 @@ def linearizeDataMatrix(data):
     return temp
     
     
+
+    
+    
 ###############################################################################
 ### filters and smoothing algorithms
     
-def boxCar(data,c=25):
+def savgolFilter(data,numPoints,polynomialOrder,plot=False):
     """
-    box car smoothing algorithm.  home brew.
+    Ssavitzky-Golay moving average smoothing filter.  Applies a nth order 
+    polynomial to a moving window of data.
     
     Parameters
     ----------
     data : numpy.ndarray
-        data being smoothed
-    c : int
-        plus and minus number of points to include in box car.  I.e. c=25 means
-        that the function is smoothing over 51 points
-        
-    Return
-    ------
-    sData : numpy.ndarray
-        smoothed data array
-        
-    Notes
-    -----
-    TODO(John) Check indices.  I'm not 100% this function works EXACTLY as 
-    stated above.  I think it may be using 2*c points instead of 2*c+1
+        data to be smoothed
+    numPoints : int
+        number of points for smoothing
+    method : str
+        method to use
+        'box' - box car type of smoothing
+        'gaussian' - guassian or normal smoothing
+    plot : bool
+        plots results if true
+    
+    Returns
+    -------
+    smoothedData : numpy.ndarray
+        smoothed data
     
     References
     ----------
-    https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
+    https://docs.scipy.org/doc/scipy-0.16.1/reference/generated/scipy.signal.savgol_filter.html
+    https://stackoverflow.com/questions/20618804/how-to-smooth-a-curve-in-the-right-way
+    
+    Notes
+    -----
+    this is a wrapper for scipy.signal.savgol_filter
+    
+    I think I prefer the gaussian convolution algorithm over this one (john)
     """
-    n=len(data);
-    sData=_np.zeros(n);
-    for i in range(0,n):
-        if i < c:  # left edge
-            sData[i]=_np.sum(data[0:i+c])/(i+c)
-        elif i > n-c:  # right edge
-            sData[i]=_np.sum(data[i-c:n])/(n-i+c+1)            
-        else:
-            sData[i]=_np.sum(data[i-c:i+c+1])/(2.*c+1)
-    return sData
+    
+    def plotResults():
+        """
+        plots results (before and after smoothing)
+        """
+        p1=_plot.plot()
+        x=_np.arange(0,len(data))
+        p1.xData=[x,x]
+        p1.yData=[data,smoothedData]
+        p1.yLegendLabel=['raw data','smoothed data']
+        p1.marker=['.','']
+        p1.linestyle=['','-']
+        p1.title='%d point, Savitzky-Golay smoothing of order %s'% (numPoints,polynomialOrder)
+        p1.plot()
+        
+    # import savgol package
+    from scipy.signal import savgol_filter
+    
+    # perform filter
+    smoothedData=savgol_filter(data,numPoints,polynomialOrder)
+        
+    # plot results if requested
+    if plot==True or plot=='all':
+        plotResults()
+        
+    return smoothedData
+        
     
     
-def butterworthFilter(y, x,filterOrder=2, samplingRate=1/(2*1e-6), cutoffFreq=20*1e3, filterType='low',plot=False):
+def convolutionSmoothing(data,numPoints,method='gaussian',plot=False):
+    """
+    Convolution moving average smoothing filter
+    
+    Parameters
+    ----------
+    data : numpy.ndarray
+        data to be smoothed
+    numPoints : int
+        number of points for smoothing.  should be an odd number
+    method : str
+        method to use
+        'box' - box car type of smoothing.  keywords: boxcar
+        'gaussian' - guassian or normal smoothing
+    plot : bool
+        plots results if true
+    
+    Returns
+    -------
+    smoothedData : numpy.ndarray
+        smoothed data
+    
+    References
+    ----------
+    https://stackoverflow.com/questions/20618804/how-to-smooth-a-curve-in-the-right-way
+    
+    Example usage
+    -------------
+    # randon noise on sine way
+    x = np.arange(0,2*np.pi,.1)
+    y1 = np.sin(x) + np.random.random(len(x)) * 0.8
+    convolutionSmoothing(y,numPoints,method='box',plot='all')
+    
+    # step function
+    x = np.arange(0,2*np.pi,.1)
+    y2=np.zeros(len(x))
+    y2[np.where(x>np.pi)[0]]=1
+    convolutionSmoothing(y,numPoints,method='box',plot='all')
+
+    Notes
+    -----
+    I want to justiy some of my weird code below.  When numPoints is an even 
+    number, the filter centers itself 1.5 points ahead of itself in the window 
+    which results in a small time/phase shift in the filtered data.  When it's 
+    an odd number, it centers itself 1.0 points ahead in the window and 
+    smaller time/phase shift.  By requiring that numPoints is odd and 
+    temporarily removing the first point in the data (I put it back in the 
+    end), I center the filter in the window and have no time/phase shift.  
+    
+    The convolution filters "mess up" the last set of points (on the order of
+    numPoints).  If you want to get around this, you should give it more data 
+    than you actually want and trim the end off.
+    """
+    def plotResults():
+        """
+        plots before and after of smoothing
+        """
+        p1=_plot.plot()
+        x=_np.arange(0,len(data))
+        p1.xData=[x,x]
+        p1.yData=[data,smoothedData]
+        p1.yLegendLabel=['raw data','smoothed data']
+        p1.marker=['.','']
+        p1.linestyle=['','-']
+        p1.title='%d point, %s smoothing'% (numPoints,method)
+        p1.plot()
+        
+    def plotSmoothingFunction():
+        """
+        plots smoothing function
+        """
+        p1=_plot.plot()
+        x=_np.arange(0,len(smoothingFunction))
+        p1.xData=[x]
+        p1.yData=[smoothingFunction]
+        p1.yLegendLabel=['smoothing function']
+        p1.marker=['o']
+        p1.linestyle=['-']
+        p1.title='%d point, %s smoothing function'% (numPoints,method)
+        p1.plot()
+        
+    # make sure numPoints is an odd number
+    if (numPoints % 2 == 0): # is an even number
+        numPoints+=1;
+        print("Warning: numPoints was not an odd number.  +1 was added.  " 
+              "numPoints is now %d" % numPoints)
+        
+    # temporarily remove first point (see Notes)
+    tempPoint=data[0]
+    data=data[1:]   
+    
+    # box smoothing
+    if method=='box':
+        smoothingFunction=_np.ones(numPoints)/numPoints
+        
+    # gaussian smoothing
+    elif method=='gaussian' or method == 'normal':        
+        temp=_np.arange(numPoints)
+        sigma=numPoints/(2*_np.pi);
+        smoothingFunction=_np.exp(-((temp-(numPoints-1)/2.)/sigma)**2/2)
+        smoothingFunction/=_np.sum(smoothingFunction)
+        
+    # perform smoothing
+    smoothedData = _np.convolve(data, smoothingFunction, mode='same')
+    
+    # plot if requested
+    if plot==True:
+        plotResults()
+    if plot=='all':
+        plotSmoothingFunction()
+        plotResults()
+        
+    # add point back to smoothedData (see Notes
+    smoothedData=_np.append(tempPoint,smoothedData)
+        
+    return smoothedData
+    
+    
+#def boxCar(data,c=25):
+#    """
+#    box car smoothing algorithm.  home brew.
+#    
+#    Parameters
+#    ----------
+#    data : numpy.ndarray
+#        data being smoothed
+#    c : int
+#        plus and minus number of points to include in box car.  I.e. c=25 means
+#        that the function is smoothing over 51 points
+#        
+#    Return
+#    ------
+#    sData : numpy.ndarray
+#        smoothed data array
+#        
+#    Notes
+#    -----
+#    TODO(John) Check indices.  I'm not 100% this function works EXACTLY as 
+#    stated above.  I think it may be using 2*c points instead of 2*c+1
+#    
+#    References
+#    ----------
+#    https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
+#    """
+#    n=len(data);
+#    sData=_np.zeros(n);
+#    for i in range(0,n):
+#        if i < c:  # left edge
+#            sData[i]=_np.sum(data[0:i+c])/(i+c)
+#        elif i > n-c:  # right edge
+#            sData[i]=_np.sum(data[i-c:n])/(n-i+c+1)            
+#        else:
+#            sData[i]=_np.sum(data[i-c:i+c+1])/(2.*c+1)
+#    return sData
+    
+    
+def butterworthFilter(y, x,filterOrder=2, samplingRate=1/(2*1e-6), 
+                      cutoffFreq=20*1e3, filterType='low',plot=False):
     """
     Apply a digital butterworth filter on your data
     
@@ -610,9 +795,12 @@ class genericCurveFit:
     
     def plot(self):
         _plt.figure()
-        _plt.plot(self.fitSoln, self.depVars, '.', label='scipy.optimize.curve_fit solution',alpha=0.10)
+        _plt.plot(self.fitSoln, self.depVars, '.', 
+                  label='scipy.optimize.curve_fit solution',alpha=0.10)
 #        _plt.plot(self.solnRobust, self.depData, 'x', label='robust least squares soln')
-        _plt.plot(_np.array([_np.min(self.depVars),_np.max(self.depVars)]),_np.array([_np.min(self.depVars),_np.max(self.depVars)]),color='r',linestyle='--',linewidth=5)
+        _plt.plot(_np.array([_np.min(self.depVars),_np.max(self.depVars)]),
+                  _np.array([_np.min(self.depVars),_np.max(self.depVars)]),
+                  color='r',linestyle='--',linewidth=5)
         _plt.xlabel('Fit Solution')
         _plt.ylabel('Dependent Data')
         _plt.legend()    
@@ -624,7 +812,7 @@ class genericCurveFit:
             _plt.savefig(self.fileName+'.png')
 
 
-def expFun(x, a,b,c):
+def _expFunction(x, a,b,c):
     """
     Basic exponential function.  Used primarily with fitting functions. 
     Output = a*_np.exp(x/b)+c
@@ -649,8 +837,7 @@ def expFun(x, a,b,c):
     return a*_np.exp(x/b)+c
     
     
-# define sin cos function
-def cosFunc(x, a,b,c,d):
+def _cosFunction(x, a,b,c,d):
     """
     Cosine function.  Used primarily with fitting functions.  
     Output = a*_np.cos(x*d*2*_np.pi+b)+c
@@ -732,13 +919,14 @@ class cosFit:
     
     >>> y=np.array([11.622967, 12.006081, 11.760928, 12.246830, 12.052126, 12.346154, 12.039262, 12.362163, 12.009269, 11.260743, 10.950483, 10.522091,  9.346292,  7.014578,  6.981853,  7.197708,  7.035624,  6.785289, 7.134426,  8.338514,  8.723832, 10.276473, 10.602792, 11.031908, 11.364901, 11.687638, 11.947783, 12.228909, 11.918379, 12.343574, 12.046851, 12.316508, 12.147746, 12.136446, 11.744371,  8.317413, 8.790837, 10.139807,  7.019035,  7.541484,  7.199672,  9.090377,  7.532161,  8.156842,  9.329572, 9.991522, 10.036448, 10.797905])
     >>> x=np.linspace(0,2*np.pi,48)
-    >>> c=hbt.pd.cosFit(y,x,guess=[2,0,10,.3])
+    >>> c=hbt.process.cosFit(y,x,guess=[2,0,10,.3])
     # note that this example took me quite a bit of guessing with the guess 
     # values before everything fit correctly.
 
     """
     def __init__(self,y,x,guess,plot=True):
-        self.fit=genericLeastSquaresFit(x=x,x0=guess,y=y, function=cosFunc,plot=plot)
+        self.fit=genericLeastSquaresFit(x=x,paramsGuess=guess,y=y, 
+                                        function=_cosFunction,plot=plot)
 
 
 class expFit:
@@ -776,7 +964,8 @@ class expFit:
 
     """
     def __init__(self,y,x,guess=[1,1,1], plot=True):
-        self.fit=genericLeastSquaresFit(x=x,x0=guess,y=y, function=expFun)
+        self.fit=genericLeastSquaresFit(x=x,paramsGuess=guess,y=y, 
+                                        function=_expFunction)
         
     
 class genericLeastSquaresFit:
@@ -790,12 +979,15 @@ class genericLeastSquaresFit:
         dependent data
     x : numpy.ndarray (multidimensional)
         independent array(s).  multiple ind. variables are supported.  
-    x0 : list
-        list of three floats.  these are the guess values
-    function : 
+    paramsGuess : list (of floats)
+        guess values for the fit parameters
+    function : function
+        function to attempt to fit the data to.  see exdamples _cosFunction and 
+        _expFunction to see how this function should be constructed
     yTrue : (optional) numpy.ndarray 
-        if you know what the actual fit should be, include it here, and it will
-        plot alongside the other data.  useful for debugging.  
+        if you know what the actual fit should be (for example when testing 
+        this code against a known), include it here, and it will plot 
+        alongside the other data.  also useful for debugging.  
     plot : bool
         causes the results to be plotted
         
@@ -819,10 +1011,13 @@ class genericLeastSquaresFit:
     i've found that the guess values often NEED to be somewhat close to the 
     actual values for the solution to converge
     
+    i've implemented several specific functions that implement this function.
+    see expFit and cosFit
+    
     Example use
     ------------
     # define expoential function
-    def expFun(x, a,b,c):
+    def _expFunction(x, a,b,c):
         return a*_np.exp(x/b)+c
     # generate noisy exponential signal
     x1=_np.linspace(-1,1,100);
@@ -836,82 +1031,27 @@ class genericLeastSquaresFit:
     y1=1+_np.pi*_np.exp(x1/_np.sqrt(2)) # actual solution
     y2=1*a+_np.pi*b*_np.exp(x1/_np.sqrt(2)/c) # noisy solution
     # perform fit
-    d=genericLeastSquaresFit(x1,[1,1,1],y2, expFun, y1,plot=True)
+    d=genericLeastSquaresFit(x1,[1,1,1],y2, _expFunction, y1,plot=True)
     """           
     
-    def __init__(self, x, x0, y, function,yTrue=[],plot=True ):
+    def __init__(self, x, paramsGuess, y, function,yTrue=[],plot=True ):
 
-        def fit_fun(x0,x,y):
-            return function(x, *x0) - y
+        def fit_fun(paramsGuess,x,y):
+            return function(x, *paramsGuess) - y
 
         from scipy.optimize import least_squares
         
-        self.res=least_squares(fit_fun, x0, args=[x,y])  #args=(y)
+        self.x=x
+        self.y=y
+        self.yTrue=yTrue
+        
+        # perform least squares fit and record results
+        self.res=least_squares(fit_fun, paramsGuess, args=[x,y])  #args=(y)
         self.yFit=function(x, *self.res.x) 
         self.fitParams=self.res.x;
         
         # calculate r^2
         self.rSquared=rSquared(y,self.yFit)
-        
-        ### plot of fit
-        # only makes this plot if there is a single indep. variable. 
-        if type(x) is _np.ndarray or len(x)==1:
-            self.plotOfFit=_plot.plot();
-            self.plotOfFit.yLabel='y'
-            self.plotOfFit.xLabel='x'
-            self.plotOfFit.title=r'R$^2$ = %.5f' % self.rSquared
-            
-            if isinstance(x,list):
-                x=x[0]
-            self.plotOfFit.xData.append(x)
-            self.plotOfFit.yData.append(y)
-            self.plotOfFit.yLegendLabel.append('raw data')
-            self.plotOfFit.marker.append('.')
-            self.plotOfFit.linestyle.append('')
-            self.plotOfFit.color.append('b')
-            self.plotOfFit.alpha.append(0.3)
-            
-            self.plotOfFit.xData.append(x)
-            self.plotOfFit.yData.append(self.yFit)
-            self.plotOfFit.yLegendLabel.append('fit')
-            self.plotOfFit.marker.append('')
-            self.plotOfFit.linestyle.append('-')
-            self.plotOfFit.color.append('r')
-            self.plotOfFit.alpha.append(1.)
-            
-            if yTrue!=[]:
-                self.plotOfFit.xData.append(x)
-                self.plotOfFit.yData.append(yTrue)
-                self.plotOfFit.yLegendLabel.append('True Soln')
-                self.plotOfFit.marker.append('')
-                self.plotOfFit.linestyle.append('-')
-                self.plotOfFit.color.append('k')
-                self.plotOfFit.alpha.append(1.)
-                
-        ### plot of fit vs dependent data.  important if there are multiple
-        ###         independent variables.
-        self.plotOfFitDep=_plot.plot();
-        self.plotOfFitDep.yLabel='fit data'
-        self.plotOfFitDep.xLabel='raw data'
-        self.plotOfFitDep.aspect="equal"
-        
-        self.plotOfFitDep.xData.append(y)
-        self.plotOfFitDep.yData.append(self.yFit)
-        self.plotOfFitDep.yLegendLabel.append('actual fit')
-        self.plotOfFitDep.marker.append('.')
-        self.plotOfFitDep.linestyle.append('')
-        self.plotOfFitDep.color.append('b')
-        self.plotOfFitDep.alpha.append(0.3)
-        
-        self.plotOfFitDep.xData.append(_np.array([_np.min(y),_np.max(y)]))
-        self.plotOfFitDep.yData.append(_np.array([_np.min(y),_np.max(y)]))
-        self.plotOfFitDep.yLegendLabel.append('ideal fit line')
-        self.plotOfFitDep.marker.append('')
-        self.plotOfFitDep.linestyle.append('-')
-        self.plotOfFitDep.color.append('r')
-        self.plotOfFitDep.alpha.append(1.)
-        self.plotOfFitDep.legendLoc=  'upper left'
-        self.plotOfFitDep.title=r'R$^2$ = %.5f' % self.rSquared
         
         # print results to screen
         print r'R2 =  %.5E' % self.rSquared
@@ -921,11 +1061,92 @@ class genericLeastSquaresFit:
         # plot data
         if plot==True:
             if type(x) is _np.ndarray or len(x)==1:
-                self.plotOfFit.plot()
-            self.plotOfFitDep.plot()
-            _plt.axes().set_aspect('equal') #, 'datalim'
+                self.plotOfFit().plot()
+            self.plotOfFitDep().plot()
         
-
+  
+    
+    def plotOfFit(self):
+        """
+        plots raw and fit data vs. its indep. variable.  
+        
+        Notes
+        -----
+        this function only works if there is a single indep. variable
+        """            
+        # make sure that there is only a single indep. variable
+        if type(self.x) is _np.ndarray or len(self.x)==1:
+            p1=_plot.plot();
+            p1.yLabel='y'
+            p1.xLabel='x'
+            p1.title=r'Fit results.  R$^2$ = %.5f' % self.rSquared
+            
+            if isinstance(self.x,list):
+                x=self.x[0]
+            else:
+                x=self.x
+                
+            # raw data
+            p1.xData.append(x)
+            p1.yData.append(self.y)
+            p1.yLegendLabel.append('raw data')
+            p1.marker.append('.')
+            p1.linestyle.append('')
+            p1.color.append('b')
+            p1.alpha.append(0.3)
+            
+            # fit data
+            p1.xData.append(x)
+            p1.yData.append(self.yFit)
+            p1.yLegendLabel.append('fit')
+            p1.marker.append('')
+            p1.linestyle.append('-')
+            p1.color.append('r')
+            p1.alpha.append(1.)
+            
+            # the true data (if applicable)
+            if self.yTrue!=[]:
+                p1.xData.append(x)
+                p1.yData.append(self.yTrue)
+                p1.yLegendLabel.append('True Soln')
+                p1.marker.append('')
+                p1.linestyle.append('-')
+                p1.plotOfFit.color.append('k')
+                p1.plotOfFit.alpha.append(1.)
+                
+            return p1
+            
+    def plotOfFitDep(self):
+        """ 
+        plot of fit vs dependent data.  important if there are multiple
+        independent variables.
+        """
+        p1=_plot.plot();
+        p1.yLabel='fit data'
+        p1.xLabel='raw data'
+        p1.aspect="equal"
+        
+        p1.xData.append(self.y)
+        p1.yData.append(self.yFit)
+        p1.yLegendLabel.append('actual fit')
+        p1.marker.append('.')
+        p1.linestyle.append('')
+        p1.color.append('b')
+        p1.alpha.append(0.3)
+        
+        p1.xData.append(_np.array([_np.min(self.y),_np.max(self.y)]))
+        p1.yData.append(_np.array([_np.min(self.y),_np.max(self.y)]))
+        p1.yLegendLabel.append('ideal fit line')
+        p1.marker.append('')
+        p1.linestyle.append('-')
+        p1.color.append('r')
+        p1.alpha.append(1.)
+        p1.legendLoc=  'upper left'
+        p1.title=r'Fit quality.  R$^2$ = %.5f' % self.rSquared
+        
+        return p1
+        
+        
 def rSquared(y,f):
     """
     calculates R^2 of data fit
@@ -985,3 +1206,40 @@ def listArrayToNumpyArray(inData):
     outData = _np.array(inData)
     return outData
     
+    
+###############################################################################
+### string manipulation related
+    
+def extractIntsFromStr(string):
+    """
+    Extracts all integers from a string.
+    
+    Parameters
+    ----------
+    string : str
+        str with numbers embedded
+        
+    Returns
+    -------
+    numbers : list (of int)
+        list of numbers that were within string
+        
+    Example
+    -------
+    print(extractNumsFromStr("123HelloMy65Is23"))
+    
+    Notes
+    -----
+    Does not work with decimal points.  Integers only.
+    """
+    import re
+    
+    # get list of numbers
+    numbers=re.findall(r'\d+',string)
+    
+    # convert to integers
+    for i in range(0,len(numbers)):
+        numbers[i]=int(numbers[i])
+        
+    return numbers
+     

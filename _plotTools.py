@@ -218,9 +218,9 @@ class subPlot:
 #        self.showOnlyTopTitle==True
         
         if plot==True:
-            self.plot()
+            self.plot(plotMe=plot)
         
-    def plot(self):
+    def plot(self,plotMe=True):
         
         # make sure data is a list
         if type(self.subPlots) is not list:
@@ -387,16 +387,25 @@ class subPlot:
     #                    f.colorbar(sc, axarr[i])
                         _plt.show()
                         
-                ## annotate shot number in bottom right corner of top most plot
+                ## annotate shot number(s) in bottom right corner of top most plot
                 if  data.shotno != [] and i==0:
+                    
+                    # make sure shotno is a list
+                    if type(data.shotno) is not list:
+                        data.shotno=[data.shotno]
+                        
+                    # construct string
                     name="";
                     for k in range (0,len(data.shotno)):
                         if name == "":
                             name = str(data.shotno[k]);
                         else:
                             name += ", " + str(data.shotno[k]);
+                            
+                    # place string
                     axarr[0].annotate(name, xy=(0.999,0.01), 
-                        xycoords='axes fraction', fontsize=6,
+                        xycoords='axes fraction', 
+                        fontsize=8, # 6
                         horizontalalignment='right', 
                         verticalalignment='bottom')
                         
@@ -412,11 +421,13 @@ class subPlot:
                     
                 ## create yaxis label
                 if data.yLabel!=None:
+                    # TODO if y-axis is shared, turn off yaxis label on all
+                    # but the left most subplots
                     ax.set_ylabel(data.yLabel,fontsize=16)
                     
                 # implement equal aspect ratio on plot if requested.  
                 if data.aspect == "equal" or data.aspect == "Equal": 
-                    # TODO(John) Not working at 100%.  Seems to have issues with xlim.
+                    # TODO(John) Not working at 100%.  Seems to have issues with xlim.  Fix
                     try:
                         ax.set_aspect('equal',adjustable='box') 
                     except ValueError:
@@ -432,7 +443,7 @@ class subPlot:
                         
                 ## create legend
                 if data.yLegendLabel!=[]:
-                    ax.legend(loc=data.legendLoc) #, fontsize=10 # not compatible with HBTEP server???
+                    ax.legend(loc=data.legendLoc) #, fontsize=10 # not compatible with HBTEP server???  #TODO fix this
                     
                 ## hide the top y tick label on each subplot
                 if n!=1 and m!=1:
@@ -442,7 +453,7 @@ class subPlot:
                 if data.xLabel != []:
                     # on bottom most plot only
                     if self._showOnlyBottomXLabel==True:
-                        if j==n-1:
+                        if j==m-1:
                             ax.set_xlabel(data.xLabel,fontsize=16);
                     # on every subplot        
                     else:
@@ -466,7 +477,8 @@ class subPlot:
             fig.savefig(self.fileName+'.png')   
                 
         # plot
-        _plt.show()
+        if plotMe==True:
+            _plt.show()
         
 #
 #
