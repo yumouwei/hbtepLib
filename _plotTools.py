@@ -1,6 +1,6 @@
 import numpy as _np
 import matplotlib.pyplot as _plt
-import sys as _sys
+#import sys as _sys
 #import _processData as _process
 #from matplotlib.colors import LinearSegmentedColormap as _lsc
 
@@ -44,7 +44,7 @@ class plot:
              or 
              yData = [np.arange(0,10),np.arange(0,10),np.arange(0,10) ]
     zData : list (of numpy.ndarray)
-        the z-data of the plot.  applicable for contour and scatter plots. 
+        the z-data of the plot.  applicable for contour, scatter plots and both error plots. 
         must be stored as a list of arrays.  multiple entries isn't supported 
         because having multiple 3D plots on a single plot doesn't make sense.  
         e.g. zData = [np.arange(0,10)] 
@@ -68,8 +68,8 @@ class plot:
         Other examples include 'lower left', 'center right', etc.
     showGrid : bool
         True - creates grid on the plot.  True is default
-    yErData : list (of numpy.ndarray)
-        y-error data to be used on errorbar and errorribbon plots
+#    yErData : list (of numpy.ndarray)
+#        y-error data to be used on errorbar and errorribbon plots
     axvspan : list (of floats)
         TODO (john) this needs an overhaul
         contains x-boundaries within which to highlight with axvspanColor
@@ -134,37 +134,48 @@ class plot:
         
     """
     
-    def __init__(self):
-        self.title = ''
-        self.titleFontSize=18
-        self.subtitle = ''
-        self.subtitleFontSize=14
-        self.xLabel = ''
-        self.yLabel = ''
-        self.zLabel = ''
-        self.axisLabelFontSize=16
+    def __init__(self,title='',titleFontSize=18,
+                 subtitle = '',subtitleFontSize=14,
+                 xLabel = '',yLabel = '',zLabel = '',axisLabelFontSize=16,
+                 legendFontSize=10,legendLoc='upper right',
+                 xLim=[],yLim=[],
+                 showGrid=True,
+                 axvspan=[],axvspanColor=[],
+                 plotType='standard',
+                 fileName='',
+                 aspect=None,
+                 colorMap='nipy_spectral',
+                 shotno=[],
+                 shotnoFontSize=8):
+        self.title = title
+        self.titleFontSize=titleFontSize
+        self.subtitle = subtitle
+        self.subtitleFontSize=subtitleFontSize
+        self.xLabel = xLabel
+        self.yLabel = yLabel
+        self.zLabel = zLabel
+        self.axisLabelFontSize=axisLabelFontSize
         self.xData = [] # possibility of multiple data arrays.  stored as lists.
         self.yData = [] # possibility of multiple data arrays.  stored as lists.
         self.zData = [] # for contour and scatter plot.  
         self.yLegendLabel = [] # possibility of multiple data arrays.  stored as lists.
-        self.legendFontSize=10;
+        self.legendFontSize=legendFontSize
         self.linestyle=[] # '-' is default
         self.marker=[] # Line2D.markers for list of markers.  '.' should be default ??
-        self.xLim = []
-        self.yLim = []
-        self.legendLoc='upper right'; #'bottom left' 'center right' etc...
-        self.showGrid = True
-        self.yErData=[]
-        self.axvspan=[]  # http://stackoverflow.com/questions/8270981/in-a-matplotlib-plot-can-i-highlight-specific-x-value-ranges
-        self.axvspanColor=[]
+        self.xLim = xLim
+        self.yLim = yLim
+        self.legendLoc=legendLoc; #'bottom left' 'center right' etc...
+        self.showGrid = showGrid
+        self.axvspan=axvspan  # http://stackoverflow.com/questions/8270981/in-a-matplotlib-plot-can-i-highlight-specific-x-value-ranges
+        self.axvspanColor=axvspanColor
         self.color=[]
-        self.plotType='' # 'standard', 'errorbar', 'scatter', 'contour'
+        self.plotType=plotType # 'standard', 'errorbar', 'scatter', 'contour'
         self.alpha=[]#[1.0]
-        self.fileName=''
-        self.aspect=None  # "equal"
-        self.colorMap='nipy_spectral' #https://matplotlib.org/examples/color/colormaps_reference.html
-        self.shotno=[]
-        self.shotnoFontSize=8
+        self.fileName=fileName
+        self.aspect=aspect  # "equal"
+        self.colorMap=colorMap #https://matplotlib.org/examples/color/colormaps_reference.html
+        self.shotno=shotno
+        self.shotnoFontSize=shotnoFontSize
             
         
     def plot(self):
@@ -172,8 +183,111 @@ class plot:
         
     # TODO (John) add the other subfunctions from the previous prePlot class
         
+    def addTrace(self,xData,yData,zData=[],yLegendLabel='',alpha=1.0,
+                 linestyle='-',marker='',color=''):
+        """
+        Adds a new trace to the plot
+        """
+        m=len(self.xData)
         
+        self.xData.append(xData);
+        self.yData.append(yData);
+        self.zData.append(zData);
+        self.yLegendLabel.append(yLegendLabel)
+        self.alpha.append(alpha)
+        self.linestyle.append(linestyle)
+        self.marker.append(marker)
+        if color=='':
+            self.color.append(_cSequence[m])
+        else:
+            self.color.append(color)
+            
+    def removeTrace(self,index):
+        """
+        Remove one or more traces from the plot
         
+        Parameters
+        ----------
+        index : list or numpy.ndarray
+            list or array of one of more indices within the plot to be removed
+        """
+        # make sure index is a numpy.ndarray
+        if type(index) is not _np.ndarray and type(index) is not list:
+            index=_np.array([index]);
+        elif type(index) is list:
+            index=_np.array(index);
+        
+        m=len(index)
+        
+        for i in range(0,m):
+            del self.xData[index[i]]
+            del self.yData[index[i]]
+            del self.zData[index[i]]
+            del self.yLegendLabel[index[i]]
+            del self.alpha[index[i]]
+            del self.linestyle[index[i]]
+            del self.marker[index[i]]
+            del self.color[index[i]]
+            index-=1;
+        
+    def mergePlots(self,newPlot):
+        """
+        Merges a new plot into the existing plot
+        
+        Parameters
+        ----------
+        newPlot : _plotTools.plot
+            the plot to be merged into this one
+        """
+        
+        if type(newPlot.xData)!=list:
+            newPlot.xData=[newPlot.xData]
+            
+        m=len(newPlot.xData); 
+        n=len(self.xData)
+        
+        for i in range(0,m):
+            if self.alpha!=[]:
+                if newPlot.alpha!=[]:
+                    self.alpha.append(newPlot.alpha[i])
+                else:
+                    self.alpha=[];
+                
+            if self.color!=[]:
+                if newPlot.color!=[]:
+                    if newPlot.color[i] in self.color:
+                        self.color.append(_cSequence[n+i])
+                    else:
+                        self.color.append(newPlot.color[i])
+                else:
+                    self.color=[];
+                    
+            if self.marker!=[]:
+                if newPlot.marker!=[]:
+                    self.marker.append(newPlot.marker[i])
+                else:
+                    self.marker=[];
+                
+            if self.linestyle!=[]:
+                if newPlot.linestyle!=[]:
+                    self.linestyle.append(newPlot.linestyle[i])
+                else:
+                    self.linestyle=[];
+                
+            if self.yLegendLabel!=[]:
+                if newPlot.yLegendLabel!=[]:
+                    self.yLegendLabel.append(newPlot.yLegendLabel[i])
+                else:
+                    self.yLegendLabel=[];
+                    
+            if self.zData!=[]:
+                if newPlot.zData!=[]:
+                    self.zData.append(newPlot.zData[i])
+                else:
+                    self.zData=[];
+                
+            self.xData.append(newPlot.xData[i])
+            self.yData.append(newPlot.yData[i])
         
 
 
@@ -339,14 +453,14 @@ class subPlot:
                     # error bar plot
                     elif (data.plotType == 'errorbar') or (data.plotType == 'errorBar'):
                         ax.errorbar(data.xData[k], data.yData[k], 
-                                    yerr=data.yErData[k], marker=marker, 
+                                    yerr=data.zData[k], marker=marker, 
                                     linestyle=linestyle,label=label) # 
                     
                     # shaded error bar plot
                     elif (data.plotType == 'errorribbon') or (data.plotType == 'errorRibbon'):
                         ax.fill_between(data.xData[k], 
-                                        data.yData[k]-data.yErData[k],
-                                        data.yData[k]+data.yErData[k],
+                                        data.yData[k]-data.zData[k],
+                                        data.yData[k]+data.zData[k],
                                         alpha=0.3,facecolor=data.color[k]) # 
                         ax.plot(data.xData[k], data.yData[k], marker=marker, 
                                 linestyle=linestyle,label=label,color=color) 
@@ -423,7 +537,7 @@ class subPlot:
                             name += ", " + str(data.shotno[k]);
                             
                     # place string
-                    axarr[0].annotate(name, xy=(0.999,0.01), 
+                    ax.annotate(name, xy=(0.999,0.01), 
                         xycoords='axes fraction', 
                         fontsize=data.shotnoFontSize, # 6
                         horizontalalignment='right', 

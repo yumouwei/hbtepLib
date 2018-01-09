@@ -241,12 +241,12 @@ class ipData:
         returns the plot of IP vs time
         """
         p1=_plot.plot()
-        p1.yData=[self.ip*1e-3]
-        p1.xData=[self.time*1000]
         p1.yLabel='kA'
         p1.xLabel='time [ms]'
         p1.subtitle='Plasma Current'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(xData=self.time*1000,yData=self.ip*1e-3)
         
         return p1
         
@@ -258,7 +258,7 @@ class ipData:
         self.plotOfIP().plot()
         
         
-class cos1Rogowski:
+class cos1RogowskiData:
     """
     Gets cos 1 rogowski data
     
@@ -332,12 +332,12 @@ class cos1Rogowski:
         returns the plot of cos1 rog vs time
         """
         p1=_plot.plot()
-        p1.yData=[self.cos1]
-        p1.xData=[self.time*1000]
         p1.yLabel=''
         p1.xLabel='time [ms]'
         p1.subtitle='Cos1 Rogowski'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(xData=self.time*1000,yData=self.cos1)
         
         return p1
         
@@ -418,9 +418,9 @@ class bpData:
     # how to handle this
     # TODO(John) these probes have been periodically moved to different nodes.  
     # implement if lowerbound < shotno < upperbound conditions to handle these cases
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=98147,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
-        self.title = "shotno=%s, BP Data." % shotno
+        self.title = "%s, BP Data." % shotno
 
         if shotno > 92000:
             #TODO(determine when this probe was rewired or moved)
@@ -467,35 +467,24 @@ class bpData:
         returns plot of gpu voltage request 
         (Preamp signal out from caliban)            
         """
-        p1=_plot.plot();
-        p1.title=self.title
-        p1.yData=[self.bps9GPURequestVoltage]
-        p1.xData=[self.time*1000]
-        p1.yLabel='V'
-        p1.xLabel='ms'
-        p1.subtitle='Voltage Request from GPU (pre-amplifier)'
-        p1.yLegendLabel='BPS9'
-        p1.shotno=[self.shotno]
-        
+        p1=_plot.plot(title=self.title,xLabel='ms',yLabel='V',
+                      subtitle='Voltage Request from GPU (pre-amplifier)',
+                      shotno=self.shotno);
+        p1.addTrace(xData=self.time*1000,yData=self.bps9GPURequestVoltage,
+                    yLegendLabel='BPS9')
         return p1
         
     def plotOfVoltage(self):
         """ 
         returns plot of BP voltage          
         """
-        p1=_plot.plot();
-        p1.title=self.title
-        p1.yLim=[-200,200] # default [-200,200]
-        p1.yLabel='V'
-        p1.xLabel='Time [ms]'
-        p1.subtitle='BP Voltage'
-        p1.yData.append(self.bps9Voltage)
-        p1.xData.append(self.time*1000)
-        p1.yLegendLabel.append('BPS9')
-        p1.yData.append(self.bps5Voltage)
-        p1.xData.append(self.time*1000)
-        p1.yLegendLabel.append('BPS5')
-        p1.shotno=[self.shotno]
+        p1=_plot.plot(title=self.title,yLim=[-200,200],yLabel='V',
+                      xLabel='Time [ms]',subtitle='BP Voltage',
+                      shotno=[self.shotno]);
+        p1.addTrace(xData=self.time*1000,yData=self.bps9Voltage,
+                    yLegendLabel='BPS9')
+        p1.addTrace(xData=self.time*1000,yData=self.bps5Voltage,
+                    yLegendLabel='BPS5')
         
         return p1
         
@@ -503,19 +492,13 @@ class bpData:
         """ 
         returns plot of BP current         
         """
-        p1=_plot.plot();
-        p1.title=self.title
-        p1.yLim=[-5,60]  # default [-10,70]
-        p1.yLabel='A'
-        p1.subtitle='BP Current'
-        p1.xLabel='Time [ms]'
-        p1.yData.append(self.bps9Current)
-        p1.xData.append(self.time*1000)
-        p1.yLegendLabel.append('BPS9')
-        p1.yData.append(self.bps5Current)
-        p1.xData.append(self.time*1000)
-        p1.yLegendLabel.append('BPS5')
-        p1.shotno=[self.shotno]
+        p1=_plot.plot(title=self.title,yLabel='A',
+                      xLabel='Time [ms]',subtitle='BP Current',
+                      shotno=[self.shotno])
+        p1.addTrace(xData=self.time*1000,yData=self.bps9Current,
+                    yLegendLabel='BPS9')
+        p1.addTrace(xData=self.time*1000,yData=self.bps5Current,
+                    yLegendLabel='BPS5')
         
         return p1
             
@@ -523,15 +506,11 @@ class bpData:
         """ 
         returns plot of BPS9 voltage         
         """
-        p1=_plot.plot();
-        p1.yLim=[-200,200] # default [-200,200]
-        p1.yLabel='V'
-        p1.xLabel='Time [ms]'
-        p1.subtitle='BP Voltage'
-        p1.yData.append(self.bps9Voltage)
-        p1.xData.append(self.time*1000)
-        p1.yLegendLabel.append('BPS9')
-        p1.shotno=[self.shotno]
+        p1=_plot.plot(title=self.title,yLabel='A',yLim=[-200,200],
+                      xLabel='Time [ms]',subtitle='BP Voltage',
+                      shotno=[self.shotno])
+        p1.addTrace(xData=self.time*1000,yData=self.bps9Voltage,
+                    yLegendLabel='BPS9')
         
         return p1
     
@@ -539,15 +518,11 @@ class bpData:
         """ 
         returns plot of BPS9 current         
         """
-        p1=_plot.plot();
-        p1.yLim=[-5,60]  # default [-10,70]
-        p1.yLabel='A'
-        p1.subtitle='BP Current'
-        p1.xLabel='Time [ms]'
-        p1.yData.append(self.bps9Current)
-        p1.xData.append(self.time*1000)
-        p1.yLegendLabel.append('BPS9')
-        p1.shotno=[self.shotno]
+        p1=_plot.plot(title=self.title,yLabel='A',
+                      xLabel='Time [ms]',subtitle='BP Current',
+                      shotno=[self.shotno])
+        p1.addTrace(xData=self.time*1000,yData=self.bps9Current,
+                    yLegendLabel='BPS9')
         
         return p1
     
@@ -556,9 +531,10 @@ class bpData:
     def plot(self,plotAll=False):
         """ Plot relevant plots """
         if plotAll==False:
-            _plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent()])
+            sp1=_plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent()])
         else:
-            _plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent(),self.plotOfGPUVoltageRequest()])
+            sp1=_plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent(),self.plotOfGPUVoltageRequest()])
+        return sp1
         
     
 class tpData:
@@ -744,13 +720,12 @@ class tpData:
         p1.title=self.title
         p1.yLim=[-50, 100]       
         if self.probes=='both' or self.probes=='tps5': 
-            p1.yData.append(self.tps5Temp)
-            p1.xData.append(self.tps5Time*1000)
-            p1.yLegendLabel.append('TPS5')
+            p1.addTrace(xData=self.tps5Time*1000,yData=self.tps5Temp,
+                        yLegendLabel='TPS5')
         if self.probes=='both' or self.probes=='tps8':
-            p1.yData.append(self.tps8Temp)
-            p1.xData.append(self.tps8Time*1000)
-            p1.yLegendLabel.append('TPS8')
+            p1.addTrace(yData=self.tps8Temp,xData=self.tps8Time*1000,
+                        yLegendLabel='TPS8')
+        p1.shotno=[self.shotno]
         return p1
         
     def plotOfNe(self):
@@ -759,13 +734,12 @@ class tpData:
         p1.subtitle='Density'
         p1.yLim=[-1, 4.5]
         if self.probes=='both' or self.probes=='tps5':
-            p1.yData.append(self.tps5Density/1e18)
-            p1.xData.append(self.tps5Time*1000)
-            p1.yLegendLabel.append('TPS5')
+            p1.addTrace(yData=self.tps5Density/1e18,xData=self.tps5Time*1000,
+                        yLegendLabel='TPS5')
         if self.probes=='both' or self.probes=='tps8':
-            p1.yData.append(self.tps8Density/1e18)
-            p1.xData.append(self.tps8Time*1000)
-            p1.yLegendLabel.append('TPS8')
+            p1.addTrace(yData=self.tps8Density/1e18,xData=self.tps8Time*1000,
+                        yLegendLabel='TPS8')
+        p1.shotno=[self.shotno]
         return p1
             
     def plotOfVf(self):
@@ -775,13 +749,12 @@ class tpData:
         p1.xLabel='time [ms]'
         p1.yLim=[-150, 75]
         if self.probes=='both' or self.probes=='tps5':
-            p1.yData.append(self.tps5VFloat)
-            p1.xData.append(self.tps5Time*1000)
-            p1.yLegendLabel.append('TPS5')
+            p1.addTrace(yData=self.tps5VFloat,xData=self.tps5Time*1000,
+                        yLegendLabel='TPS5')
         if self.probes=='both' or self.probes=='tps8':
-            p1.yData.append(self.tps8VFloat)
-            p1.xData.append(self.tps8Time*1000)
-            p1.yLegendLabel.append('TPS8')
+            p1.addTrace(yData=self.tps8VFloat,xData=self.tps8Time*1000,
+                        yLegendLabel='TPS8')
+        p1.shotno=[self.shotno]
         return p1
             
     def plotOfTipA(self):
@@ -792,13 +765,12 @@ class tpData:
         p1.xLabel='time [ms]'
 #        self.plotOfTipA.yLim=[-100, 100]
         if self.probes=='both' or self.probes=='tps5':
-            p1.yData.append(self.tps5TipA)
-            p1.xData.append(self.tps5Time*1000)
-            p1.yLegendLabel.append('TPS5')
+            p1.addTrace(yData=self.tps5TipA,xData=self.tps5Time*1000,
+                        yLegendLabel='TPS5')
         if self.probes=='both' or self.probes=='tps8':
-            p1.yData.append(self.tps8TipA)
-            p1.xData.append(self.tps8Time*1000)
-            p1.yLegendLabel.append('TPS8')
+            p1.addTrace(yData=self.tps8TipA,xData=self.tps8Time*1000,
+                        yLegendLabel='TPS8')
+        p1.shotno=[self.shotno]
         return p1
             
     def plotOfTipB(self):
@@ -809,13 +781,12 @@ class tpData:
         p1.xLabel='time [ms]'
 #        self.plotOfTipA.yLim=[-100, 100]
         if self.probes=='both' or self.probes=='tps5':
-            p1.yData.append(self.tps5TipB)
-            p1.xData.append(self.tps5Time*1000)
-            p1.yLegendLabel.append('TPS5')
+            p1.addTrace(yData=self.tps5TipB,xData=self.tps5Time*1000,
+                        yLegendLabel='TPS5')
         if self.probes=='both' or self.probes=='tps8':
-            p1.yData.append(self.tps8TipB)
-            p1.xData.append(self.tps8Time*1000)
-            p1.yLegendLabel.append('TPS8')
+            p1.addTrace(yData=self.tps8TipB,xData=self.tps8Time*1000,
+                        yLegendLabel='TPS8')
+        p1.shotno=[self.shotno]
         return p1
             
     def plotOfTipC(self):            
@@ -826,13 +797,12 @@ class tpData:
         p1.xLabel='time [ms]'
 #        self.plotOfTipA.yLim=[-100, 100]
         if self.probes=='both' or self.probes=='tps5':
-            p1.yData.append(self.tps5TipC)
-            p1.xData.append(self.tps5Time*1000)
-            p1.yLegendLabel.append('TPS5')
+            p1.addTrace(yData=self.tps5TipC,xData=self.tps5Time*1000,
+                        yLegendLabel='TPS5')
         if self.probes=='both' or self.probes=='tps8':
-            p1.yData.append(self.tps8TipC)
-            p1.xData.append(self.tps8Time*1000)
-            p1.yLegendLabel.append('TPS8') 
+            p1.addTrace(yData=self.tps8TipC,xData=self.tps8Time*1000,
+                        yLegendLabel='TPS8')
+        p1.shotno=[self.shotno]
         return p1
         
     def plotOfISat(self):            
@@ -843,15 +813,13 @@ class tpData:
         p1.xLabel='time [ms]'
 #        self.plotOfTipA.yLim=[-100, 100]
         if self.probes=='both' or self.probes=='tps5':
-            p1.yData.append(self.tps5Current)
-            p1.xData.append(self.tps5Time*1000)
-            p1.yLegendLabel.append('TPS5')
+            p1.addTrace(yData=self.tps5Current,xData=self.tps5Time*1000,
+                        yLegendLabel='TPS5')
         if self.probes=='both' or self.probes=='tps8':
-            p1.yData.append(self.tps8Current)
-            p1.xData.append(self.tps8Time*1000)
-            p1.yLegendLabel.append('TPS8')       
+            p1.addTrace(yData=self.tps8Current,xData=self.tps8Time*1000,
+                        yLegendLabel='TPS8')   
+        p1.shotno=[self.shotno]
         return p1
-
             
     def plot(self,plotAll=False):
         if plotAll == False:
@@ -984,22 +952,20 @@ class paData:
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
         p1.title=str(self.shotno)+'. '+str(self.namesPA1[i])+' data'
+        p1.shotno=[self.shotno]
         
         # smoothed data
-        p1.yData.append(self.pa1Data[i]); #[self.taPDataRaw[i]]#
-        p1.xData.append(self.pa1Time*1000);
-        p1.yLegendLabel.append('smoothed')
+        p1.addTrace(yData=self.pa1Data[i],xData=self.pa1Time*1000,
+                    yLegendLabel='smoothed')   
 
         if alsoPlotRawAndFit==True:
             # raw data
-            p1.yData.append(self.pa1Raw[i])
-            p1.xData.append(self.pa1Time*1000);
-            p1.yLegendLabel.append('raw')
+            p1.addTrace(yData=self.pa1Raw[i],xData=self.pa1Time*1000,
+                        yLegendLabel='raw')   
             
             # fit data (which is subtracted from raw)
-            p1.yData.append(self.pa1RawFit[i])
-            p1.xData.append(self.pa1Time*1000);
-            p1.yLegendLabel.append('fit')
+            p1.addTrace(yData=self.pa1RawFit[i],xData=self.pa1Time*1000,
+                        yLegendLabel='fit')   
             
         return p1
         
@@ -1009,22 +975,20 @@ class paData:
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
         p1.title=str(self.shotno)+'. '+str(self.namesPA2[i])+' data'
+        p1.shotno=[self.shotno]
         
         # smoothed data
-        p1.yData.append(self.pa2Data[i]); #[self.taPDataRaw[i]]#
-        p1.xData.append(self.pa2Time*1000);
-        p1.yLegendLabel.append('smoothed')
+        p1.addTrace(yData=self.pa2Data[i],xData=self.pa2Time*1000,
+                    yLegendLabel='smoothed')   
 
         if alsoPlotRawAndFit==True:
             # raw data
-            p1.yData.append(self.pa2Raw[i])
-            p1.xData.append(self.pa2Time*1000);
-            p1.yLegendLabel.append('raw')
+            p1.addTrace(yData=self.pa2Raw[i],xData=self.pa2Time*1000,
+                        yLegendLabel='raw')   
             
             # fit data (which is subtracted from raw)
-            p1.yData.append(self.pa2RawFit[i])
-            p1.xData.append(self.pa2Time*1000);
-            p1.yLegendLabel.append('fit')
+            p1.addTrace(yData=self.pa2RawFit[i],xData=self.pa2Time*1000,
+                        yLegendLabel='fit')   
 
         return p1
         
@@ -1196,22 +1160,20 @@ class fbData:
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
         p1.title=str(self.shotno)+'. '+str(self.fbPolNames[j][i])+' data'
+        p1.shotno=[self.shotno]
         
         # smoothed data
-        p1.yData.append(self.fbPolData[j][i]); #[self.taPDataRaw[i]]#
-        p1.xData.append(self.fbPolTime*1000);
-        p1.yLegendLabel.append('Smoothed')
+        p1.addTrace(yData=self.fbPolData[j][i],xData=self.fbPolTime*1000,
+                    yLegendLabel='smoothed')   
         
         if alsoPlotRawAndFit==True:
             # raw data
-            p1.yData.append(self.fbPolRaw[j][i])
-            p1.xData.append(self.fbPolTime*1000);
-            p1.yLegendLabel.append('Raw')
+            p1.addTrace(yData=self.fbPolRaw[j][i],xData=self.fbPolTime*1000,
+                        yLegendLabel='Raw')   
             
             # fit data (which is subtracted from raw)
-            p1.yData.append(self.fbPolRawFit[j][i])
-            p1.xData.append(self.fbPolTime*1000);
-            p1.yLegendLabel.append('Fit')
+            p1.addTrace(yData=self.fbPolRawFit[j][i],xData=self.fbPolTime*1000,
+                        yLegendLabel='Fit')  
             
         return p1
         
@@ -1227,22 +1189,20 @@ class fbData:
         p1.xLabel='time [ms]'
         p1.yLabel=r'dB [G]'
         p1.title=str(self.shotno)+'. '+str(self.fbRadNames[j][i])+' data'
+        p1.shotno=[self.shotno]
         
         # smoothed data
-        p1.yData.append(self.fbRadData[j][i]); #[self.taPDataRaw[i]]#
-        p1.xData.append(self.fbRadTime*1000);
-        p1.yLegendLabel.append('Smoothed')
+        p1.addTrace(yData=self.fbRadData[j][i],xData=self.fbRadTime*1000,
+                    yLegendLabel='smoothed')   
         
         if alsoPlotRawAndFit==True:
             # raw data
-            p1.yData.append(self.fbRadRaw[j][i])
-            p1.xData.append(self.fbRadTime*1000);
-            p1.yLegendLabel.append('Raw')
+            p1.addTrace(yData=self.fbRadRaw[j][i],xData=self.fbRadTime*1000,
+                        yLegendLabel='Raw')   
             
             # fit data (which is subtracted from raw)
-            p1.yData.append(self.fbRadRawFit[j][i])
-            p1.xData.append(self.fbRadTime*1000);
-            p1.yLegendLabel.append('Fit')
+            p1.addTrace(yData=self.fbRadRawFit[j][i],xData=self.fbRadTime*1000,
+                        yLegendLabel='Fit')  
         
         return p1
         
@@ -1414,22 +1374,20 @@ class taData:
         p1.xLabel='time [ms]'
         p1.yLabel=r'Gauss'
         p1.title=str(self.shotno)+'. '+str(self.namesTAPol[i])+' data'
+        p1.shotno=[self.shotno]
         
         # smoothed data
-        p1.yData.append(self.taPolData[i]); #[self.taPDataRaw[i]]#
-        p1.xData.append(self.taPolTime*1000);
-        p1.yLegendLabel.append('smoothed')
+        p1.addTrace(yData=self.taPolData[i],xData=self.taPolTime*1000,
+                    yLegendLabel='smoothed')  
 
         if alsoPlotRawAndFit==True:
             # raw data
-            p1.yData.append(self.taPolRaw[i])
-            p1.xData.append(self.taPolTime*1000);
-            p1.yLegendLabel.append('raw')
+            p1.addTrace(yData=self.taPolRaw[i],xData=self.taPolTime*1000,
+                        yLegendLabel='raw') 
             
             # fit data (which is subtracted from raw)
-            p1.yData.append(self.taPolRawFit[i])
-            p1.xData.append(self.taPolTime*1000);
-            p1.yLegendLabel.append('fit')
+            p1.addTrace(yData=self.taPolRawFit[i],xData=self.taPolTime*1000,
+                        yLegendLabel='fit') 
 
         return p1
         
@@ -1535,57 +1493,53 @@ class externalRogowskiData:
     def plotOfERogA(self):
         # generate rog A plot
         p1=_plot.plot()
-        p1.yData=[self.eRogA]
-        p1.xData=[self.time*1000]
         p1.yLabel='A'
         p1.xLabel='time [ms]'
-        p1.subtitle='Ext. Rog. A'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.eRogA,xData=self.time*1000,
+                    yLegendLabel='Ext. Rog. A') 
         return p1
     
     def plotOfERogB(self):
         # generate rog B plot
         p1=_plot.plot()
-        p1.yData=[self.eRogB]
-        p1.xData=[self.time*1000]
         p1.yLabel='A'
         p1.xLabel='time [ms]'
-        p1.subtitle='Ext. Rog. B'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.eRogB,xData=self.time*1000,
+                    yLegendLabel='Ext. Rog. B') 
         return p1
     
     def plotOfERogC(self):
         # generate rog C plot
         p1=_plot.plot()
-        p1.yData=[self.eRogC]
-        p1.xData=[self.time*1000]
         p1.yLabel='A'
         p1.xLabel='time [ms]'
-        p1.subtitle='Ext. Rog. C'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.eRogC,xData=self.time*1000,
+                    yLegendLabel='Ext. Rog. C') 
         return p1
         
     def plotOfERogD(self):
         # generate rog D plot
         p1=_plot.plot()
-        p1.yData=[self.eRogD]
-        p1.xData=[self.time*1000]
         p1.yLabel='A'
         p1.xLabel='time [ms]'
-        p1.subtitle='Ext. Rog. D'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.eRogD,xData=self.time*1000,
+                    yLegendLabel='Ext. Rog. D') 
         return p1
         
     def plotOfERogAll(self):        
         # generate rog All plot
-        p1=_plot.plot()
-        p1.yData=[self.eRogA,self.eRogB,self.eRogC,self.eRogD]
-        p1.xData=[self.time*1000,self.time*1000,self.time*1000,self.time*1000]
-        p1.yLabel='A'
-        p1.xLabel='time [ms]'
-        p1.subtitle='External Rogowski Current'
-        p1.yLegendLabel=['Ext. Rog. A','Ext. Rog. B','Ext. Rog. C','Ext. Rog. D']
-        p1.title=str(self.title);
+        p1=self.plotOfERogA()
+        p1.mergePlots(self.plotOfERogB())
+        p1.mergePlots(self.plotOfERogC())
+        p1.mergePlots(self.plotOfERogD())
         return p1
         
     def plot(self):
@@ -1647,12 +1601,12 @@ class spectrometerData:
     def plotOfSpect(self):
         # generate plot
         p1=_plot.plot()
-        p1.yData=[self.spect]
-        p1.xData=[self.time*1000]
         p1.yLabel='V'
         p1.xLabel='time [ms]'
         p1.subtitle='Spectrometer Intensity'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.spect,xData=self.time*1000) 
         return p1
     
     def plot(self):
@@ -1722,12 +1676,12 @@ class solData:
 #        index = self.sensorNames.index(name)
         # generate plot
         p1=_plot.plot()
-        p1.yData=[self.solData[index]] # *1e-3
-        p1.xData=[self.time*1000]
         p1.yLabel='V'
         p1.xLabel='time [ms]'
         p1.subtitle=self.sensorNames[index]
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.solData[index],xData=self.time*1000) 
             
         return p1
         
@@ -1800,12 +1754,12 @@ class loopVoltageData:
     def plotOfLoopVoltage(self):
         # generate plot
         p1=_plot.plot()
-        p1.yData=[self.loopVoltage]
-        p1.xData=[self.time*1000]
         p1.yLabel='V'
         p1.xLabel='time [ms]'
         p1.subtitle='Loop Voltage'
         p1.title=str(self.shotno);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.loopVoltage,xData=self.time*1000) 
         p1.yLim=[0,15]  # using same axis-limits as hbtplot.py
         return p1
             
@@ -1892,12 +1846,12 @@ class tfData:
     def plotOfTF(self,tStart=None,tStop=None):
         # generate tf plot
         p1=_plot.plot()
-        p1.yData=[self.tfBankField]
-        p1.xData=[self.time*1000]
         p1.yLabel='T'
         p1.xLabel='time [ms]'
         p1.subtitle='TF Bank Field'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.tfBankField,xData=self.time*1000) 
         return p1
             
     def plot(self):
@@ -1995,35 +1949,35 @@ class capBankData:
     def plotOfVF(self):
         # generate vf plot
         p1=_plot.plot()
-        p1.yData=[self.vfBankCurrent*1e-3]
-        p1.xData=[self.vfTime*1000]
         p1.yLabel='kA'
         p1.xLabel='time [ms]'
         p1.subtitle='VF Bank Current'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.vfBankCurrent,xData=self.vfTime*1000) 
         return p1
         
     def plotOfOH(self):
         # generate oh plot
         p1=_plot.plot()
-        p1.yData=[self.ohBankCurrent*1e-3]
-        p1.xData=[self.ohTime*1000]
         p1.yLabel='kA'
         p1.xLabel='time [ms]'
         p1.subtitle='OH Bank Current'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
         p1.yLim=[-3.5e1,3.5e1]
+        p1.addTrace(yData=self.ohBankCurrent,xData=self.ohTime*1000) 
         return p1
         
     def plotOfSH(self):
         # generate sh plot
         p1=_plot.plot()
-        p1.yData=[self.shBankCurrent*1e-3]
-        p1.xData=[self.shTime*1000]
         p1.yLabel='kA'
         p1.xLabel='time [ms]'
         p1.subtitle='SH Bank Current'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
+        p1.addTrace(yData=self.shBankCurrent,xData=self.shTime*1000) 
         return p1
         
             
@@ -2131,7 +2085,7 @@ class plasmaRadiusData:
         ip=ip.ip*1212*1e-9  # ip gain
         
         # get cos-1 raw data
-        cos1=cos1Rogowski(shotno=shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
+        cos1=cos1RogowskiData(shotno=shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
         
         # subtract offset
         cos1Raw=cos1.cos1Raw-cos1.cos1RawOffset        
@@ -2169,28 +2123,31 @@ class plasmaRadiusData:
         
         # plot
         p1=_plot.plot()
-        p1.yData=[self.majorRadius*100,innerLimiter,outerLimiter]
-        p1.xData=[self.time*1000,innerLimiterTime*1000,outerLimiterTime*1000]
-        p1.yLegendLabel=['major radius','HFS limited','LFS limited']
         p1.subtitle='major radius'
         p1.title=self.title
+        p1.shotno=[self.shotno]
         p1.xLabel='time [ms]'
         p1.yLabel='cm'
         p1.yLim=[89, 95]
+        p1.addTrace(yData=self.majorRadius*100,xData=self.time*1000,
+                    yLegendLabel='major radius') 
+        p1.addTrace(yData=innerLimiter,xData=innerLimiterTime*1000,
+                    yLegendLabel='HFS limited') 
+        p1.addTrace(yData=outerLimiter,xData=outerLimiterTime*1000,
+                    yLegendLabel='LFS limited') 
         return p1
         
     def plotOfMinorRadius(self):
         p1=_plot.plot()
-        p1.yData=[self.minorRadius*100.]
-        p1.xData=[self.time*1000]
         p1.subtitle='minor radius'
-        p1.yLegendLabel=['minor radius']
         p1.title=self.title
+        p1.shotno=[self.shotno]
         p1.xLabel='time [ms]'
         p1.yLabel='cm'
         p1.yLim=[10, 16]
+        p1.addTrace(yData=self.minorRadius*100,xData=self.time*1000,
+                    yLegendLabel='minor radius') 
         return p1
-
 
     def plot(self):
         self.p=_plot.subPlot([self.plotOfMajorRadius(),self.plotOfMinorRadius()]);
@@ -2264,13 +2221,13 @@ class qStarData:
         returns the plot of IP vs time
         """
         p1=_plot.plot()
-        p1.yData=[self.qStar]
-        p1.xData=[self.time*1000]
         p1.yLabel=''
         p1.xLabel='time [ms]'
         p1.subtitle=r'q$^*$'
         p1.title=str(self.title);
+        p1.shotno=[self.shotno]
         p1.yLim=[2,5]
+        p1.addTrace(yData=self.qStar,xData=self.time*1000) 
         
         return p1
         
@@ -2670,16 +2627,16 @@ class nModeData:
                            self.plotOfN1Freq()],plot=False)
         if includeRaw==True:
             # add phase raw data
-            sp1.subPlots[1].yData.append(self.n1PhaseRaw)
-            sp1.subPlots[1].xData.append(self.time*1000)
-            sp1.subPlots[1].linestyle.append('')
-            sp1.subPlots[1].marker.append('.')
-            sp1.subPlots[1].yLegendLabel.append('raw')
+            sp1.subPlots[1].addTrace(yData=self.n1PhaseRaw,
+                                     xData=self.time*1000,
+                                     linestyle='',
+                                     marker='.',
+                                     yLegendLabel='raw')
             
             # add frequency raw data
-            sp1.subPlots[2].yData.append(self.n1FreqRaw/1000.)
-            sp1.subPlots[2].xData.append(self.time*1000)
-            sp1.subPlots[2].yLegendLabel.append('raw')
+            sp1.subPlots[2].addTrace(yData=self.n1FreqRaw/1000.,
+                                     xData=self.time*1000,
+                                     yLegendLabel='raw')
             
         sp1.plot()
         return sp1
@@ -2687,13 +2644,12 @@ class nModeData:
     def plotOfAmps(self):
         ## mode amplitude plots  
         p1=_plot.plot()
-        p1.yData=[self.n1Amp,self.n2Amp]
-        p1.xData=[self.time*1000,self.time*1000]
-        if self.nModeSensor=='TA':
-            p1.yLegendLabel=['TA Sensors, n=1','TA Sensors, n=2']
-        elif self.nModeSensor=='FB':
-            p1.yLegendLabel=['FB Sensors, n=1','FB Sensors, n=2']
+        p1.addTrace(yData=self.n1Amp,xData=self.time*1000,
+                    yLegendLabel='n=1') 
+        p1.addTrace(yData=self.n2Amp,xData=self.time*1000,
+                    yLegendLabel='n=2') 
         p1.title=self.title
+        p1.shotno=[self.shotno]
         p1.xLabel='ms'
         p1.yLabel='G'   
         return p1
@@ -2703,13 +2659,9 @@ class nModeData:
         p1=_plot.plot()
         p1.subtitle='Mode amplitude, n=1'
         p1.yLim=[0,10]
-        p1.yData=[self.n1Amp]
-        p1.xData=[self.time*1000]
-        if self.nModeSensor=='TA':
-            p1.yLegendLabel=['TA Sensors']
-        elif self.nModeSensor=='FB':
-            p1.yLegendLabel=['FB Lower Sensors']
+        p1.addTrace(yData=self.n1Amp,xData=self.time*1000) 
         p1.title=str(self.title)
+        p1.shotno=[self.shotno]
         p1.xLabel='ms'
         p1.yLabel='G'
         return p1
@@ -2720,14 +2672,11 @@ class nModeData:
         p1.subtitle='Mode phase, n=1'
         p1.yLim=[-_np.pi,_np.pi]
         p1.title=self.title
+        p1.shotno=[self.shotno]
         p1.xLabel='ms'
         p1.yLabel='phi'
-        
-        p1.yData.append(self.n1Phase)
-        p1.xData.append(self.time*1000)
-        p1.linestyle.append('')
-        p1.marker.append('.')
-        p1.yLegendLabel.append('filtered')
+        p1.addTrace(yData=self.n1Phase,xData=self.time*1000,
+                    marker='.',linestyle='',yLegendLabel='filtered') 
         
         return p1
         
@@ -2736,13 +2685,12 @@ class nModeData:
         p1=_plot.plot()        
         p1.subtitle='Mode frequency, n=1'
         p1.title=self.title
+        p1.shotno=[self.shotno]
         p1.xLabel='ms'
         p1.yLabel='kHz'
         p1.yLim=[-20,20]        
-        
-        p1.yData.append(self.n1Freq/1000.)
-        p1.xData.append(self.time*1000)
-        p1.yLegendLabel.append('filtered')
+        p1.addTrace(yData=self.n1Freq/1000.,xData=self.time*1000,
+                    yLegendLabel='filtered') 
         
         return p1
         
@@ -2759,6 +2707,7 @@ class nModeData:
         p1.marker=['.']
         p1.subtitle='n=1 Phase and Filtered Amplitude'
         p1.title=self.title
+        p1.shotno=[self.shotno]
         p1.xLabel='ms'
         p1.yLabel=r'$\phi$'
         p1.zLabel='Gauss'
@@ -2788,13 +2737,16 @@ class nModeData:
         fitTotal=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
 
         # plot
-        p1.yData=[y,n1Fit,n2Fit,fitTotal]
-        p1.xData=[self._phi,phi,phi,phi]
-        p1.linestyle=['','-','-','-']
-        p1.marker=['.','','','']
-        p1.yLegendLabel=['raw','n=1','n=2','n=1 + n=2']
-        p1.color=['black','red','blue','green']
+        p1.addTrace(yData=y,xData=self._phi,
+                    marker='.',linestyle='',yLegendLabel='raw') 
+        p1.addTrace(yData=n1Fit,xData=phi,
+                    yLegendLabel='n=1') 
+        p1.addTrace(yData=n2Fit,xData=phi,
+                    yLegendLabel='n=2') 
+        p1.addTrace(yData=fitTotal,xData=phi,
+                    yLegendLabel='n=3') 
         p1.title='t='+str(self.time[j]*1000)+'ms.  '+str(self.shotno)
+        p1.shotno=[self.shotno]
         return p1
         
 
@@ -2907,10 +2859,18 @@ class mModeData:
     def plotOfAmplitudes(self):
         # plot amplitudes
         p1=_plot.plot()
-        p1.yData=[self.m1Amp,self.m2Amp,self.m3Amp,self.m4Amp,self.m5Amp]
-        p1.xData=[self.time*1000,self.time*1000,self.time*1000,self.time*1000,self.time*1000]
-        p1.yLegendLabel=[r'$|B_{pol, m=1}|$',r'$|B_{pol, m=2}|$',r'$|B_{pol, m=3}|$',r'$|B_{pol, m=4}|$',r'$|B_{pol, m=5}|$']
+        p1.addTrace(yData=self.m1Amp,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=1}|$') 
+        p1.addTrace(yData=self.m2Amp,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=2}|$') 
+        p1.addTrace(yData=self.m3Amp,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=3}|$') 
+        p1.addTrace(yData=self.m4Amp,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=4}|$') 
+        p1.addTrace(yData=self.m5Amp,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=5}|$') 
         p1.title=str(self.title)
+        p1.shotno=[self.shotno]
         p1.xLabel='ms'
         p1.yLabel='G'
         return p1
@@ -2936,12 +2896,22 @@ class mModeData:
         m5Fit=self._x[0,j]+self._x[9,j]*_np.sin(5*theta)+self._x[10,j]*_np.cos(5*theta)
         fitTotal=(-4.)*self._x[0,j]+m1Fit+m2Fit+m3Fit+m4Fit+m5Fit  # the -4 corrects for the 4 extra offsets added from the preview 5 fits
         
-        p1.yData=[y,m1Fit,m2Fit,m3Fit,m4Fit,m5Fit,fitTotal]
-        p1.xData=[self._theta,theta,theta,theta,theta,theta,theta]
-        p1.linestyle=['','-','-','-','-','-','-']
-        p1.marker=['.','','','','','','']
-        p1.yLegendLabel=['raw','m=1','m=2','m=3','m=4','m=5','m=1-5']
+        p1.addTrace(yData=y,xData=self._theta,
+                    linestyle='',marker='.',yLegendLabel='raw')
+        p1.addTrace(yData=m1Fit,xData=theta,
+                    yLegendLabel='m=1')
+        p1.addTrace(yData=m2Fit,xData=theta,
+                    yLegendLabel='m=2')
+        p1.addTrace(yData=m3Fit,xData=theta,
+                    yLegendLabel='m=3')
+        p1.addTrace(yData=m4Fit,xData=theta,
+                    yLegendLabel='m=4')
+        p1.addTrace(yData=m5Fit,xData=theta,
+                    yLegendLabel='m=5')
+        p1.addTrace(yData=fitTotal,xData=theta,
+                    yLegendLabel='m=1-5')
         p1.title='t=%.3f ms. %s ' % (self.time[j]*1000, self.title)
+        p1.shotno=[self.shotno]
 #        p1.plot()
         return p1
         
@@ -2956,7 +2926,7 @@ def _debugPlotExamplesOfAll():
     """
     bpData(plot=True)
     capBankData(plot=True)
-    cos1Rogowski(plot=True)
+    cos1RogowskiData(plot=True)
     externalRogowskiData(plot=True)
     fbData(plot=True)
     ipData(plot=True)

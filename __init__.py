@@ -16,8 +16,8 @@ import _plotTools as plot
 reload(plot)
 
 # old feedback tools
-#import _feedBackTools
-#reload(_feedBackTools)
+import _feedBackTools
+reload(_feedBackTools)
 
 # misc data read/write tools
 import _rwDataTools
