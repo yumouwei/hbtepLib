@@ -6,7 +6,8 @@ import matplotlib.pyplot as _plt
 
 
 # color sequence for plotting.  add more colors if you need more than 7.  
-_cSequence=['b', 'r', 'g', 'k', 'm', 'c', 'y']
+#_cSequence=['b', 'r', 'g', 'k', 'm', 'c', 'y', 'brown']
+_cSequence=['red', 'black',"#1f77b4", "#ff7f0e", "#2ca02c",  "#9467bd", "#8c564b", "#d62728","#e377c2", "#7f7f7f", "#bcbd22", "#17becf"] #https://github.com/vega/vega/wiki/Scales#scale-range-literals
 
 
 class plot:
@@ -106,30 +107,32 @@ class plot:
     Example #1
     ----------
     # import library correctly.  I'm using hbt.plot
-    fig=hbt.plot.plot()
+    p1=hbt.plot.plot(xLabel='x',yLabel='y',zLabel='z',title='title',
+                     subtitle='subtitle')
     x = np.arange(0,10,.1)
-    fig.xData=[x, x]
-    fig.yData=[np.cos(x),np.sin(x)]
-    fig.yLegendLabel=['cos(x)','sin(x)']
-    fig.xLabel = 'x'
-    fig.yLabel = 'y'
-    fig.plot()
+    p1.addTrace(xData=x,yData=np.cos(x),yLegendLabel='cos(x)')
+    p1.addTrace(xData=x,yData=np.sin(x),yLegendLabel='sin(x)')
+    p1.plot()
     
     Example #2
     ----------
-    import hbtepLib as hbt
+    # import libraries
+    import hbtepLib as hbt; reload(hbt)
     import numpy as np
-    x=np.linspace(0,4*np.pi,1000)
-    y=np.linspace(0,4*np.pi,1000)
-    z=np.zeros((len(x),len(y)))
-    for i in range(0,len(x)):
-        for j in range(0,len(y)):
-            z[i,j]=np.cos(x[i])*np.sin(y[j])
-    p1=hbt.plot.plot()
-    p1.xData=[x]
-    p1.yData=[y]
-    p1.zData=[z]
-    p1.plotType='contour'
+    import matplotlib.pyplot as plt   
+    # generate data
+    delta = 0.025
+    x = np.arange(-3.0, 3.01, delta)
+    y = np.arange(-1.0, 4.01, delta)
+    X, Y = np.meshgrid(x, y)
+    Z1 = plt.mlab.bivariate_normal(X, Y, 1.0, 1.0, 0.0, 0.0)
+    Z2 = plt.mlab.bivariate_normal(X, Y, 1.5, 0.5, 1, 1)
+    Z = 10 * (Z1 - Z2)    
+    # plot contour
+    p1=hbt.plot.plot(xLabel='x',yLabel='y',zLabel='z',title='title',
+                     subtitle='subtitle',plotType='contour')
+    p1.addTrace(x,y,Z)
+    # alternatively, use: p1.addTrace(X,Y,Z)
     p1.plot()
         
     """
@@ -490,39 +493,57 @@ class subPlot:
                         
                         # make scatter plot
                         print c
-                        sc = ax.scatter(data.xData[k], data.yData[k], 
+                        p1 = ax.scatter(data.xData[k], data.yData[k], 
                                           c=c, s=markerSize, cmap=cm,
                                           lw=lineWidth,alpha=alpha) 
                                           
                         # place color bar                  
                         a=ax.get_position() # position of subfigure
-                        cax = fig.add_axes([a.x0+a.width+0.010, a.y0+0.01, 0.01, 
-                                            a.height*0.95])  
+                        cax = fig.add_axes([a.x0+a.width+0.010, # left
+                                            a.y0+0.01, # bottom
+                                            0.01, # width
+                                            a.height-0.02])  # height
                                             # [left, bottom, width, height]
-                        b=fig.colorbar(sc,cax)
+                        b=fig.colorbar(p1,cax)
                         
                         # zLabel
                         if data.zLabel!=None:
-                            b.set_label(data.zLabel)
+                            b.set_label(data.zLabel,fontsize=data.axisLabelFontSize)
                        
                     # contour plot
                     elif (data.plotType == 'contour'):       
-                        # TODO needs an update to allow for color map
                         # TODO update so that zData can be a 1D array
-                        # TODO need to check if zData is a list or an array
-                        X, Y = _np.meshgrid(data.xData[k], data.yData[k])
-                        X=_np.transpose(X) # because the plot function is backwards from how i think it should be
-                        Y=_np.transpose(Y) # because the plot function is backwards from how i think it should be
+                    
+                        # check to see if meshgrid has already been applied to xData and yData
+                        if _np.shape(_np.shape(data.xData[k]))[0]==1:
+                            # it's 1D data so apply meshgrid
+                            X, Y = _np.meshgrid(data.xData[k], data.yData[k])
+                        elif _np.shape(_np.shape(data.xData[k]))[0]==2:
+                            # it's 2D data and likely already been meshed
+                            X=data.xData[k]
+                            Y=data.yData[k]
                         Z=data.zData[k]
-                        # Z[Z==0]=_np.nan  ## any value with z=0 is turned white.  
-#                        cp = _plt.contourf(X, Y, Z,100)
-                        _plt.contourf(X, Y, Z,100)
-    #                    _plt.colorbar(cp)
-    #                    f.colorbar(sc, axarr[i])
-                        _plt.show()
                         
-                ## annotate shot number(s) in bottom right corner of top most plot
-                if  data.shotno != [] and i==0:
+                        # create colormap                        
+                        cm = _plt.cm.get_cmap(data.colorMap)
+                        
+                        # create contour plot
+                        p1=_plt.contourf(X, Y, Z,100,cmap=cm) # 100 is equal to the number of color deviations
+                        
+                        # place color bar                  
+                        a=ax.get_position() # position of subfigure
+                        cax = fig.add_axes([a.x0+a.width+0.010, # left
+                                            a.y0+0.01, # bottom
+                                            0.01, # width
+                                            a.height-0.02])  # height
+                        b=fig.colorbar(p1,cax)
+                        
+                        # zLabel
+                        if data.zLabel!=None:
+                            b.set_label(data.zLabel,fontsize=data.axisLabelFontSize)
+                        
+                ## annotate shot number(s) in bottom right corner of top-left most plot
+                if  data.shotno != [] and i==0 and j==0:
                     
                     # make sure shotno is a list
                     if type(data.shotno) is not list:
