@@ -501,7 +501,7 @@ class bpData:
         """ 
         returns plot of BPS9 voltage         
         """
-        p1=_plot.plot(title=self.title,yLabel='A',yLim=[-200,200],
+        p1=_plot.plot(title=self.title,yLabel='V',yLim=[-200,200],
                       xLabel='Time [ms]',subtitle='BP Voltage',
                       shotno=[self.shotno])
         p1.addTrace(xData=self.time*1000,yData=self.bps9Voltage,
@@ -645,7 +645,8 @@ class tpData:
         A=1.5904e-5 #(1.5mm)^2/4*pi + pi*(3.0mm)*(1.5mm), probe area
         e=1.602e-19; # fundamental charge
         eV=1.60218e-19; # 1 eV = 1.60218e-19 joules
-        M=2.014102*1.66054e-27;  # approx 2 amu converted to kg
+        M=2.014102*1.66054e-27;  # mass of ion, approx 2 amu converted to kg
+        me=9.109e-31; # mass of an electron
       
         ## Grab data
         if shotno > 90000: # Shotno after 2017 summer upgrade = 97239.  TPS2 was moved to section 5.  Now, it's TPS5.
@@ -674,6 +675,7 @@ class tpData:
                 tps5Temp=_copy(self.tps5Temp);
                 tps5Temp[tps5Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
                 self.tps5Density=self.tps5Current/(e*_np.sqrt(tps5Temp*eV/(M))*A);
+                self.tps5PlasmaPotential=self.tps5VFloat-self.tps5Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
     
             if probes=='both' or probes=='tps8':
                 
@@ -699,6 +701,7 @@ class tpData:
                 tps8Temp=_copy(self.tps8Temp);
                 tps8Temp[tps5Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
                 self.tps8Density=self.tps8Current/(e*_np.sqrt(tps8Temp*eV/(M))*A);
+                self.tps8PlasmaPotential=self.tps8VFloat-self.tps8Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
                 
         else:
             _sys.exit("Requested shot number range not supported yet.  Update code.")
@@ -861,7 +864,7 @@ class paData:
 
     """
     
-    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plot=False,
+    def __init__(self,shotno=98170,tStart=0*1e-3,tStop=10*1e-3,plot=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = '%d, PA sensors' % shotno
@@ -913,6 +916,32 @@ class paData:
         if plot=='sample':
             self.plotOfPA1().plot();
             self.plotOfPA2().plot();
+            
+    def plotOfPA1Stripey(self,tStart=2e-3,tStop=4e-3):
+        iStart=_process.findNearest(self.pa1Time,tStart)
+        iStop=_process.findNearest(self.pa1Time,tStop)
+        p1=_plot.plot(title=self.title,subtitle='PA1 Sensors',
+                      xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
+                      plotType='contour')
+        data=self.pa1Data[0:32]
+        for i in range(0,len(data)):
+            data[i]=data[i][iStart:iStop]*1e4
+        p1.addTrace(self.pa1Time[iStart:iStop]*1e3,self.theta,
+                    data)
+        return p1
+        
+    def plotOfPA2Stripey(self,tStart=2e-3,tStop=4e-3):
+        iStart=_process.findNearest(self.pa2Time,tStart)
+        iStop=_process.findNearest(self.pa2Time,tStop)
+        p1=_plot.plot(title=self.title,subtitle='PA2 Sensors',
+                      xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
+                      plotType='contour')
+        data=self.pa2Data[0:32]
+        for i in range(0,len(data)):
+            data[i]=data[i][iStart:iStop]*1e4
+        p1.addTrace(self.pa2Time[iStart:iStop]*1e3,self.theta,
+                    data)
+        return p1
             
 
     def plotOfPA1(self, i=0, alsoPlotRawAndFit=True):
@@ -1269,7 +1298,7 @@ class taData:
 
     """
         
-    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plot=False,
+    def __init__(self,shotno=98173,tStart=0*1e-3,tStop=10*1e-3,plot=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = "%d, TA sensor data." % shotno
@@ -1327,6 +1356,19 @@ class taData:
             self.plot(True);
             
     # TODO Add plotOfSingleRad function
+            
+    def plotOfTAStripey(self,tStart=2e-3,tStop=4e-3):
+        iStart=_process.findNearest(self.taPolTime,tStart)
+        iStop=_process.findNearest(self.taPolTime,tStop)
+        p1=_plot.plot(title=self.title,subtitle='TA Sensors',
+                      xLabel='Time [ms]', yLabel='phi [rad]',zLabel='Gauss',
+                      plotType='contour')
+        data=self.taPolData[0:30]
+        for i in range(0,len(data)):
+            data[i]=data[i][iStart:iStop]*1e4
+        p1.addTrace(self.taPolTime[iStart:iStop]*1e3,self.phi,
+                    data)
+        return p1
             
     def plotOfSinglePol(self, i=0, alsoPlotRawAndFit=True):
         """ Plot one of the PA1 plots.  based on index, i. """
@@ -1609,39 +1651,58 @@ class solData:
                               dataAddress=sensorAddress,
                               tStart=tStart, tStop=tStop)
                               
+        # subtract offset from sensors
+        self.solDataFit=[]
+        self.solDataMinusOffset=[]
+        for i in range(0,len(self.sensorNames)):
+            self.solDataFit.append(_process.convolutionSmoothing(self.solData[i],
+                                                                 151,'normal'))
+            self.solDataMinusOffset.append(self.solData[i]-self.solDataFit[i])
+                              
         if plot == True:
             self.plot()
+        if plot == 'all':
+            self.plot(True)
                               
-    def plotOfSingleSensor(self,index): #name='LFS01_S1'
+    def plotOfSingleSensor(self,index,plotAll=False): #name='LFS01_S1'
         """ returns plot of a single sol sensor """
 #        index = self.sensorNames.index(name)
         # generate plot
         p1=_plot.plot(yLabel='V',xLabel='time [ms]',
                       subtitle=self.sensorNames[index],title=self.title,
                       shotno=self.shotno)
-        p1.addTrace(yData=self.solData[index],xData=self.time*1000) 
+        p1.addTrace(yData=self.solDataMinusOffset[index],xData=self.time*1000,
+                    yLegendLabel='Filtered') 
+        if plotAll==True:
+            p1.addTrace(yData=self.solData[index],xData=self.time*1000,
+                        yLegendLabel='Raw') 
+            p1.addTrace(yData=self.solDataFit[index],xData=self.time*1000,
+                        yLegendLabel='Fit') 
             
         return p1
         
-    def plotOfLFS01Contour(self):
+    def plotOfLFS01Contour(self,tStart=2e-3,tStop=4e-3):
         """ 
         contour plot of LFS01 Data
-        
-        TODO Looks like I need to subtract off an offset to make this useful...
         """
+        iStart=_process.findNearest(self.time,tStart)
+        iStop=_process.findNearest(self.time,tStop)
         p1=_plot.plot(title=self.title,subtitle='LFS01 SOL sensors',
                       xLabel='Time [ms]', yLabel='phi [rad]',zLabel='A',
                       plotType='contour')
-        p1.addTrace(self.time*1e3,_np.arange(0,8),self.solData[0:8])
+        data=self.solDataMinusOffset[0:8]
+        for i in range(0,len(data)):
+            data[i]=data[i][iStart:iStop]
+        p1.addTrace(self.time[iStart:iStop]*1e3,_np.arange(0,8),data)
         return p1
         
-    def plot(self):
+    def plot(self,plotAll=False):
         """ plots all 20 sol sensor currents """
         plots=[[],[],[],[]]
         count=0
         for i in range(0,4):
             for j in range(0,5):
-                newPlot=self.plotOfSingleSensor(count) #name=self.sensorNames[count]
+                newPlot=self.plotOfSingleSensor(count,plotAll) #name=self.sensorNames[count]
                 newPlot.subtitle=self.sensorNames[count]
                 plots[i].append(newPlot)
                 count+=1;
@@ -2194,7 +2255,8 @@ def shotData(shotnos=_np.array([98119,98120],dtype=int), #,
     data : list (of _getHBTData.shotData)
         list of shot data structures
     """
-                     
+    import time as _time
+#main()   
     # make sure shotnos is a np array
     if type(shotnos) is int or type(shotnos) is float:
         shotnos=_np.array([shotnos]);
@@ -2211,11 +2273,15 @@ def shotData(shotnos=_np.array([98119,98120],dtype=int), #,
     # load each shotData
     data=[]
     for i in range(0,m):
+        start_time = _time.time()
+        
         data.append(_getShotData(shotno=shotnos[i],
                                 tStart=tStart[i],
                                 tStop=tStop[i],
                                 saveData=saveData,
                                 tags=tags))
+        
+        print("--- %.1f seconds to load %d ---" % ((_time.time() - start_time), shotnos[i]) ) 
                                          
     # return
     return data

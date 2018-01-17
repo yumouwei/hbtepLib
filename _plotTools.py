@@ -1,5 +1,6 @@
 import numpy as _np
 import matplotlib.pyplot as _plt
+from matplotlib.colors import LinearSegmentedColormap as _lsc # for creating your own colormaps
 #import sys as _sys
 #import _processData as _process
 #from matplotlib.colors import LinearSegmentedColormap as _lsc
@@ -147,7 +148,7 @@ class plot:
                  plotType='standard',
                  fileName='',
                  aspect=None,
-                 colorMap='nipy_spectral',
+                 colorMap='nipy_spectral',centerColorMapAroundZero=False,
                  shotno=[],
                  shotnoFontSize=8):
         self.title = title
@@ -177,6 +178,7 @@ class plot:
         self.fileName=fileName
         self.aspect=aspect  # "equal"
         self.colorMap=colorMap #https://matplotlib.org/examples/color/colormaps_reference.html
+        self.centerColorMapAroundZero=centerColorMapAroundZero
         self.shotno=shotno
         self.shotnoFontSize=shotnoFontSize
             
@@ -524,11 +526,24 @@ class subPlot:
                             Y=data.yData[k]
                         Z=data.zData[k]
                         
-                        # create colormap                        
-                        cm = _plt.cm.get_cmap(data.colorMap)
+                        # create colormap      
+                        if type(data.colorMap) is str:
+                            cm = _plt.cm.get_cmap(data.colorMap)
+                        else:
+                            cm = data.colorMap
+                        
+                        # find min and max of zData.  Center colormap around 
+                        # 0 if requested
+                        if data.centerColorMapAroundZero==True:
+                            vmax=_np.abs(Z).max()
+                            vmin=-vmax
+                        else:
+                            vmax=Z.max()
+                            vmin=Z.min()
                         
                         # create contour plot
-                        p1=_plt.contourf(X, Y, Z,100,cmap=cm) # 100 is equal to the number of color deviations
+                        p1=_plt.contourf(X, Y, Z,100,cmap=cm,# 100 is equal to the number of color deviations
+                                         vmin=vmin, vmax=vmax) 
                         
                         # place color bar                  
                         a=ax.get_position() # position of subfigure
@@ -636,6 +651,40 @@ class subPlot:
         # plot
         if plotMe==True:
             _plt.show()
+ 
+          
+            
+def _red_green_colormap():
+    '''A colormap with a quick red-green transition at 0.5
+    Default HBTEP colormap
+    
+    Example use (use explicit norm to center around 0):
+    
+    sig_range = _np.abs(signals).max()
+    _plt.contourf(times*1e3, thetas, signals, 50, cmap=red_green_colormap(), 
+                norm=Normalize(vmin=-sig_range, vmax=sig_range))
+    '''
+    
+    cdict = {'red':   [(0.0,  0.0, 0.0),
+                       (0.25, 0.0, 0.0),
+                       (0.5,  0.0, 0.2),
+                       (0.75, 1.0, 1.0),
+                       (1.0,  1.0, 0.0)],
+             
+             'green': [(0.0,  0.0, 0.3),
+                       (0.25, 1.0, 1.0),
+                       (0.5,  0.2, 0.0),
+                       (0.75, 0.0, 0.0),
+                       (1.0,  1.0, 0.0)],
+             
+             'blue':  [(0.0,  0.0, 1.0),
+                       (0.25, 0.0, 0.0),
+                       (0.5,  0.0, 0.0),
+                       (0.75, 0.0, 0.0),
+                       (1.0,  0.12, 0.0)]} 
+
+    return _lsc('Red-Green', cdict)
+
         
 #
 #
