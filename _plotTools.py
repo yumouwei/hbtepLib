@@ -511,13 +511,13 @@ class subPlot:
                     if (data.plotType == '') or (data.plotType == 'standard'):
                         ax.plot(data.xData[k], data.yData[k], marker=marker, 
                                 linestyle=linestyle,label=label,alpha=alpha,
-                                color=color,markerSize=2) # , 
+                                color=color,markersize=2) # , 
                                 
 #                    # polar plot
 #                    if (data.plotType == 'polar'):
 #                        ax.plot(data.xData[k], data.yData[k], marker=marker, 
 #                                linestyle=linestyle,label=label,alpha=alpha,
-#                                color=color,markerSize=2,projection='polar') # , 
+#                                color=color,markersize=2,projection='polar') # , 
 
                     # error bar plot
                     elif (data.plotType == 'errorbar') or (data.plotType == 'errorBar'):
@@ -525,13 +525,13 @@ class subPlot:
                         if data.yerr[k]==[]:
                             ax.plot(data.xData[k], data.yData[k], marker=marker, 
                                     linestyle=linestyle,label=label,alpha=alpha,
-                                    color=color,markerSize=2,lineWidth=0.5) 
+                                    color=color,markersize=2,lineWidth=0.5) 
                         else:
                             ax.errorbar(data.xData[k], data.yData[k], 
                                         xerr=data.xerr[k],
                                         yerr=data.yerr[k], marker=marker, 
                                         linestyle=linestyle,label=label,
-                                        color=color,markerSize=2,lineWidth=0.5) # 
+                                        color=color,markersize=2,lineWidth=0.5) # 
                     
                     # shaded error bar plot
                     elif (data.plotType == 'errorribbon') or (data.plotType == 'errorRibbon'):
@@ -562,13 +562,13 @@ class subPlot:
                         cm = _plt.cm.get_cmap(cmap)
                         
                         # marker parameters
-                        markerSize=35;
+                        markersize=35;
                         lineWidth=0.1; # the circles look silly without at least a very small outline
                         
                         # make scatter plot
                         print c
                         p1 = ax.scatter(data.xData[k], data.yData[k], 
-                                          c=c, s=markerSize, cmap=cm,
+                                          c=c, s=markersize, cmap=cm,
                                           lw=lineWidth,alpha=alpha) 
                                           
                         # place color bar                  
