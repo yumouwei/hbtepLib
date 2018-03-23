@@ -417,7 +417,7 @@ class bpData:
         self.shotno = shotno
         self.title = "%s, BP Data." % shotno
 
-        if shotno > 92000:
+        if shotno > 96000:
             #TODO(determine when this probe was rewired or moved)
         
             # get voltage data
@@ -445,6 +445,24 @@ class bpData:
             #     self.timeBPS9 = conn.get('dim_of(\TOP.DEVICES.SOUTH_RACK:A14:INPUT_3)').data();
             #     self.voltageBPS9 = (-1.)*conn.get('\TOP.DEVICES.SOUTH_RACK:A14:INPUT_4').data()/.00971534052268532 / 1.5
 
+        else:
+                        # get voltage data
+            data, time=mdsData(shotno=shotno,
+                               dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE:VOLTAGE',
+                                            '\HBTEP2::TOP.SENSORS.BIAS_PROBE:CURRENT'],
+                               tStart=tStart, tStop=tStop)
+            self.bps9Voltage=data[0];
+            self.bps9Current=data[1]*-1; # signs are flipped somewhere
+            self.time=time;
+            
+            # get current data
+            data, time=mdsData(shotno=shotno,
+                               dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:VOLTAGE',
+                                            '\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:CURRENT'],
+                               tStart=tStart, tStop=tStop)
+            self.bps5Voltage=data[0];
+            self.bps5Current=data[1];
+            
 
         # get gpu request voltage (for when the BP is under feedforward or feedback control)
         data, time=mdsData(shotno=shotno,
@@ -629,7 +647,7 @@ class tpData:
     can still be loaded.  
     """
     
-    def __init__(self,shotno=95996,tStart=0*1e-3,tStop=10*1e-3,plot=False,probes='both'):  #sectionNum=2,
+    def __init__(self,shotno=95996,tStart=0*1e-3,tStop=10*1e-3,plot=False,probes='tps5'):  #sectionNum=2,
         
         self.shotno = shotno
         self.title = '%s, triple probe data' % shotno
@@ -649,7 +667,7 @@ class tpData:
         me=9.109e-31; # mass of an electron
       
         ## Grab data
-        if shotno > 90000: # Shotno after 2017 summer upgrade = 97239.  TPS2 was moved to section 5.  Now, it's TPS5.
+        if shotno > 95000: # Shotno after 2017 summer upgrade = 97239.  TPS2 was moved to section 5.  Now, it's TPS5.
             if probes=='both' or probes=='tps5' or probes=='tps2':
                 
                 # get data                
@@ -703,8 +721,37 @@ class tpData:
                 self.tps8Density=self.tps8Current/(e*_np.sqrt(tps8Temp*eV/(M))*A);
                 self.tps8PlasmaPotential=self.tps8VFloat-self.tps8Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
                 
-        else:
-            _sys.exit("Requested shot number range not supported yet.  Update code.")
+        else: # Shotno after 2017 summer upgrade = 97239.  TPS2 was moved to section 5.  Now, it's TPS5.
+            if probes=='both' or probes=='tps5' or probes=='tps2':
+                
+                # get data                
+                data, time=mdsData(shotno=shotno,
+                              # TODO these addresses need to be updated to section 5 in the tree before they can be updated here
+                              dataAddress=['\HBTEP2::TOP.SENSORS.TRI_PROBE_1.V_ION',
+                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_1.V_ELEC',
+                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_1.V_FLOAT',
+                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_1.I_SAT'],
+                              tStart=tStart, tStop=tStop)
+                  
+                # raw TPS5 Data
+                self.tps5TipA = data[0] # the 180 is a ballparked number.  needs "actual" calibration       
+                self.tps5TipB = data[1]
+                self.tps5TipC = data[2]
+                self.tps5Current=data[3]
+                self.tps5Time = time
+                
+                # processed TPS5 Data
+                self.tps5VFloat=self.tps5TipC;
+                self.tps5Temp=(self.tps5TipB-self.tps5TipC)/.693;
+                self.tps5Temp[self.tps5Temp>=200]=0; # trim data over 200eV.  I trim this data because there are a few VERY high temperature points that throw off the autoscaling
+                tps5Temp=_copy(self.tps5Temp);
+                tps5Temp[tps5Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
+                self.tps5Density=self.tps5Current/(e*_np.sqrt(tps5Temp*eV/(M))*A);
+                self.tps5PlasmaPotential=self.tps5VFloat-self.tps5Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
+
+#                
+#        else:
+#            _sys.exit("Requested shot number range not supported yet.  Update code.")
         
         if plot==True:
             self.plot();
@@ -907,6 +954,32 @@ class paData:
                 temp=_process.convolutionSmoothing(temp,21,'box')
                 self.pa2RawFit.append(temp)
                 self.pa2Data.append(self.pa2Raw[i]-temp)
+             
+        elif 'OrderPoly' in smoothingAlgorithm:
+            numbers=_process.extractIntsFromStr(smoothingAlgorithm);
+            order=numbers[0]
+            print "%d order polynomial smoothing" % order
+#        elif smoothingAlgorithm=='3rdOrderPoly':
+            for i in range(0,32):
+                time,data=_trimTime(self.pa1Time,self.pa1Raw[i],self.pa1Time[0],self.pa1Time[-1])
+                fit=_process.polyFitData(self.pa1Raw[i],self.pa1Time,order=order,plot=False)
+                ffit = _np.poly1d(fit.coefs)
+                fitData=ffit(self.pa1Time)
+                
+                self.pa1RawFit.append(fitData)
+                self.pa1Data.append(self.pa1Raw[i]-fitData)
+                
+                
+#        elif smoothingAlgorithm=='4thOrderPoly':
+#            for i in range(0,32):
+#                time,data=_trimTime(self.pa1Time,self.pa1Raw[i],self.pa1Time[0],self.pa1Time[-1])
+#                fit=_process.polyFitData(self.pa1Raw[i],self.pa1Time,order=4,plot=False)
+#                ffit = _np.poly1d(fit.coefs)
+#                fitData=ffit(self.pa1Time)
+#                
+#                self.pa1RawFit.append(fitData)
+#                self.pa1Data.append(self.pa1Raw[i]-fitData)
+                
         else:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
         
@@ -922,12 +995,13 @@ class paData:
         iStop=_process.findNearest(self.pa1Time,tStop)
         p1=_plot.plot(title=self.title,subtitle='PA1 Sensors',
                       xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
-                      plotType='contour')
+                      plotType='contour',colorMap=_plot._red_green_colormap(),
+                      centerColorMapAroundZero=True)
         data=self.pa1Data[0:32]
         for i in range(0,len(data)):
             data[i]=data[i][iStart:iStop]*1e4
         p1.addTrace(self.pa1Time[iStart:iStop]*1e3,self.theta,
-                    data)
+                    _np.array(data))
         return p1
         
     def plotOfPA2Stripey(self,tStart=2e-3,tStop=4e-3):
@@ -935,7 +1009,8 @@ class paData:
         iStop=_process.findNearest(self.pa2Time,tStop)
         p1=_plot.plot(title=self.title,subtitle='PA2 Sensors',
                       xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
-                      plotType='contour')
+                      plotType='contour',
+                      centerColorMapAroundZero=True)
         data=self.pa2Data[0:32]
         for i in range(0,len(data)):
             data[i]=data[i][iStart:iStop]*1e4
@@ -1077,7 +1152,7 @@ class fbData:
         plots all relevant data
         
     """
-    def __init__(self,shotno=95540,tStart=0*1e-3,tStop=10*1e-3,plot=False,smoothingAlgorithm='tripleBoxCar'):
+    def __init__(self,shotno=98170,tStart=0*1e-3,tStop=10*1e-3,plot=False,smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = "%d, FB sensors" % shotno
 
@@ -1131,6 +1206,24 @@ class fbData:
                     temp=_process.convolutionSmoothing(temp,21,'box')
                     self.fbRadRawFit[j].append(temp)
                     self.fbRadData[j].append(self.fbRadRaw[j][i]-temp)
+                    
+        elif 'OrderPoly' in smoothingAlgorithm:
+            # get order number from string
+            numbers=_process.extractIntsFromStr(smoothingAlgorithm);
+            order=numbers[0]
+            print "%d order polynomial smoothing" % order
+            
+            # apply to all 40 sensors
+            
+            for j in range(0,4):
+                for i in range(0,10):
+                    time,data=_trimTime(self.fbPolTime,self.fbPolRaw[j][i],self.fbPolTime[0],self.fbPolTime[-1])
+                    fit=_process.polyFitData(self.fbPolRaw[j][i],self.fbPolTime,order=order,plot=False)
+                    ffit = _np.poly1d(fit.coefs)
+                    fitData=ffit(self.fbPolTime)
+                    
+                    self.fbPolRawFit[j].append(fitData)
+                    self.fbPolData[j].append(self.fbPolRaw[j][i]-fitData)
         else:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
      
@@ -1141,6 +1234,22 @@ class fbData:
         elif plot == True or plot=='all':
             self.plot(True)
             
+    def plotOfFBPolStripey(self,tStart=2e-3,tStop=4e-3,sensorArray='S4P'):
+        # grab and trim data to desired time rane
+        iStart=_process.findNearest(self.fbPolTime,tStart)
+        iStop=_process.findNearest(self.fbPolTime,tStop)
+        data=self.fbPolData[int(sensorArray[1])-1]*1
+        for i in range(0,len(data)):
+            data[i]=data[i][iStart:iStop]*1e4
+            
+        # create and return plot
+        p1=_plot.plot(title=self.title,subtitle="FB "+sensorArray+' Sensors',
+                      xLabel='Time [ms]', yLabel='phi [rad]',zLabel='Gauss',
+                      plotType='contour',colorMap=_plot._red_green_colormap(),
+                      centerColorMapAroundZero=True)
+        p1.addTrace(self.fbPolTime[iStart:iStop]*1e3,self.phi,
+                    zData=_np.array(data))
+        return p1
 
     def plotOfSinglePol(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
         """
@@ -1212,6 +1321,7 @@ class fbData:
                 newPlot.subtitle=self.fbPolNames[i][j]
                 newPlot.yLegendLabel=[]
                 sp1[i].append(newPlot)
+                newPlot.plot()
                 if plotAll==True:
                     newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=True)
                 else:
@@ -1225,8 +1335,9 @@ class fbData:
         sp1=_plot.subPlot(sp1,plot=False)
         sp2=_plot.subPlot(sp2,plot=False)
         # sp1.shareY=True;
-        sp1.plot()
-        sp2.plot()    
+#        sp1.plot()
+        return sp1
+#        sp2.plot()    
     
     
 class taData:
@@ -1362,12 +1473,13 @@ class taData:
         iStop=_process.findNearest(self.taPolTime,tStop)
         p1=_plot.plot(title=self.title,subtitle='TA Sensors',
                       xLabel='Time [ms]', yLabel='phi [rad]',zLabel='Gauss',
-                      plotType='contour')
+                      plotType='contour',colorMap=_plot._red_green_colormap(),
+                      centerColorMapAroundZero=True)
         data=self.taPolData[0:30]
         for i in range(0,len(data)):
             data[i]=data[i][iStart:iStop]*1e4
         p1.addTrace(self.taPolTime[iStart:iStop]*1e3,self.phi,
-                    data)
+                    _np.array(data))
         return p1
             
     def plotOfSinglePol(self, i=0, alsoPlotRawAndFit=True):
@@ -1656,31 +1768,39 @@ class solData:
         self.solDataMinusOffset=[]
         for i in range(0,len(self.sensorNames)):
             self.solDataFit.append(_process.convolutionSmoothing(self.solData[i],
-                                                                 151,'normal'))
+                                                                 1000,'normal'))
             self.solDataMinusOffset.append(self.solData[i]-self.solDataFit[i])
                               
         if plot == True:
             self.plot()
         if plot == 'all':
             self.plot(True)
+            
+        self.sensorAddress=sensorAddress
                               
-    def plotOfSingleSensor(self,index,plotAll=False): #name='LFS01_S1'
+    def plotOfSingleSensorRaw(self,index): #name='LFS01_S1'
         """ returns plot of a single sol sensor """
-#        index = self.sensorNames.index(name)
-        # generate plot
+        p1=_plot.plot(yLabel='V',xLabel='time [ms]',
+                      subtitle=self.sensorNames[index],title=self.title,
+                      shotno=self.shotno)
+        p1.addTrace(yData=self.solData[index],xData=self.time*1000,
+                    yLegendLabel=self.sensorNames[index]+' Raw') 
+        return p1
+        
+    def plotOfSingleSensorOffset(self,index,plotAll=False):
         p1=_plot.plot(yLabel='V',xLabel='time [ms]',
                       subtitle=self.sensorNames[index],title=self.title,
                       shotno=self.shotno)
         p1.addTrace(yData=self.solDataMinusOffset[index],xData=self.time*1000,
-                    yLegendLabel='Filtered') 
-        if plotAll==True:
+                    yLegendLabel=self.sensorNames[index]+' MinusOffset') 
+        if plotAll==True: 
             p1.addTrace(yData=self.solData[index],xData=self.time*1000,
-                        yLegendLabel='Raw') 
+                        yLegendLabel=self.sensorNames[index]+' Raw') 
             p1.addTrace(yData=self.solDataFit[index],xData=self.time*1000,
-                        yLegendLabel='Fit') 
-            
+                        yLegendLabel=self.sensorNames[index]+' Fit') 
         return p1
-        
+            
+                
     def plotOfLFS01Contour(self,tStart=2e-3,tStop=4e-3):
         """ 
         contour plot of LFS01 Data
@@ -1696,20 +1816,76 @@ class solData:
         p1.addTrace(self.time[iStart:iStop]*1e3,_np.arange(0,8),data)
         return p1
         
-    def plot(self,plotAll=False):
-        """ plots all 20 sol sensor currents """
-        plots=[[],[],[],[]]
+    def plot(self,plotRaw=True,plotOffset=True,plotAll=False,includeBP=True):
+        """ plots all 20 sol sensor currents on three plots """
+
         count=0
-        for i in range(0,4):
-            for j in range(0,5):
-                newPlot=self.plotOfSingleSensor(count,plotAll) #name=self.sensorNames[count]
-                newPlot.subtitle=self.sensorNames[count]
-                plots[i].append(newPlot)
-                count+=1;
-        sp1=_plot.subPlot(plots,plot=False)
-        sp1.shareY=True;
-        sp1.plot()
-    
+        
+        for j in range(0,8):
+            if j==0:
+                if plotRaw:
+                    p1=self.plotOfSingleSensorRaw(count) #name=self.sensorNames[count]
+                if plotOffset:
+                    p2=self.plotOfSingleSensorOffset(count,plotAll) 
+            else:
+                if plotRaw:
+                    p1.mergePlots(self.plotOfSingleSensorRaw(count) )
+                if plotOffset:
+                    p2.mergePlots(self.plotOfSingleSensorOffset(count,plotAll) )
+            count+=1;
+            
+        for j in range(0,4):
+            if j==0:
+                if plotRaw:
+                    p3=self.plotOfSingleSensorRaw(count) #name=self.sensorNames[count]
+                if plotOffset:
+                    p4=self.plotOfSingleSensorOffset(count,plotAll) 
+            else:
+                if plotRaw:
+                    p3.mergePlots(self.plotOfSingleSensorRaw(count) )
+                if plotOffset:
+                    p4.mergePlots(self.plotOfSingleSensorOffset(count,plotAll) )
+            count+=1;
+            
+        for j in range(0,8):
+            if j==0:
+                if plotRaw:
+                    p5=self.plotOfSingleSensorRaw(count) #name=self.sensorNames[count]
+                if plotOffset:
+                    p6=self.plotOfSingleSensorOffset(count,plotAll) 
+            else:
+                if plotRaw:
+                    p5.mergePlots(self.plotOfSingleSensorRaw(count) )
+                if plotOffset:
+                    p6.mergePlots(self.plotOfSingleSensorOffset(count,plotAll) )
+            count+=1;
+            
+        subplots=[]
+        if plotRaw:
+            p1.subtitle='LFS01'
+            p3.subtitle='LFS04'
+            p5.subtitle='LFS08'
+            p1.title='Raw SOL currents'
+            sp1=_plot.subPlot([p1,p3,p5],plot=False)
+#            sp1.shareY=True;
+            if includeBP == True:
+                a=bpData(self.shotno,self.time[0],self.time[-1])
+                sp1.subPlots.append(a.plotOfBPS9Current())
+            sp1.plot()
+            subplots.append(sp1)
+        if plotOffset:
+            p2.subtitle='LFS01'
+            p4.subtitle='LFS04'
+            p6.subtitle='LFS08'
+            p2.title='Zero Offset SOL currents'
+            sp2=_plot.subPlot([p2,p4,p6],plot=False)
+#            sp2.shareY=True;
+            if includeBP == True:
+                a=bpData(self.shotno,self.time[0],self.time[-1])
+                sp2.subPlots.append(a.plotOfBPS9Current())
+            sp2.plot()
+            subplots.append(sp2)
+        return subplots
         
 class loopVoltageData:
     """
@@ -1973,13 +2149,12 @@ class capBankData:
         p1.addTrace(yData=self.shBankCurrent/1000.,xData=self.shTime*1000) 
         return p1
         
-            
-    def plot(self):
-        """ Plot all relevant plots """
+    def subplotOfAll(self):
+        # subplot of all 3 bank current data and tf field data
+        
         # load tf data because it's always nice to compare it with the cap banks
         tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
         
-        # subplot of all 4 bank data
         # note: most of this code is determining and setting the appropriate
         # x and y limits
         sp1=_plot.subPlot([self.plotOfVF(),self.plotOfOH(),self.plotOfSH(),
@@ -1995,13 +2170,22 @@ class capBankData:
         yMax=_np.max(subData[iMin:iMax])
         dY=yMax-yMin
         sp1.subPlots[3].yLim=[yMin,yMax+0.25*dY] #[yMin-0.25*dY,yMax+0.25*dY]
-        sp1.plot()
+        
+        return sp1
+        
+            
+    def plot(self):
+        """ Plot all relevant plots """
+        
+        # subplot of all 4 bank data
+        self.subplotOfAll().plot()
         
         # plot of TF with shaded region representing x-limits in subplot
         p1=tf.plotOfTF()
         p1.axvspan=[self.ohTime[0]*1e3,self.ohTime[-1]*1e3]
         p1.axvspanColor=['r']
         p1.plot()
+        
         
         
 #####################################################
@@ -2078,7 +2262,6 @@ class plasmaRadiusData:
         
         # get cos-1 raw data
         cos1=cos1RogowskiData(shotno=shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
-        
         # subtract offset
         cos1Raw=cos1.cos1Raw-cos1.cos1RawOffset        
         
@@ -2249,6 +2432,7 @@ def shotData(shotnos=_np.array([98119,98120],dtype=int), #,
     
     Parameters
     ----------
+    TODO(John) fill out parameter list
     
     Returns 
     -------
@@ -2466,7 +2650,9 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',frequencyFilter=''):
+    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,
+                 nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
+                 frequencyFilter='',smoothingAlgorithm='tripleBoxCar'):
         
         self.shotno=shotno
         self.title = 'shotno = %d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
@@ -2476,15 +2662,17 @@ class nModeData:
 
         if nModeSensor=='TA':
             ## load TA data
-            temp=taData(self.shotno,tStart,tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
+            temp=taData(self.shotno,tStart,tStop+0.5e-3,
+                        smoothingAlgorithm=smoothingAlgorithm);  # asking for an extra half millisecond (see Notes above) 
             data=temp.taPolData
-            self.time=temp.tbPolTime
+            self.time=temp.taPolTime
             phi=temp.phi
             [n,m]=_np.shape(data)
         elif nModeSensor=='FB':
             ## load FB data
-            temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
-            data=temp.fbPolData[0]  ## top toroidal array = 0
+            temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3,
+                        smoothingAlgorithm=smoothingAlgorithm);  # asking for an extra half millisecond (see Notes above) 
+            data=temp.fbPolData[3]  ## top toroidal array = 0, bottom = 3
             self.time=temp.fbPolTime
             phi=temp.phi
             [n,m]=_np.shape(data)
@@ -2564,7 +2752,7 @@ class nModeData:
             self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,81,'box')
             
         elif frequencyFilter=='gaussian':
-            self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,101,'gaussian')
+            self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,40,'gaussian')
             
         elif frequencyFilter=='' or frequencyFilter==None:
             self.n1Freq=_copy(self.n1FreqRaw)
@@ -2652,8 +2840,7 @@ class nModeData:
     def plotOfN1Freq(self):
         # n=1 mode freq
         p1=_plot.plot(subtitle='Mode frequency, n=1',title=self.title,
-                      shotno=self.shotno,xLabel='Time [ms]',yLabel='kHz',
-                      yLim=[-20,20])   
+                      shotno=self.shotno,xLabel='Time [ms]',yLabel='kHz')   #,   yLim=[-20,20]
         p1.addTrace(yData=self.n1Freq/1000.,xData=self.time*1000,
                     yLegendLabel='filtered') 
         

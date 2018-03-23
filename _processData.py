@@ -405,13 +405,15 @@ def convolutionSmoothing(data,numPoints,method='gaussian',plot=False):
     ----------
     https://stackoverflow.com/questions/20618804/how-to-smooth-a-curve-in-the-right-way
     
-    Example usage
-    -------------
+    Example 1
+    ---------
     # randon noise on sine way
     x = np.arange(0,2*np.pi,.1)
     y1 = np.sin(x) + np.random.random(len(x)) * 0.8
     convolutionSmoothing(y,numPoints,method='box',plot='all')
-    
+        
+    Example 2
+    ---------
     # step function
     x = np.arange(0,2*np.pi,.1)
     y2=np.zeros(len(x))
@@ -965,7 +967,7 @@ class expFit:
     """
     def __init__(self,y,x,guess=[1,1,1], plot=True):
         self.fit=genericLeastSquaresFit(x=x,paramsGuess=guess,y=y, 
-                                        function=_expFunction)
+                                        function=_expFunction,plot=plot)
         
     
 class genericLeastSquaresFit:

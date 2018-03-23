@@ -8,7 +8,7 @@ from matplotlib.colors import LinearSegmentedColormap as _lsc # for creating you
 
 # color sequence for plotting.  add more colors if you need more than 7.  
 #_cSequence=['b', 'r', 'g', 'k', 'm', 'c', 'y', 'brown']
-_cSequence=['red', 'black',"#1f77b4", "#ff7f0e", "#2ca02c",  "#9467bd", "#8c564b", "#d62728","#e377c2", "#7f7f7f", "#bcbd22", "#17becf"] #https://github.com/vega/vega/wiki/Scales#scale-range-literals
+_cSequence=['red', 'black',"#1f77b4", "m","#ff7f0e", "#2ca02c",  "#9467bd", "#8c564b", "#d62728","#e377c2", "#7f7f7f", "#bcbd22", "#17becf"] #https://github.com/vega/vega/wiki/Scales#scale-range-literals
 
 
 class plot:
@@ -138,10 +138,10 @@ class plot:
         
     """
     
-    def __init__(self,title='',titleFontSize=18,
-                 subtitle = '',subtitleFontSize=14,
-                 xLabel = '',yLabel = '',zLabel = '',axisLabelFontSize=16,
-                 legendFontSize=10,legendLoc='upper right',
+    def __init__(self,title='',titleFontSize=14,
+                 subtitle = '',subtitleFontSize=12,
+                 xLabel = '',yLabel = '',zLabel = '',axisLabelFontSize=12,
+                 legendFontSize=12,legendLoc='upper right',
                  xLim=[],yLim=[],
                  showGrid=True,
                  axvspan=[],axvspanColor=[],
@@ -150,8 +150,11 @@ class plot:
                  aspect=None,
                  colorMap='nipy_spectral',centerColorMapAroundZero=False,
                  shotno=[],
-                 shotnoFontSize=8):
+                 shotnoFontSize=12,
+                 defaultFontSize=12,
+                 publication=False):
         self.title = title
+        self.defaultFontSize=defaultFontSize
         self.titleFontSize=titleFontSize
         self.subtitle = subtitle
         self.subtitleFontSize=subtitleFontSize
@@ -181,6 +184,17 @@ class plot:
         self.centerColorMapAroundZero=centerColorMapAroundZero
         self.shotno=shotno
         self.shotnoFontSize=shotnoFontSize
+        self.xerr=[]
+        self.yerr=[]
+        self.publication=publication
+        if publication==True:
+            self.defaultFontSize=6;
+            self.shotnoFontSize=6
+            self.subtitleFontSize=6
+            self.titleFontSize=8
+            self.axisLabelFontSize=6
+            self.legendFontSize=6
+            
             
         
     def plot(self):
@@ -189,7 +203,7 @@ class plot:
     # TODO (John) add the other subfunctions from the previous prePlot class
         
     def addTrace(self,xData,yData,zData=[],yLegendLabel='',alpha=1.0,
-                 linestyle='-',marker='',color=''):
+                 linestyle='-',marker='',color='',xerr=[],yerr=[]):
         """
         Adds a new trace to the plot
         """
@@ -206,6 +220,9 @@ class plot:
             self.color.append(_cSequence[m])
         else:
             self.color.append(color)
+#        if xerr==[]:
+        self.xerr.append(xerr)
+        self.yerr.append(yerr)
             
     def removeTrace(self,index):
         """
@@ -233,6 +250,8 @@ class plot:
             del self.linestyle[index[i]]
             del self.marker[index[i]]
             del self.color[index[i]]
+            del self.xerr[index[i]]
+            del self.yerr[index[i]]
             index-=1;
         
     def mergePlots(self,newPlot):
@@ -329,13 +348,22 @@ class subPlot:
         
     """
     
-    def __init__(self,subPlots,fileName='',plot=True):
+    def __init__(self,subPlots,fileName='',plot=True, marginWidth=0.075,
+                 figSizeX=16, figSizeY=8,publication=False): # note, 3.34 inch = 8.5 cm, a requirement for RSI images
         
         self.shareX=True;
         self.shareY=False;
+        self.marginWidth=marginWidth;
+        self.figSizeX=figSizeX
+        self.figSizeY=figSizeY
+        self.publication=publication
         
         self.fileName=fileName;
         self.subPlots=subPlots;
+        
+        if publication==True:
+            self.figSizeX=3.34*1.3
+            self.figSizeY=3.34*0.9
         
         if plot==True:
             self.plot(plotMe=plot)
@@ -354,6 +382,8 @@ class subPlot:
             n=1;
                 
         # initialize subplot
+        
+#        if self.subPlots[0].publication==False:
         fig, axarr = _plt.subplots(nrows=m,
                                    ncols=n, 
                                    sharex=self.shareX,#True,
@@ -364,8 +394,22 @@ class subPlot:
                                    # 1) find a way to maximize the figure window such that the tools in the bottom left remain 
                                    # or
                                    # 2) settle into a standard window size.  prev code:   figsize=(15*n, 2.5*m)
-                                   figsize=(16, 8), # units in inches.  not sure how this actually maps to a screen though since it doesn't actually measure 16 inches ...
-                                    dpi=80);
+                                   figsize=(self.figSizeX, self.figSizeY), # units in inches.  not sure how this actually maps to a screen though since it doesn't actually measure 16 inches ...
+                                    dpi=80); # dpi=300 is required for RSI color images
+#                           
+#        else:
+#            fig, axarr = _plt.subplots(nrows=m,
+#                                       ncols=n, 
+#                                       sharex=self.shareX,#True,
+#                                       sharey=self.shareY,
+#                                       facecolor='w', 
+#                                       edgecolor='k', 
+#                                       # TODO either 
+#                                       # 1) find a way to maximize the figure window such that the tools in the bottom left remain 
+#                                       # or
+#                                       # 2) settle into a standard window size.  prev code:   figsize=(15*n, 2.5*m)
+#                                       figsize=(self.figSizeX, self.figSizeY), # units in inches.  not sure how this actually maps to a screen though since it doesn't actually measure 16 inches ...
+#                                        dpi=300); # dpi=300 is required for RSI color images
                                     
         # vertical space between sub figures
         if self.shareX==True:
@@ -374,12 +418,24 @@ class subPlot:
             fig.subplots_adjust(hspace=0.25);
         
         # horizontal space between sub figures
-        fig.subplots_adjust(wspace=0.1);
+        if self.shareY==True:
+            fig.subplots_adjust(wspace=0);
+        else:
+            fig.subplots_adjust(wspace=0.1);
+#        fig.subplots_adjust(wspace=0.1);
         
         ## adjust margins
-        marginWidth=0.075; # 0 to 1.0
-        fig.subplots_adjust(top=1-marginWidth,bottom=marginWidth,
-                            left=marginWidth, right=1-marginWidth)
+        marginWidth=self.marginWidth; # 0 to 1.0
+        if self.publication==True:
+            fig.subplots_adjust(top=1-0.04,bottom=0.125,
+                                left=.175, right=1-0.15)
+        else:
+            fig.subplots_adjust(top=1-marginWidth/1.,bottom=marginWidth*1.0,
+                                left=marginWidth*1.5, right=1-marginWidth/1.0)#right=1-marginWidth/2.
+      
+        # other plots
+#        fig.subplots_adjust(top=1-0.05,bottom=0.175,
+#                            left=.15, right=1-0.05)
                               
         # iterate through sub figures (rows and columns)
         for j in range(0,m): # iterate through rows
@@ -398,6 +454,8 @@ class subPlot:
                     ax=axarr;
                 elif n==1 and m!=1:
                     ax=axarr[j];
+                elif m==1 and n!=1:
+                    ax=axarr[i];
                 else:
                     ax=axarr[j][i]; 
                     
@@ -453,13 +511,27 @@ class subPlot:
                     if (data.plotType == '') or (data.plotType == 'standard'):
                         ax.plot(data.xData[k], data.yData[k], marker=marker, 
                                 linestyle=linestyle,label=label,alpha=alpha,
-                                color=color) # , 
+                                color=color,markerSize=2) # , 
+                                
+#                    # polar plot
+#                    if (data.plotType == 'polar'):
+#                        ax.plot(data.xData[k], data.yData[k], marker=marker, 
+#                                linestyle=linestyle,label=label,alpha=alpha,
+#                                color=color,markerSize=2,projection='polar') # , 
 
                     # error bar plot
                     elif (data.plotType == 'errorbar') or (data.plotType == 'errorBar'):
-                        ax.errorbar(data.xData[k], data.yData[k], 
-                                    yerr=data.zData[k], marker=marker, 
-                                    linestyle=linestyle,label=label) # 
+                        print 'errorbar plot'
+                        if data.yerr[k]==[]:
+                            ax.plot(data.xData[k], data.yData[k], marker=marker, 
+                                    linestyle=linestyle,label=label,alpha=alpha,
+                                    color=color,markerSize=2,lineWidth=0.5) 
+                        else:
+                            ax.errorbar(data.xData[k], data.yData[k], 
+                                        xerr=data.xerr[k],
+                                        yerr=data.yerr[k], marker=marker, 
+                                        linestyle=linestyle,label=label,
+                                        color=color,markerSize=2,lineWidth=0.5) # 
                     
                     # shaded error bar plot
                     elif (data.plotType == 'errorribbon') or (data.plotType == 'errorRibbon'):
@@ -540,9 +612,11 @@ class subPlot:
                         else:
                             vmax=Z.max()
                             vmin=Z.min()
+#                        vmax=12
+#                        vmin=-12
                         
                         # create contour plot
-                        p1=_plt.contourf(X, Y, Z,100,cmap=cm,# 100 is equal to the number of color deviations
+                        p1=ax.contourf(X, Y, Z,100,cmap=cm,# 100 is equal to the number of color deviations
                                          vmin=vmin, vmax=vmax) 
                         
                         # place color bar                  
@@ -551,7 +625,15 @@ class subPlot:
                                             a.y0+0.01, # bottom
                                             0.01, # width
                                             a.height-0.02])  # height
+#                        b=fig.colorbar(p1,cax, ticks=[-16,-8,0,8,16])
                         b=fig.colorbar(p1,cax)
+                        
+                        # limit number of ticks (bins)
+                        # ref: https://stackoverflow.com/questions/22012096/how-to-set-number-of-ticks-in-plt-colorbar
+#                        from matplotlib import ticker
+#                        tick_locator=ticker.MaxNLocator(nbins=5)
+#                        b.locator=tick_locator
+#                        b.update_ticks()
                         
                         # zLabel
                         if data.zLabel!=None:
@@ -585,6 +667,9 @@ class subPlot:
                     for j in range(0,len(data.axvspanColor[0])):
                         ax.axvspan(data.axvspan[j*2],data.axvspan[j*2+1], color=data.axvspanColor[0][j], alpha=0.25)
             
+                ## set default font size
+                _plt.rc('font', size=data.defaultFontSize)              
+            
                 ## create grid    
                 if data.showGrid==True:
                     ax.grid()
@@ -592,10 +677,10 @@ class subPlot:
                 ## create yaxis label
                 if data.yLabel!=None:
                     if self.shareY==False:
-                        ax.set_ylabel(data.yLabel,fontsize=data.axisLabelFontSize)
+                        temp=ax.set_ylabel(data.yLabel,fontsize=data.axisLabelFontSize)
                     elif self.shareY==True and i==0:
                         # if y-axes are shared on all subplots, show only y-labels on left-most plots
-                        ax.set_ylabel(data.yLabel,fontsize=data.axisLabelFontSize)
+                        temp=ax.set_ylabel(data.yLabel,fontsize=data.axisLabelFontSize)
                     
                 # implement equal aspect ratio on plot if requested.  
                 if data.aspect == "equal" or data.aspect == "Equal": 
@@ -615,12 +700,25 @@ class subPlot:
                         
                 ## create legend
                 if data.yLegendLabel!=[]:
-                    ax.legend(loc=data.legendLoc, prop={'size': data.legendFontSize})
+                    ax.legend(loc=data.legendLoc, prop={'size': data.legendFontSize},
+                                  labelspacing=0.1,borderpad=0.25)
+                ax.locator_params(axis='y', nbins=6)
+#                ax.locator_params(nbins=3)
+                ax.locator_params(axis='x', nbins=6)
                     
                 ## hide the top y tick label on each subplot
                 if j!=0: 
                     ax.get_yticklabels()[-1].set_visible(False)
-                
+                    
+                # temporary hack for a particular plot...  delete me
+#                if ax.publication==True:
+                if j==2:
+                    ax.get_yticklabels()[-2].set_visible(False)
+                    
+                ## hide the right-most x tick label on each subplot
+                if i!=n-1: 
+                    ax.get_xticklabels()[-1].set_visible(False)
+                    
                 ## create x label 
                 if data.xLabel != []:
                     if self.shareX==True: # on bottom most plot only
@@ -636,13 +734,47 @@ class subPlot:
                                 fontsize=data.subtitleFontSize,
                                 horizontalalignment='center', 
                                 verticalalignment='top', 
-                                bbox=dict(pad=5.0, facecolor="w"))
+                                bbox=dict(pad=2.0, facecolor="w"))
+#                if not (data.subtitle==None or data.subtitle==''):
+#                    if j==2:
+#                        ax.annotate(data.subtitle, xy=(0.5, 0.98), 
+#                                    xycoords='axes fraction', 
+#                                    fontsize=data.subtitleFontSize,
+#                                    horizontalalignment='center', 
+#                                    verticalalignment='top', 
+#                                    bbox=dict(pad=2.0, facecolor="w"),
+#                                    color='r')
+#                    if j==3:
+#                        ax.annotate(data.subtitle, xy=(0.5, 0.98), 
+#                                    xycoords='axes fraction', 
+#                                    fontsize=data.subtitleFontSize,
+#                                    horizontalalignment='center', 
+#                                    verticalalignment='top', 
+#                                    bbox=dict(pad=2.0, facecolor="w"),
+#                                    color='k')
+#                    if j==4:
+#                        ax.annotate(data.subtitle, xy=(0.5, 0.98), 
+#                                    xycoords='axes fraction', 
+#                                    fontsize=data.subtitleFontSize,
+#                                    horizontalalignment='center', 
+#                                    verticalalignment='top', 
+#                                    bbox=dict(pad=2.0, facecolor="w"),
+#                                    color="#1f77b4")
+#                    if j==5:
+#                        ax.annotate(data.subtitle, xy=(0.5, 0.98), 
+#                                    xycoords='axes fraction', 
+#                                    fontsize=data.subtitleFontSize,
+#                                    horizontalalignment='center', 
+#                                    verticalalignment='top', 
+#                                    bbox=dict(pad=2.0, facecolor="w"),
+#                                    color="m")
                     
                 ## create title on top most plot only
                 if i==0 and j==0:
                     if not (data.title==None or data.title==''):
                         fig.suptitle(data.title, #verticalalignment='bottom',
                                      fontsize=data.titleFontSize)
+                                     
 
         ## save figure
         if self.fileName != '':
@@ -651,9 +783,45 @@ class subPlot:
         # plot
         if plotMe==True:
             _plt.show()
- 
-          
             
+    def mergeSubplots(self,newSP):
+        """
+        Merges two subplot functions.  The first is self (the instance of the
+        1st subplot) and the second is newSP
+        
+        Parameters
+        ----------
+        newSP : _plotTools.subPlot()
+            subplot to be merged into this instance of subplot
+        """
+ 
+        # determine the number of plots (rows and columns)
+        m=len(self.subPlots);
+        if type(self.subPlots[0]) is list:
+            n=len(self.subPlots[0]);
+        else:
+            n=1;
+            
+        # iterate through sub figures (rows and columns)
+        for j in range(0,m): # iterate through rows
+            for i in range(0,n): # iterate through columns
+            
+                # plot instance
+                if n==1:
+                    p1 = self.subPlots[j];
+                    p2 = newSP.subPlots[j];
+                else:
+                    p1 = self.subPlots[j][i];
+                    p2= newSP.subPlots[j][i];
+                    
+                for k in range(0,len(p1.xData)):
+                    p1.yLegendLabel[k]=str(p1.shotno)+p1.yLegendLabel[k]
+                for k in range(0,len(p2.xData)):
+                    p2.yLegendLabel[k]=str(p2.shotno)+p2.yLegendLabel[k]
+                    
+                p1.mergePlots(p2)
+      
+      
 def _red_green_colormap():
     '''A colormap with a quick red-green transition at 0.5
     Default HBTEP colormap
