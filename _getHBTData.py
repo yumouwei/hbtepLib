@@ -163,22 +163,32 @@ def mdsData(shotno=None,
     if type(dataAddress) is not list:
         dataAddress=[dataAddress];
     
-    # get data and time
+    # get data
+    time =[]
     data = [];
     for i in range(0,len(dataAddress)):
         data.append(mdsConn.get(dataAddress[i]).data())
-    time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
+#    print data
+    
+    # if data is an array, also get time
+    if type(data[0]) is _np.ndarray:
+
+        time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
         
-    # check to see if units are in seconds and NOT in milliseconds
-    if tStop > 1:
-        tStart=tStart*1e-3;
-        tStop=tStop*1e-3;
+        # check to see if units are in seconds and NOT in milliseconds
+        if tStop > 1:
+            tStart=tStart*1e-3;
+            tStop=tStop*1e-3;
+            
+        # trim time and data
+        time,data= _trimTime(time,data,tStart,tStop)
+            
+        # return data and time
+        return data, time
         
-    # trim time and data
-    time,data= _trimTime(time,data,tStart,tStop)
-        
-    # return data and time
-    return data, time
+    # if data is not an array (likely a constant), return data without time
+    else:   
+        return data
     
     
 ###############################################################################
@@ -401,7 +411,7 @@ class bpData:
         
     Notes
     -----
-    BPS5 was moved to section 2 (now BPS2) summer of 2017.  
+    BPS5 was moved to section 2 (now BPS2) summer of 2017.  Instrumented on May 22, 2018.  
     
     """
     # TODO(John) Time should likely be split into s2 and s9 because different 
@@ -416,8 +426,31 @@ class bpData:
     def __init__(self,shotno=98147,tStart=0*1e-3,tStop=10*1e-3,plot=False):
         self.shotno = shotno
         self.title = "%s, BP Data." % shotno
+        
+        print shotno
+        
+        if shotno > 99035:
+            # BPS5 was moved to section 2
+            
+            # get voltage data
+            data, time=mdsData(shotno=shotno,
+                               dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE_9:VOLTAGE',
+                                            '\HBTEP2::TOP.SENSORS.BIAS_PROBE_9:CURRENT'],
+                               tStart=tStart, tStop=tStop)
+            self.bps9Voltage=data[0];
+            self.bps9Current=data[1]*-1; # signs are flipped somewhere
+            self.time=time;
+            
+            # get current data
+            data, time=mdsData(shotno=shotno,
+                               dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_85',
+                                            '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_84'],
+                               tStart=tStart, tStop=tStop)
+            self.bps5Voltage=data[0]*100; #TODO get actual voltage divider info
+            self.bps5Current=data[1]/0.05;  
+            
 
-        if shotno > 96000:
+        elif shotno > 96000 and shotno < 99035 :
             #TODO(determine when this probe was rewired or moved)
         
             # get voltage data
@@ -497,7 +530,7 @@ class bpData:
         p1.addTrace(xData=self.time*1000,yData=self.bps9Voltage,
                     yLegendLabel='BPS9')
         p1.addTrace(xData=self.time*1000,yData=self.bps5Voltage,
-                    yLegendLabel='BPS5')
+                    yLegendLabel='BPS2')
         
         return p1
         
@@ -511,7 +544,7 @@ class bpData:
         p1.addTrace(xData=self.time*1000,yData=self.bps9Current,
                     yLegendLabel='BPS9')
         p1.addTrace(xData=self.time*1000,yData=self.bps5Current,
-                    yLegendLabel='BPS5')
+                    yLegendLabel='BPS2')
         
         return p1
             
@@ -845,8 +878,10 @@ class tpData:
             _plot.subPlot([self.plotOfKTe(),self.plotOfNe(),self.plotOfVf()]);
         else:
             _plot.subPlot([self.plotOfKTe(),self.plotOfNe(),self.plotOfVf()]);
-            _plot.subPlot([self.plotOfTipA(),self.plotOfTipB(),self.plotOfTipC(),
-                         self.plotOfISat()]);            
+#            _plot.subPlot([self.plotOfTipA(),self.plotOfTipB(),self.plotOfTipC(),
+#                         self.plotOfISat()]);          
+            _plot.subPlot([self.plotOfTipB(),self.plotOfTipC(),
+                         self.plotOfISat()]);              
   
     
 class paData:
@@ -1287,7 +1322,7 @@ class fbData:
         # initialize plot
         p1=_plot.plot(xLabel='time [ms]',yLabel=r'Gauss',
                       subtitle=self.fbRadNames[j][i],shotno=[self.shotno],
-                      title=self.title);
+                      title=self.title,yLim=[-0.01,0.05]);
         
         # smoothed data
         p1.addTrace(yData=self.fbRadData[j][i],xData=self.fbRadTime*1000,
@@ -1331,7 +1366,9 @@ class fbData:
                 sp2[i].append(newPlot)
                 count+=1;
         sp1[0][0].title=self.title
+#        sp1[0][0].yLim=[-0.01,0.03]
         sp2[0][0].title=self.title
+#        sp2[0][0].yLim=[-0.01,0.03]
         sp1=_plot.subPlot(sp1,plot=False)
         sp2=_plot.subPlot(sp2,plot=False)
         # sp1.shareY=True;

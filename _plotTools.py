@@ -511,7 +511,7 @@ class subPlot:
                     if (data.plotType == '') or (data.plotType == 'standard'):
                         ax.plot(data.xData[k], data.yData[k], marker=marker, 
                                 linestyle=linestyle,label=label,alpha=alpha,
-                                color=color,markersize=2) # , 
+                                color=color,markersize=10) # , 
                                 
 #                    # polar plot
 #                    if (data.plotType == 'polar'):
