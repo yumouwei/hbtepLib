@@ -316,6 +316,92 @@ def linearizeDataMatrix(data):
 ###############################################################################
 ### filters and smoothing algorithms
     
+def nPoleFilter(data,xData=None,numPoles=1,alpha=0.0625,filterType='lowPass',plot=False):
+    """
+    n-pole filter.  
+    
+    Parameters
+    ----------
+    data : numpy.ndarray
+        data to be smoothed
+    xData : numpy.ndarray or NoneType
+        (optional) array of x-data
+    numPoles : int
+        number of poles for the filter
+    alpha : float
+        weight of the filter, float between 0 and 1.  
+    filterType : str
+        'lowPass' - Low pass filter
+        'highPhass' - High pass filter
+    plot : bool
+        plots results if true
+    
+    Returns
+    -------
+    filteredData : 2D numpy.ndarray
+        filtered data
+    
+    References
+    ----------
+    http://techteach.no/simview/lowpass_filter/doc/filter_algorithm.pdf
+    https://en.wikipedia.org/wiki/Low-pass_filter#Discrete-time_realization
+    https://en.wikipedia.org/wiki/High-pass_filter#Discrete-time_realization
+    
+    Notes
+    -----
+    this method is pulled from Qian Peng's 2016 GPU code.  
+    
+    Example #1
+    ----------
+    t=np.arange(0,.01,6e-8);
+    y2=np.sin(2*np.pi*300*t)+np.sin(2*np.pi*30000*t)
+    alpha=0.00625;
+    hbt.process.nPoleFilter(y2,t,numPoles=2,filterType='lowPass',plot=True,alpha=alpha)
+    hbt.process.nPoleFilter(y2,t,numPoles=2,filterType='highPass',plot=True,alpha=1.0-0.000625)
+    
+    Example #2
+    ----------
+    t=np.arange(0,.01,6e-6);
+    from scipy.signal import square
+    y=square(t,0.001)
+    hbt.process.nPoleFilter(y,t,numPoles=2,filterType='lowPass',plot=True)
+    hbt.process.nPoleFilter(y,t,numPoles=2,filterType='highPass',plot=True)
+
+    """
+    
+    # initialize data arrays
+    procData=_np.zeros((numPoles+1,len(data)));
+    procData[0,:]=data;
+    
+    # filter
+    for i in range(1,numPoles+1):
+        
+        if filterType=='lowPass':
+            for j in range(0,len(data)-1):
+                procData[i,j+1]=procData[i,j]+alpha*(procData[i-1,j]-procData[i,j])
+        elif filterType=='highPass':
+            for j in range(0,len(data)-1):
+                procData[i,j+1]=alpha*(procData[i,j]+procData[i-1,j+1]-procData[i-1,j])
+                    
+    # plot results
+    if plot==True:
+        p1=_plot.plot(title=str(numPoles)+" pole "+filterType+" filter, alpha="+str(alpha),
+                   xLabel="x-axis",yLabel='y-axis')
+                   
+        if type(xData)==type(None):
+            xData=_np.arange(0,len(data));
+            
+        p1.addTrace(xData=xData,yData=data,yLegendLabel='raw')
+
+        for i in range(1,numPoles+1):
+            p1.addTrace(xData=xData,yData=procData[i,:],yLegendLabel=str(i))
+            
+        p1.plot()
+
+    # return results
+    return procData
+   
+           
 def savgolFilter(data,numPoints,polynomialOrder,plot=False):
     """
     Ssavitzky-Golay moving average smoothing filter.  Applies a nth order 
@@ -891,7 +977,7 @@ def singlePowerTerm(x, a,b,c):
     
 class cosFit:
     """
-    Cos fit function
+    Cos fit function.  a*_np.cos(x*d*2*_np.pi+b)+c
 
     Parameters
     ----------
@@ -900,7 +986,7 @@ class cosFit:
     x : numpy.ndarray
         independent array
     guess : list
-        list of three floats.  these are the guess values.
+        list of four floats [a, b, c, d]=[amplitude, phase offset, amplitude offest, linear frequency].  these are the guess values.
     plot : bool
         causes the results to be plotted
         
