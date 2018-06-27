@@ -53,7 +53,7 @@ _TSTART = 0*1e-3;
 _TSTOP  = 10*1e-3;
 
 # list of known bad sensors.   outdated???  also note that i'm not YET doing anything with this info...
-SENSORBLACKLIST = ['PA1_S29R', 'PA1_S16P', 'PA2_S13R', 'PA2_S14P', 'PA2_S27P', 'FB03_S4R', 'FB04_S4R', 'FB08_S3P', 'FB10_S1P', 'FB04_S3P', 'FB06_S2P', 'FB08_S4P', 'TA07_S1P', 'TA02_S1P', 'TA02_S2P'];
+_SENSORBLACKLIST = ['PA1_S29R', 'PA1_S16P', 'PA2_S13R', 'PA2_S14P', 'PA2_S27P', 'FB03_S4R', 'FB04_S4R', 'FB08_S3P', 'FB10_S1P', 'FB04_S3P', 'FB06_S2P', 'FB08_S4P', 'TA07_S1P', 'TA02_S1P', 'TA02_S2P'];
 
 # directory where unprocessed or minimally processed data is written locally.   
 # TODO:  move to hbtPreferences.py
@@ -132,7 +132,7 @@ def _initMDSConnection(shotno):
 def mdsData(shotno=None,
             dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_95',
                          '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_96'],
-            tStart=0*1e-3,tStop=10*1e-3):
+            tStart=_TSTART,tStart=_TSTOP):
     """
     Get data and optionally associated time from MDSplus tree
     
@@ -168,7 +168,6 @@ def mdsData(shotno=None,
     data = [];
     for i in range(0,len(dataAddress)):
         data.append(mdsConn.get(dataAddress[i]).data())
-#    print data
     
     # if data is an array, also get time
     if type(data[0]) is _np.ndarray:
@@ -231,7 +230,7 @@ class ipData:
         Plots all relevant plots
     
     """
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "%d, Ip Data" % shotno
         
@@ -311,7 +310,7 @@ class cos1RogowskiData:
     needs time data before 0 ms to calculate the cos1RawOffset value.  After 
     calculating this value, the code trims off the time before tStart.
     """
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Cos1 Rog. Data" % shotno
         
@@ -423,12 +422,10 @@ class bpData:
     # how to handle this
     # TODO(John) these probes have been periodically moved to different nodes.  
     # implement if lowerbound < shotno < upperbound conditions to handle these cases
-    def __init__(self,shotno=98147,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=98147,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "%s, BP Data." % shotno
-        
-        print shotno
-        
+                
         if shotno > 99035:
             # BPS5 was moved to section 2
             
@@ -680,7 +677,7 @@ class tpData:
     can still be loaded.  
     """
     
-    def __init__(self,shotno=95996,tStart=0*1e-3,tStop=10*1e-3,plot=False,probes='tps5'):  #sectionNum=2,
+    def __init__(self,shotno=95996,tStart=_TSTART,tStart=_TSTOP,plot=False,probes='tps5'):  #sectionNum=2,
         
         self.shotno = shotno
         self.title = '%s, triple probe data' % shotno
@@ -946,7 +943,7 @@ class paData:
 
     """
     
-    def __init__(self,shotno=98170,tStart=0*1e-3,tStop=10*1e-3,plot=False,
+    def __init__(self,shotno=98170,tStart=_TSTART,tStart=_TSTOP,plot=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = '%d, PA sensors' % shotno
@@ -967,7 +964,6 @@ class paData:
             pa2SensorAddresses.append(rootAddress+self.namesPA2[i])
             
         # get raw data
-        print pa1SensorAddresses
         self.pa1Raw,self.pa1Time=mdsData(shotno,pa1SensorAddresses, tStart, tStop)
         self.pa2Raw,self.pa2Time=mdsData(shotno,pa2SensorAddresses, tStart, tStop)
         
@@ -1173,7 +1169,7 @@ class sxrData:
 
     """
     
-    def __init__(self,shotno=98170,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=98170,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = '%d, SXR sensors' % shotno
         
@@ -1193,10 +1189,8 @@ class sxrData:
             sensorAddresses.append('\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_%02d' %channels[i])
             
         # get data
-        print sensorAddresses
         self.data,self.time=mdsData(shotno,sensorAddresses, tStart, tStop)
       
-
         # plot 
         if plot==True:
             self.plotOfSXRStripey(tStart,tStop).plot()
@@ -1313,7 +1307,7 @@ class fbData:
         plots all relevant data
         
     """
-    def __init__(self,shotno=98170,tStart=0*1e-3,tStop=10*1e-3,plot=False,smoothingAlgorithm='tripleBoxCar'):
+    def __init__(self,shotno=98170,tStart=_TSTART,tStart=_TSTOP,plot=False,smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = "%d, FB sensors" % shotno
 
@@ -1572,7 +1566,7 @@ class taData:
 
     """
         
-    def __init__(self,shotno=98173,tStart=0*1e-3,tStop=10*1e-3,plot=False,
+    def __init__(self,shotno=98173,tStart=_TSTART,tStart=_TSTOP,plot=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = "%d, TA sensor data." % shotno
@@ -1744,7 +1738,7 @@ class externalRogowskiData:
         plots plotOfERogAll()
     
     """
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Ext. Rogowski Data" % shotno
         
@@ -1846,7 +1840,7 @@ class spectrometerData:
         plots all relevant data
     
     """
-    def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=98030,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Spectrometer Data" % shotno
         
@@ -1911,7 +1905,7 @@ class solData:
         plots all SOL data
     
     """
-    def __init__(self,shotno=98030,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=98030,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, SOL Data" % shotno
         self.sensorNames = ['LFS01_S1', 'LFS01_S2', 'LFS01_S3', 'LFS01_S4', 'LFS01_S5', 'LFS01_S6', 'LFS01_S7', 'LFS01_S8', 'LFS04_S1', 'LFS04_S2', 'LFS04_S3', 'LFS04_S4', 'LFS08_S1', 'LFS08_S2', 'LFS08_S3', 'LFS08_S4', 'LFS08_S5', 'LFS08_S6', 'LFS08_S7', 'LFS08_S8']
@@ -2087,7 +2081,7 @@ class loopVoltageData:
         plots loop voltage data
     
     """
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "%d, Loop voltage data." % shotno
         
@@ -2400,7 +2394,7 @@ class plasmaRadiusData:
     
     """
     
-    def __init__(self,shotno=95782,tStart=0*1e-3,tStop=10*1e-3, plot=False, probeRadius=[]):
+    def __init__(self,shotno=95782,tStart=_TSTART,tStart=_TSTOP, plot=False, probeRadius=[]):
         self.shotno=shotno;
         self.title = "%d, plasma radius" % shotno
         
@@ -2520,7 +2514,7 @@ class qStarData:
         Plots all relevant plots
     """
     
-    def __init__(self,shotno=96496, tStart=0*1e-3, tStop=10*1e-3, plot=False):
+    def __init__(self,shotno=96496, tStart=_TSTART, tStart=_TSTOP, plot=False):
         self.shotno = shotno
         self.title = r"shotno = %d, q$^*$ Data" % shotno
         
@@ -2583,154 +2577,7 @@ def checkBlackList(inData,inName):
     return outData
     
     
-################################################################################
-#### HBTEP shot data format
-    
-def shotData(shotnos=_np.array([98119,98120],dtype=int), #,
-                     tStart=0.0*1e-3, tStop=8.0*1e-3, saveData=False, 
-                     tags=['nMode','bp','tp','eRog','spect','sol','lv','ip','radius','qStar']):
-
-    """
-    Loads multiple shot data files.  
-    
-    Parameters
-    ----------
-    TODO(John) fill out parameter list
-    
-    Returns 
-    -------
-    data : list (of _getHBTData.shotData)
-        list of shot data structures
-    """
-    import time as _time
-#main()   
-    # make sure shotnos is a np array
-    if type(shotnos) is int or type(shotnos) is float:
-        shotnos=_np.array([shotnos]);
-    elif type(shotnos) is list:
-        shotnos=_np.array(shotnos);
-    m=len(shotnos)
-        
-    # make sure tStart and tStop are also lists (actually np arrays)
-    if type(tStart) is int or type(tStart) is float: 
-        tStart=_np.ones(m)*tStart
-    if type(tStop) is int or type(tStop) is float: 
-        tStop=_np.ones(m)*tStop
-        
-    # load each shotData
-    data=[]
-    for i in range(0,m):
-        start_time = _time.time()
-        
-        data.append(_getShotData(shotno=shotnos[i],
-                                tStart=tStart[i],
-                                tStop=tStop[i],
-                                saveData=saveData,
-                                tags=tags))
-        
-        print("--- %.1f seconds to load %d ---" % ((_time.time() - start_time), shotnos[i]) ) 
-                                         
-    # return
-    return data
-                 
-    
-class _getShotData:
-    """
-    Downloads HBTEP data into a single class for a single shotno.  
-    If the file is present locally, it loads it from there.  If the file is NOT
-    present at the local save directory, the data is loaded from the HBTEP 
-    server
-    
-    Parameters
-    ----------
-    
-    Attributes
-    ----------
-    
-    """
-    def __init__(self,shotno=98030,tStart=0.0*1e-3,tStop=8.0*1e-3,saveData=False,
-                 tags=['nMode','bp','tp','eRog','spect','sol','lv','ip','radius','qStar']):
-        self.shotno=shotno
-        # download data
-        
-        # check if file is alreay downloaded.  download permanently otherwise.  also downloads file if specifically requested.
-        
-        localFilePath=_pref._LOCAL_DATA_DIR+'shotData_'+str(shotno)+'.pickle'
-        filePresent =_os.path.isfile(localFilePath)
-
-        # load from existing file        
-        if filePresent==True: # and forceDownload!=True:
-            saveData=False
-            data=_rwData.loadFromPickle(localFilePath)
-            try:
-                if 'nMode' in tags:
-                    self.nMode=data.nMode
-                if 'bp' in tags:
-                    self.bp=data.bp
-                if 'tp' in tags:
-                    self.tp=data.tp
-                if 'eRog' in tags:
-                    self.eRog=data.eRog
-                if 'spect' in tags:
-                    self.spectrometer=data.spectrometer
-                if 'sol' in tags:
-                    self.sol=data.sol
-                if 'lv' in tags:
-                    self.lv=data.lv
-                if 'ip' in tags:
-                    self.ip=data.ip
-                if 'capBank' in tags:
-                    self.capBank=data.capBank
-                if 'radius' in tags:
-                    self.radius=data.radius
-                if 'qStar' in tags:
-                    self.qStar=data.qStar
-                if 'gpu' in tags:
-                    self.gpu=data.gpu
-                print "loading "+str(int(shotno))+" shot data from local storage"
-                    
-            except AttributeError:
-                print str(int(shotno))+" shot data is incomplete. " + "Getting from HBTEP server instead and rewriting old data"
-                filePresent=False
-#                saveData=True
-            
-        # if file is not already downloaded locally, download from HBTEP serer
-        if filePresent==False: # or forceDownload==True:
-            saveData=True
-            print "downloading "+str(int(shotno))+" shot data from HBTEP server"
-            if 'nMode' in tags:
-                self.nMode=nModeData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'bp' in tags:
-                self.bp=bpData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'tp' in tags:
-                self.tp=tpData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'eRog' in tags:
-                self.eRog=externalRogowskiData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'spect' in tags:
-                self.spectrometer=spectrometerData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'sol' in tags:
-                self.sol=solData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'lv' in tags:
-                self.lv=loopVoltageData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'ip' in tags:
-                self.ip=ipData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'capBank' in tags:
-                self.capBank=capBankData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'radius' in tags:
-                self.radius=plasmaRadiusData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'qStar' in tags:
-                self.qStar=qStarData(shotno=shotno,tStart=tStart,tStop=tStop)
-            if 'gpu' in tags:
-                import johnsUnderDevelopementToolbox as john
-                self.gpu=john.gpuControlData(shotno=shotno,tStart=tStart,tStop=tStop,operatingMode='frequencyControl')
-#                self.gpu
-#                self.gpu=gpu.fb
-        
-        # save data to file
-        if saveData==True:
-            print "Writing to %s" % localFilePath
-            _rwData.saveToPickle(self,localFilePath)
-            
+       
   
 ###############################################################################
 ### Processed data from HBTEP
@@ -2813,7 +2660,7 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,
+    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False,
                  nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
                  frequencyFilter='',smoothingAlgorithm='tripleBoxCar'):
         
@@ -3088,7 +2935,7 @@ class mModeData:
     ----------
     
     """  
-    def __init__(self,shotno=96530,tStart=0*1e-3,tStop=10*1e-3,plot=False,theta0=0,sensor='PA1'):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False,theta0=0,sensor='PA1'):
         self.shotno=shotno
         self.title= 'shotno = %d.  sensor = %s.  m mode analysis' % (shotno, sensor)
         
