@@ -132,7 +132,7 @@ def _initMDSConnection(shotno):
 def mdsData(shotno=None,
             dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_95',
                          '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_96'],
-            tStart=_TSTART,tStart=_TSTOP):
+            tStart=_TSTART,tStop=_TSTOP):
     """
     Get data and optionally associated time from MDSplus tree
     
@@ -230,7 +230,7 @@ class ipData:
         Plots all relevant plots
     
     """
-    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "%d, Ip Data" % shotno
         
@@ -310,7 +310,7 @@ class cos1RogowskiData:
     needs time data before 0 ms to calculate the cos1RawOffset value.  After 
     calculating this value, the code trims off the time before tStart.
     """
-    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Cos1 Rog. Data" % shotno
         
@@ -422,7 +422,7 @@ class bpData:
     # how to handle this
     # TODO(John) these probes have been periodically moved to different nodes.  
     # implement if lowerbound < shotno < upperbound conditions to handle these cases
-    def __init__(self,shotno=98147,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=98147,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "%s, BP Data." % shotno
                 
@@ -677,7 +677,7 @@ class tpData:
     can still be loaded.  
     """
     
-    def __init__(self,shotno=95996,tStart=_TSTART,tStart=_TSTOP,plot=False,probes='tps5'):  #sectionNum=2,
+    def __init__(self,shotno=95996,tStart=_TSTART,tStop=_TSTOP,plot=False,probes='tps5'):  #sectionNum=2,
         
         self.shotno = shotno
         self.title = '%s, triple probe data' % shotno
@@ -943,7 +943,7 @@ class paData:
 
     """
     
-    def __init__(self,shotno=98170,tStart=_TSTART,tStart=_TSTOP,plot=False,
+    def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = '%d, PA sensors' % shotno
@@ -1169,7 +1169,7 @@ class sxrData:
 
     """
     
-    def __init__(self,shotno=98170,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = '%d, SXR sensors' % shotno
         
@@ -1307,7 +1307,7 @@ class fbData:
         plots all relevant data
         
     """
-    def __init__(self,shotno=98170,tStart=_TSTART,tStart=_TSTOP,plot=False,smoothingAlgorithm='tripleBoxCar'):
+    def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = "%d, FB sensors" % shotno
 
@@ -1566,7 +1566,7 @@ class taData:
 
     """
         
-    def __init__(self,shotno=98173,tStart=_TSTART,tStart=_TSTOP,plot=False,
+    def __init__(self,shotno=98173,tStart=_TSTART,tStop=_TSTOP,plot=False,
                  smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = "%d, TA sensor data." % shotno
@@ -1738,7 +1738,7 @@ class externalRogowskiData:
         plots plotOfERogAll()
     
     """
-    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Ext. Rogowski Data" % shotno
         
@@ -1840,7 +1840,7 @@ class spectrometerData:
         plots all relevant data
     
     """
-    def __init__(self,shotno=98030,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=98030,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, Spectrometer Data" % shotno
         
@@ -1905,7 +1905,7 @@ class solData:
         plots all SOL data
     
     """
-    def __init__(self,shotno=98030,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=98030,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "shotno = %d, SOL Data" % shotno
         self.sensorNames = ['LFS01_S1', 'LFS01_S2', 'LFS01_S3', 'LFS01_S4', 'LFS01_S5', 'LFS01_S6', 'LFS01_S7', 'LFS01_S8', 'LFS04_S1', 'LFS04_S2', 'LFS04_S3', 'LFS04_S4', 'LFS08_S1', 'LFS08_S2', 'LFS08_S3', 'LFS08_S4', 'LFS08_S5', 'LFS08_S6', 'LFS08_S7', 'LFS08_S8']
@@ -2081,7 +2081,7 @@ class loopVoltageData:
         plots loop voltage data
     
     """
-    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
         self.shotno = shotno
         self.title = "%d, Loop voltage data." % shotno
         
@@ -2394,7 +2394,7 @@ class plasmaRadiusData:
     
     """
     
-    def __init__(self,shotno=95782,tStart=_TSTART,tStart=_TSTOP, plot=False, probeRadius=[]):
+    def __init__(self,shotno=95782,tStart=_TSTART,tStop=_TSTOP, plot=False, probeRadius=[]):
         self.shotno=shotno;
         self.title = "%d, plasma radius" % shotno
         
@@ -2514,7 +2514,7 @@ class qStarData:
         Plots all relevant plots
     """
     
-    def __init__(self,shotno=96496, tStart=_TSTART, tStart=_TSTOP, plot=False):
+    def __init__(self,shotno=96496, tStart=_TSTART, tStop=_TSTOP, plot=False):
         self.shotno = shotno
         self.title = r"shotno = %d, q$^*$ Data" % shotno
         
@@ -2660,7 +2660,7 @@ class nModeData:
         """
         return self.x[1,:]*_np.sin(self.phi0)+self.x[2,:]*_np.cos(self.phi0)
         
-    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False,
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
                  nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
                  frequencyFilter='',smoothingAlgorithm='tripleBoxCar'):
         
@@ -2935,7 +2935,7 @@ class mModeData:
     ----------
     
     """  
-    def __init__(self,shotno=96530,tStart=_TSTART,tStart=_TSTOP,plot=False,theta0=0,sensor='PA1'):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,theta0=0,sensor='PA1'):
         self.shotno=shotno
         self.title= 'shotno = %d.  sensor = %s.  m mode analysis' % (shotno, sensor)
         
