@@ -967,6 +967,7 @@ class paData:
             pa2SensorAddresses.append(rootAddress+self.namesPA2[i])
             
         # get raw data
+        print pa1SensorAddresses
         self.pa1Raw,self.pa1Time=mdsData(shotno,pa1SensorAddresses, tStart, tStop)
         self.pa2Raw,self.pa2Time=mdsData(shotno,pa2SensorAddresses, tStart, tStop)
         
@@ -1124,6 +1125,131 @@ class paData:
         # sp1.shareY=True;
         sp1.plot()
         sp2.plot()
+        
+        
+class sxrData:
+    """
+    Downloads (and optionally plots) soft xray sensor data.   
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        default is False
+        True - plots far array of all 11 (of 16) channels
+        'all' - plots 
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to put at the top of figures
+    data : list (of numpy.ndarray)
+        list of 11 (of 16) data arrays, one for each channel
+        
+    Subfunctions
+    ------------
+    plotAll :
+        plots all relevant plots     
+    plotOfSXRStripey : 
+        returns a stripey plot of the sensors
+    plotOfOneChannel :
+        returns a plot of a single channel based on the provided index, i
+        
+    Notes
+    -----
+    Only 11 (of 16) of the SXR sensors are included in the data below.  Some of the 
+    missing sensors are broken and others include anamolous or attenuated 
+    results.  
+    
+
+    """
+    
+    def __init__(self,shotno=98170,tStart=0*1e-3,tStop=10*1e-3,plot=False):
+        self.shotno = shotno
+        self.title = '%d, SXR sensors' % shotno
+        
+        # note that sensors 5, 8, 10, 13 and 15 are not included.  
+        self.sensor_num=_np.array([ 0,  1,  2,  3,  4,  6,  7,  9, 11, 12, 14])
+#        self.sensor_num=_np.array([ 0,  1,  2,  3,  4,  5,  6,  7, 8,  9,  10, 11, 12, 13, 14, 15])
+        channels=self.sensor_num+75;
+
+        # compile full sensor addresses names
+        sensorAddresses=[]
+        self.sensorNames=[]
+        for i in range(0,len(channels)):
+            if self.sensor_num[i] < 10:
+                self.sensorNames.append('CHANNEL_'+'0'+str(self.sensor_num[i]))
+            else:
+                self.sensorNames.append('CHANNEL_'+str(self.sensor_num[i]))
+            sensorAddresses.append('\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_%02d' %channels[i])
+            
+        # get data
+        print sensorAddresses
+        self.data,self.time=mdsData(shotno,sensorAddresses, tStart, tStop)
+      
+
+        # plot 
+        if plot==True:
+            self.plotOfSXRStripey(tStart,tStop).plot()
+        elif plot=='all':
+            self.plotAll()
+            self.plotOfSXRStripey(tStart,tStop).plot()
+            
+            
+    def plotOfSXRStripey(self,tStart=1e-3,tStop=10e-3):
+        iStart=_process.findNearest(self.time,tStart)
+        iStop=_process.findNearest(self.time,tStop)
+        p1=_plot.plot(title=self.title,subtitle='SXR Fan Array',
+                      xLabel='Time [ms]', yLabel='Sensor Number',zLabel='a.u.',
+                      plotType='contour',colorMap=_plot._red_green_colormap(),
+                      centerColorMapAroundZero=True)
+        data=self.data;
+        for i in range(0,len(data)):
+            data[i]=data[i][iStart:iStop]
+        p1.addTrace(self.time[iStart:iStop]*1e3,self.sensor_num,
+                    _np.array(data))
+        return p1
+        
+            
+    def plotOfOneChannel(self, i=0):
+        """ Plot one of the SXR chanenl.  based on index, i. """
+        p1=_plot.plot(xLabel='time [ms]',yLabel=r'a.u.',title=self.title,
+                      shotno=[self.shotno],subtitle=self.sensorNames[i]);
+        
+        # smoothed data
+        p1.addTrace(yData=self.data[i],xData=self.time*1000,
+                    yLegendLabel=self.sensorNames[i])   
+            
+        return p1
+        
+
+    def plotAll(self):
+        sp1=[]
+        count=0
+        for i in range(0,len(self.data)):
+                newPlot=self.plotOfOneChannel(count)
+                newPlot.subtitle=self.sensorNames[count]
+                newPlot.yLegendLabel=[]
+                newPlot.plot()
+                sp1.append(newPlot)
+ 
+                count+=1;
+                
+        sp1[0].title=self.title
+        sp1=_plot.subPlot(sp1,plot=False)
+        # sp1.shareY=True;
+#        sp1.plot()
+        
+        return sp1
             
     
 class fbData:
