@@ -2151,10 +2151,12 @@ class tfData:
     -----
     note that the TF field data is recorded on an A14 where most of HBTEP data
     is stored with the CPCI.  Because the A14 has a slower sampling rate, this
-    means that the TF data has fewer poitns than the rest of the HBTEP data, 
-    and this makes comparing data difficult.  
+    means that the TF data has fewer points than the rest of the HBTEP data, 
+    and this makes comparing data difficult.  Therefore by default, I up-sample
+    the data to match the CPCI sampling rate.  
     """
-    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,upSample=False):
+    def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,
+                 upSample=True):
         self.shotno = shotno
         self.title = "shotno = %d, TF Field Data" % shotno
         
@@ -2338,6 +2340,7 @@ class capBankData:
         self.subplotOfAll().plot()
         
         # plot of TF with shaded region representing x-limits in subplot
+        tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
         p1=tf.plotOfTF()
         p1.axvspan=[self.ohTime[0]*1e3,self.ohTime[-1]*1e3]
         p1.axvspanColor=['r']
@@ -2569,7 +2572,7 @@ def checkBlackList(inData,inName):
     Otherwise, returns original data # and a false boolean.
     
     """
-    if inName in SENSORBLACKLIST==True:
+    if inName in _SENSORBLACKLIST==True:
         outData=_np.zeros(inData.size);
     else:
         outData=inData;
@@ -3073,8 +3076,9 @@ class mModeData:
 
 def _debugPlotExamplesOfAll():
     """ 
-    This code plots an example of most every function in this file.  
-    Effectively, this allows the testing of most every function all in one go.
+    This code executes each function above and plots an example of most every 
+    plot.  Effectively, this allows the testing of most every function all in 
+    one go.
     """
     bpData(plot=True)
     capBankData(plot=True)
@@ -3093,4 +3097,5 @@ def _debugPlotExamplesOfAll():
     taData(plot=True)
     tfData(plot=True)
     tpData(plot=True)
+    sxrData(plot=True)
     

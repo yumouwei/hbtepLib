@@ -15,6 +15,10 @@ reload(process)
 import _plotTools as plot
 reload(plot)
 
+# misc plasma related code
+import _processPlasma as processPlasma
+reload(processPlasma)
+
 # old feedback tools
 import _feedBackTools
 reload(_feedBackTools)

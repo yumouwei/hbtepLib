@@ -373,7 +373,7 @@ def nPoleFilter(data,xData=None,numPoles=1,alpha=0.0625,filterType='lowPass',plo
     procData=_np.zeros((numPoles+1,len(data)));
     procData[0,:]=data;
     
-    # filter
+    # filter.  for loop controls the number of poles
     for i in range(1,numPoles+1):
         
         if filterType=='lowPass':
