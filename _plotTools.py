@@ -148,9 +148,9 @@ class plot:
                  plotType='standard',
                  fileName='',
                  aspect=None,
-                 colorMap='nipy_spectral',centerColorMapAroundZero=False,
+                 colorMap='cividis',centerColorMapAroundZero=False,#colorMap='nipy_spectral'
                  shotno=[],
-                 shotnoFontSize=12,
+                 shotnoFontSize=8,
                  defaultFontSize=12,
                  publication=False):
         self.title = title
@@ -187,6 +187,8 @@ class plot:
         self.xerr=[]
         self.yerr=[]
         self.publication=publication
+        self.markerSize=[]
+        self.lineWidth=[]
         if publication==True:
             self.defaultFontSize=6;
             self.shotnoFontSize=6
@@ -203,7 +205,7 @@ class plot:
     # TODO (John) add the other subfunctions from the previous prePlot class
         
     def addTrace(self,xData,yData,zData=[],yLegendLabel='',alpha=1.0,
-                 linestyle='-',marker='',color='',xerr=[],yerr=[]):
+                 linestyle='-',marker='',color='',xerr=[],yerr=[],lineWidth=2,markerSize=5):
         """
         Adds a new trace to the plot
         """
@@ -216,6 +218,8 @@ class plot:
         self.alpha.append(alpha)
         self.linestyle.append(linestyle)
         self.marker.append(marker)
+        self.lineWidth.append(lineWidth)
+        self.markerSize.append(markerSize)
         if color=='':
             self.color.append(_cSequence[m])
         else:
@@ -475,6 +479,22 @@ class subPlot:
                     except IndexError:
                         marker=''
                         
+                    # set markersize
+                    if type(data.markerSize) is int or type(data.markerSize) is float:
+                        data.markerSize=[data.markerSize]
+                    try:
+                        markerSize=data.markerSize[k]
+                    except IndexError:
+                        markerSize=2
+                        
+                    # set linewidth
+                    if type(data.lineWidth) is int or type(data.lineWidth) is float:
+                        data.lineWidth=[data.lineWidth]
+                    try:
+                        lineWidth=data.lineWidth[k]
+                    except IndexError:
+                        lineWidth=2
+                        
                     # set linestyle
                     if type(data.linestyle) is str:
                         data.linestyle=[data.linestyle]
@@ -525,13 +545,15 @@ class subPlot:
                         if data.yerr[k]==[]:
                             ax.plot(data.xData[k], data.yData[k], marker=marker, 
                                     linestyle=linestyle,label=label,alpha=alpha,
-                                    color=color,markersize=2,lineWidth=0.5) 
+                                    color=color,markersize=markerSize,
+                                    lineWidth=lineWidth) 
                         else:
                             ax.errorbar(data.xData[k], data.yData[k], 
                                         xerr=data.xerr[k],
                                         yerr=data.yerr[k], marker=marker, 
                                         linestyle=linestyle,label=label,
-                                        color=color,markersize=2,lineWidth=0.5) # 
+                                        color=color,markersize=markerSize,
+                                        lineWidth=lineWidth) # 
                     
                     # shaded error bar plot
                     elif (data.plotType == 'errorribbon') or (data.plotType == 'errorRibbon'):

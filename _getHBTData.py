@@ -111,9 +111,9 @@ def _trimTime(time,data,tStart,tStop):
     return time, data
     
     
-def _initMDSConnection(shotno):
+def _initRemoteMDSConnection(shotno):
     """
-    Initiate connection with MDSplus HBT-EP tree
+    Initiate remote connection with MDSplus HBT-EP tree
     
     Parameters
     ----------
@@ -127,11 +127,43 @@ def _initMDSConnection(shotno):
     conn = _mds.Connection(_pref._HBT_SERVER_ADDRESS+':8003');
     conn.openTree('hbtep2', shotno);
     return conn
+    
+    
+#def _shotComplete(shotno):
+#    """
+#    
+#    """
+##    lastShotNumber=latestShotNumber()
+##    print lastShotNumber
+#    lastShotNumber=shotno
+#    try:
+#        mdsData(shotno=lastShotNumber-1,
+#            dataAddress='\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_01',
+#            tStart=_TSTART,tStop=_TSTOP)
+#    except _mds.TreeFILE_NOT_FOUND:
+#        return False
+#    
+#    return True
+
+    
+    
+def latestShotNumber():
+    """
+    Gets the latest shot number from the tree
+    
+    Returns
+    -------
+    shot_num : int
+        latest shot number
+    """
+    conn = _mds.Connection(_pref._HBT_SERVER_ADDRESS+':8003');
+    shot_num = conn.get('current_shot("hbtep2")')
+    return shot_num
         
         
 def mdsData(shotno=None,
-            dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_95',
-                         '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_96'],
+            dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_94',
+                         '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_95'],
             tStart=_TSTART,tStop=_TSTOP):
     """
     Get data and optionally associated time from MDSplus tree
@@ -155,39 +187,61 @@ def mdsData(shotno=None,
     time : numpy.ndarray
         time associated with data array
     """
-    # if shotno is specified, this function gets its own mdsConn
-    if type(shotno) is float or type(shotno) is int or type(shotno) is _np.int64:
-        mdsConn=_initMDSConnection(shotno);
-        
-#    return mdsConn
+    # convert dataAddress to a list if it not one originally 
     if type(dataAddress) is not list:
         dataAddress=[dataAddress];
-    
-    # get data
+        
+    # init arrays
     time =[]
     data = [];
-    for i in range(0,len(dataAddress)):
-        data.append(mdsConn.get(dataAddress[i]).data())
+        
+    # check if computer is located locally or remotely.  The way it connects to spitzer remotely can only use one method, but locally, either method can be used.  
+    import socket
+    if socket.gethostname()=='spitzer':
+        # converted from Ian's code
+        print "not operational yet"
+        tree = _mds.Tree('hbtep2', shotno)  
+        for i in range(0,len(dataAddress)):
+#        	camac_str=".SENSORS.BIAS_PROBE_5:CURRENT"	#Define the correct string for the sensor of interest
+	       	#Get the proper tree with the proper shot 
+            node = tree.getNode(dataAddress)			#Get the proper node	
+            data.append(node.data())		     	 	#Get the data from this node 
+        time = node.dim_of().data()		
+    else:
     
-    # if data is an array, also get time
-    if type(data[0]) is _np.ndarray:
-
-        time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
-        
-        # check to see if units are in seconds and NOT in milliseconds
-        if tStop > 1:
-            tStart=tStart*1e-3;
-            tStop=tStop*1e-3;
+        # if shotno is specified, this function gets its own mdsConn
+        if type(shotno) is float or type(shotno) is int or type(shotno) is _np.int64:
+            mdsConn=_initRemoteMDSConnection(shotno);
             
-        # trim time and data
-        time,data= _trimTime(time,data,tStart,tStop)
-            
-        # return data and time
-        return data, time
+    #    return mdsConn
+#        if type(dataAddress) is not list:
+#            dataAddress=[dataAddress];
         
-    # if data is not an array (likely a constant), return data without time
-    else:   
-        return data
+        # get data
+#        time =[]
+#        data = [];
+        for i in range(0,len(dataAddress)):
+            data.append(mdsConn.get(dataAddress[i]).data())
+        
+        # if data is an array, also get time
+        if type(data[0]) is _np.ndarray:
+    
+            time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
+            
+            # check to see if units are in seconds and NOT in milliseconds
+            if tStop > 1:
+                tStart=tStart*1e-3;
+                tStop=tStop*1e-3;
+                
+            # trim time and data
+            time,data= _trimTime(time,data,tStart,tStop)
+                
+            # return data and time
+            return data, time
+            
+        # if data is not an array (likely a constant), return data without time
+        else:   
+            return data
     
     
 ###############################################################################
@@ -1204,7 +1258,7 @@ class sxrData:
         iStop=_process.findNearest(self.time,tStop)
         p1=_plot.plot(title=self.title,subtitle='SXR Fan Array',
                       xLabel='Time [ms]', yLabel='Sensor Number',zLabel='a.u.',
-                      plotType='contour',colorMap=_plot._red_green_colormap(),
+                      plotType='contour',#colorMap=_plot._red_green_colormap(),
                       centerColorMapAroundZero=True)
         data=self.data;
         for i in range(0,len(data)):
@@ -2336,15 +2390,15 @@ class capBankData:
     def plot(self):
         """ Plot all relevant plots """
         
-        # subplot of all 4 bank data
-        self.subplotOfAll().plot()
-        
         # plot of TF with shaded region representing x-limits in subplot
         tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
         p1=tf.plotOfTF()
         p1.axvspan=[self.ohTime[0]*1e3,self.ohTime[-1]*1e3]
         p1.axvspanColor=['r']
         p1.plot()
+    
+        # subplot of all 4 bank data
+        self.subplotOfAll().plot()
         
         
         
@@ -2728,7 +2782,7 @@ class nModeData:
         if phaseFilter == 'gaussian':
             self.n1Phase=_process.wrapPhase(
                             _process.convolutionSmoothing(
-                                _process.unwrapPhase(self.n1PhaseRaw),101,'gaussian'))
+                                _process.unwrapPhase(self.n1PhaseRaw),301,'gaussian'))
         elif phaseFilter == 'box' or phaseFilter == 'boxcar':
             self.n1Phase=_process.wrapPhase(
                             _process.convolutionSmoothing(
@@ -2765,7 +2819,7 @@ class nModeData:
             self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,81,'box')
             
         elif frequencyFilter=='gaussian':
-            self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,40,'gaussian')
+            self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,120,'gaussian')
             
         elif frequencyFilter=='' or frequencyFilter==None:
             self.n1Freq=_copy(self.n1FreqRaw)

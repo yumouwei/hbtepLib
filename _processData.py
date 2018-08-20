@@ -19,10 +19,42 @@ import _plotTools as _plot
 ###############################################################################
 ### misc functions
             
+def convertDataToStairstepData(x,y):
+    """
+    When dealting with discrete data, often it makes sense to show the data 
+    look like stair-steps insteady of a the more typical smooth plot.  This
+    function makes this happen #TODO(John) there is a better way to explain 
+    this...
+    
+    Example
+    -------
+    x=np.arange(0,1,0.01)
+    y=np.sin(2*np.pi*12.345*x)
+    (xOut,yOut)=hbt.process.convertDataToStaircaseDate(x,y)
+    plt.plot(xOut,yOut)
+
+    """
+    
+    xOut=_np.zeros(len(x)*2)
+    yOut=_np.zeros(len(x)*2)
+    dx=x[1]-x[0];
+    for i in range(0,len(x)):
+        print yOut[i*2]
+        print y[i]
+        xOut[2*i]=x[i]
+        if i == len(x)-1:
+            xOut[2*i+1]=xOut[2*i]+dx
+        else:
+            xOut[2*i+1]=x[i+1]
+        yOut[2*i]=y[i]
+        yOut[2*i+1]=y[i]
+    return (xOut,yOut)
+    
+            
 def findNearest(array,value):
     """
     search through `array` and returns the `index` of the cell closest to the 
-    `value`.
+    `value`.   `array` should be sorted in ascending order
     
     Parameters
     ----------
@@ -329,7 +361,8 @@ def nPoleFilter(data,xData=None,numPoles=1,alpha=0.0625,filterType='lowPass',plo
     numPoles : int
         number of poles for the filter
     alpha : float
-        weight of the filter, float between 0 and 1.  
+        weight of the filter, float between 0 and 1.  Close to zero for a low
+        pass and close to 1 for a high pass
     filterType : str
         'lowPass' - Low pass filter
         'highPhass' - High pass filter
@@ -350,6 +383,7 @@ def nPoleFilter(data,xData=None,numPoles=1,alpha=0.0625,filterType='lowPass',plo
     Notes
     -----
     this method is pulled from Qian Peng's 2016 GPU code.  
+    his highpass filter does NOT follow this code
     
     Example #1
     ----------
