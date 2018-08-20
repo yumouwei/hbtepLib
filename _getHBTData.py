@@ -186,7 +186,12 @@ def mdsData(shotno=None,
         requested data
     time : numpy.ndarray
         time associated with data array
-    """
+    """            
+    # check to see if units are in seconds and NOT in milliseconds
+    if tStop > 1:
+        tStart=tStart*1e-3;
+        tStop=tStop*1e-3;
+        
     # convert dataAddress to a list if it not one originally 
     if type(dataAddress) is not list:
         dataAddress=[dataAddress];
@@ -205,24 +210,16 @@ def mdsData(shotno=None,
 
             node = tree.getNode(dataAddress[i])			#Get the proper node	
             data.append(node.data())		     	 	#Get the data from this node 
-        if type(data[0]) is _np.ndarray:
+        if type(data[0]) is _np.ndarray: # if node is an array, return data and time
             time = node.dim_of().data()		
-            return data, time
-        else:
-            return data
-    else:
+
+    
+    else: # operaeting remotely
     
         # if shotno is specified, this function gets its own mdsConn
         if type(shotno) is float or type(shotno) is int or type(shotno) is _np.int64:
             mdsConn=_initRemoteMDSConnection(shotno);
-            
-    #    return mdsConn
-#        if type(dataAddress) is not list:
-#            dataAddress=[dataAddress];
-        
-        # get data
-#        time =[]
-#        data = [];
+
         for i in range(0,len(dataAddress)):
             data.append(mdsConn.get(dataAddress[i]).data())
         
@@ -230,21 +227,15 @@ def mdsData(shotno=None,
         if type(data[0]) is _np.ndarray:
     
             time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
-            
-            # check to see if units are in seconds and NOT in milliseconds
-            if tStop > 1:
-                tStart=tStart*1e-3;
-                tStop=tStop*1e-3;
-                
-            # trim time and data
-            time,data= _trimTime(time,data,tStart,tStop)
-                
-            # return data and time
-            return data, time
-            
-        # if data is not an array (likely a constant), return data without time
-        else:   
-            return data
+
+    if time != []:
+        # trim time and data
+        time,data= _trimTime(time,data,tStart,tStop)
+        
+    if time != []:
+        return data, time
+    else: 
+        return data
     
     
 ###############################################################################
