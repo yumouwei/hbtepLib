@@ -197,16 +197,19 @@ def mdsData(shotno=None,
         
     # check if computer is located locally or remotely.  The way it connects to spitzer remotely can only use one method, but locally, either method can be used.  
     import socket
-    if socket.gethostname()=='spitzer':
+    if socket.gethostname()=='spitzer': # if operating local to the tree
         # converted from Ian's code
-        print "not operational yet"
+        
         tree = _mds.Tree('hbtep2', shotno)  
         for i in range(0,len(dataAddress)):
-#        	camac_str=".SENSORS.BIAS_PROBE_5:CURRENT"	#Define the correct string for the sensor of interest
-	       	#Get the proper tree with the proper shot 
-            node = tree.getNode(dataAddress)			#Get the proper node	
+
+            node = tree.getNode(dataAddress[i])			#Get the proper node	
             data.append(node.data())		     	 	#Get the data from this node 
-        time = node.dim_of().data()		
+        if type(data[0]) is _np.ndarray:
+            time = node.dim_of().data()		
+            return data, time
+        else:
+            return data
     else:
     
         # if shotno is specified, this function gets its own mdsConn
