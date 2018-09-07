@@ -19,13 +19,13 @@ reload(plot)
 import _processPlasma as processPlasma
 reload(processPlasma)
 
-# old feedback tools
-import _feedBackTools
-reload(_feedBackTools)
+## old feedback tools # depricated
+#import _feedBackTools
+#reload(_feedBackTools)
 
 # misc data read/write tools
-import _rwDataTools
-reload(_rwDataTools)
+import _rwDataTools as readWrite
+reload(readWrite)
     
 
 """
