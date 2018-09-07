@@ -201,8 +201,8 @@ def mdsData(shotno=None,
     data = [];
         
     # check if computer is located locally or remotely.  The way it connects to spitzer remotely can only use one method, but locally, either method can be used.  
-    import socket
-    if socket.gethostname()=='spitzer': # if operating local to the tree
+#    import socket
+    if _ON_HBTEP_SERVER==True: # if operating local to the tree
         # converted from Ian's code
         
         tree = _mds.Tree('hbtep2', shotno)  
