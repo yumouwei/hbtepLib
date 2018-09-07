@@ -188,9 +188,9 @@ def mdsData(shotno=None,
         time associated with data array
     """            
     # check to see if units are in seconds and NOT in milliseconds
-    if tStop > 1:
-        tStart=tStart*1e-3;
-        tStop=tStop*1e-3;
+#    if tStop > 1:
+#        tStart=tStart*1e-3;
+#        tStop=tStop*1e-3;
         
     # convert dataAddress to a list if it not one originally 
     if type(dataAddress) is not list:
