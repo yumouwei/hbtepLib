@@ -164,7 +164,7 @@ def latestShotNumber():
 def mdsData(shotno=None,
             dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_94',
                          '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_95'],
-            tStart=_TSTART,tStop=_TSTOP):
+            tStart=[],tStop=[]):
     """
     Get data and optionally associated time from MDSplus tree
     
@@ -228,7 +228,7 @@ def mdsData(shotno=None,
     
             time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
 
-    if time != []:
+    if time != [] and tStop!=[]:
         # trim time and data
         time,data= _trimTime(time,data,tStart,tStop)
         
