@@ -16,4 +16,6 @@ _plotTools.pyc
 _processData.pyc
 _rwDataTools.pyc
 _feedBackTools.pyc
-
+_feedBackTools_depricated.py
+_feedBackTools.py
+_feedBackTools.pyc
