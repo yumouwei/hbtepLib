@@ -23,10 +23,10 @@ from copy import copy as _copy
 #import pickle as _pk
 import sys as _sys
 import _socket
-import os as _os
+#import os as _os
 
 # hbtepLib libraries
-import _rwDataTools as _rwData
+#import _rwDataTools as _rwData
 import _processData as _process
 import _plotTools as _plot
 try:
