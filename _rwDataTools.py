@@ -11,6 +11,8 @@ reload(_pref)
 import pickle as _pk
 
 
+_HBT_SERVER_USERNAME='brooks'
+
 ###############################################################################
 ### Read/write to pickle
 # TODO implement these functions
@@ -64,7 +66,7 @@ def writeDataToFile(data,filename='out.csv',delimiter=',',
 ###############################################################################
 ### keyring password management for python
        
-def setPwd(password,system=_pref._HBT_SERVER_NAME,username=_pref._HBT_SERVER_USERNAME):
+def setPwd(password,system=_pref._HBT_SERVER_NAME,username=_HBT_SERVER_USERNAME):
     """ 
     Encrypts password using keyring, a password management tool.  
     
@@ -87,7 +89,7 @@ def setPwd(password,system=_pref._HBT_SERVER_NAME,username=_pref._HBT_SERVER_USE
     keyring.set_password(system,username,password)
     
     
-def getPwd(system=_pref._HBT_SERVER_NAME,username=_pref._HBT_SERVER_USERNAME):
+def getPwd(system=_pref._HBT_SERVER_NAME,username=_HBT_SERVER_USERNAME):
     """ 
     Returns unencrypted password
     
@@ -153,7 +155,7 @@ class scpData:
 #    def __init__(self,password=getPwd(),username=_pref._HBT_SERVER_USERNAME,
 #                 address=_pref._HBT_SERVER_ADDRESS,port=22):
                      
-    def __init__(self,password,username=_pref._HBT_SERVER_USERNAME,
+    def __init__(self,password,username=_HBT_SERVER_USERNAME,
                  address=_pref._HBT_SERVER_ADDRESS,port=22):
         from paramiko import SSHClient
         from scp import SCPClient

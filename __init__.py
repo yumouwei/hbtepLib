@@ -1,6 +1,7 @@
 
 """ 
-import module and sub-modules
+import entire module and all sub-modules
+also reloads modules and submodules
 """
 
 # contains read/write/processcp  code relating to HBT.  This code loads the majority of the code from the Tree

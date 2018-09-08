@@ -14,10 +14,3 @@ _HBT_SERVER_ADDRESS = ""
 
 # hbt server name
 _HBT_SERVER_NAME = ""
-
-# hbt server username
-_HBT_SERVER_USERNAME = ""
-
-# local directory for storing data
-_LOCAL_DATA_DIR = ""
-

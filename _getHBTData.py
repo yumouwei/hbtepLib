@@ -20,13 +20,10 @@ provided shotnos.
 import numpy as _np
 import MDSplus as _mds
 from copy import copy as _copy
-#import pickle as _pk
 import sys as _sys
 import _socket
-#import os as _os
 
 # hbtepLib libraries
-#import _rwDataTools as _rwData
 import _processData as _process
 import _plotTools as _plot
 try:
@@ -129,6 +126,7 @@ def _initRemoteMDSConnection(shotno):
     return conn
     
     
+# work in progress.  #TODO I want a function that I can call that will tell me when the latest shot number has finished recording.
 #def _shotComplete(shotno):
 #    """
 #    
@@ -201,7 +199,6 @@ def mdsData(shotno=None,
     data = [];
         
     # check if computer is located locally or remotely.  The way it connects to spitzer remotely can only use one method, but locally, either method can be used.  
-#    import socket
     if _ON_HBTEP_SERVER==True: # if operating local to the tree
         # converted from Ian's code
         
@@ -227,8 +224,8 @@ def mdsData(shotno=None,
         if type(data[0]) is _np.ndarray:
     
             time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
-
-    if time != [] and tStop!=[]:
+ 
+    if time != [] and type(tStop)!=list:
         # trim time and data
         time,data= _trimTime(time,data,tStart,tStop)
         

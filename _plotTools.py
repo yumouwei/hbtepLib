@@ -414,7 +414,12 @@ class subPlot:
 #                                       # 2) settle into a standard window size.  prev code:   figsize=(15*n, 2.5*m)
 #                                       figsize=(self.figSizeX, self.figSizeY), # units in inches.  not sure how this actually maps to a screen though since it doesn't actually measure 16 inches ...
 #                                        dpi=300); # dpi=300 is required for RSI color images
-                                    
+         
+                   
+                   
+        self.fig=fig;
+
+           
         # vertical space between sub figures
         if self.shareX==True:
             fig.subplots_adjust(hspace=0);
@@ -800,11 +805,14 @@ class subPlot:
 
         ## save figure
         if self.fileName != '':
-            fig.savefig(self.fileName+'.png')   
+            self.saveFig() 
                 
         # plot
         if plotMe==True:
             _plt.show()
+            
+    def saveFig(self):
+        self.fig.savefig(self.fileName+'.png') 
             
     def mergeSubplots(self,newSP):
         """

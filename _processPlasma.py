@@ -192,10 +192,10 @@ class langmuirProbe:
         mi=1.6737236 * 10**(-27) * 2
         
         # thermal velocity
-        vth=_np.sqrt(2*temperatureInEV*eV/mi)
+        vth=np.sqrt(2*temperatureInEV*eV/mi)
         
         # density
-        return 4*_np.abs(ionSatCurrent)/q/probeArea/vth
+        return 4*np.abs(ionSatCurrent)/q/probeArea/vth
         
         
     def plot(self):
