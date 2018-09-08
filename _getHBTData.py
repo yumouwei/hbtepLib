@@ -1964,7 +1964,7 @@ class usbSpectrometerData:
                                     dataAddress=dataAddress)
                 self.spectrometerArrayNumber.append(i)
                 self.spectrometerData.append(data[0])
-            except _mds.MdsIpException:
+            except:# _mds.MdsIpException:
                 print "usb spectrometer channel %d data does not exist for shot number %d" % (i, shotno)
         
         # get wavelength
