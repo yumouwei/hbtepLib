@@ -20,10 +20,6 @@ reload(plot)
 import _processPlasma as processPlasma
 reload(processPlasma)
 
-## old feedback tools # depricated
-#import _feedBackTools
-#reload(_feedBackTools)
-
 # misc data read/write tools
 import _rwDataTools as readWrite
 reload(readWrite)

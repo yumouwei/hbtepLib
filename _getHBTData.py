@@ -30,12 +30,12 @@ try:
     import _hbtPreferences as _pref
 except ImportError:
     _sys.exit("Code hault: _hbtPreferences.py file not found.  See readme.md" +
-    " concerning the creation of hbtPreferences.py")
+    " concerning the creation of _hbtPreferences.py")
         
         
 ###############################################################################
 ### constants
-_REMOTE_DATA_PATH='/opt/hbt/data/control'  
+#_REMOTE_DATA_PATH='/opt/hbt/data/control'  
 if _socket.gethostname()==_pref._HBT_SERVER_NAME:
     _ON_HBTEP_SERVER=True;
 else:
@@ -49,12 +49,11 @@ else:
 _TSTART = 0*1e-3;
 _TSTOP  = 10*1e-3;
 
-# list of known bad sensors.   outdated???  also note that i'm not YET doing anything with this info...
+# list of known bad sensors.   likely VERY outdated.  also note that the code does not YET do anything with this info...
 _SENSORBLACKLIST = ['PA1_S29R', 'PA1_S16P', 'PA2_S13R', 'PA2_S14P', 'PA2_S27P', 'FB03_S4R', 'FB04_S4R', 'FB08_S3P', 'FB10_S1P', 'FB04_S3P', 'FB06_S2P', 'FB08_S4P', 'TA07_S1P', 'TA02_S1P', 'TA02_S2P'];
 
 # directory where unprocessed or minimally processed data is written locally.   
-# TODO:  move to hbtPreferences.py
-_FILEDIR='/home/john/shotData/'
+#_FILEDIR='/home/john/shotData/'
 
 
 
@@ -185,10 +184,6 @@ def mdsData(shotno=None,
     time : numpy.ndarray
         time associated with data array
     """            
-    # check to see if units are in seconds and NOT in milliseconds
-#    if tStop > 1:
-#        tStart=tStart*1e-3;
-#        tStop=tStop*1e-3;
         
     # convert dataAddress to a list if it not one originally 
     if type(dataAddress) is not list:
@@ -1909,6 +1904,108 @@ class spectrometerData:
     def plot(self):
         """ Plot all relevant plots """
         self.plotOfSpect().plot()
+        
+        
+        
+class usbSpectrometerData:
+    """
+    USB spectrometer data
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    spect : numpy.ndarray
+        spectrometer current data
+    time : numpy.ndarray
+        time data
+        
+    Subfunctions
+    ------------
+    plotOfSpect : _plotTools.plot
+        plot of usb sprectrometer data
+    plotOfStripey : _plotTools.plot
+        stripey plot of usb spectrometer data
+    plot :
+        plots all relevant data
+    
+    """
+    def __init__(self,shotno=98415,plot=False):
+        self.shotno = shotno
+        self.title = "%d, USB Spectrometer Data" % shotno
+        
+        # get data
+        dataAddressRoot = '\HBTEP2::TOP.SENSORS.USB_SPECTROM:SPECTRUM_'
+        self.spectrometerArrayNumber=[]
+        self.spectrometerData=[]
+        for i in range(1,11):
+            if i < 10:
+                dataAddress='%s0%d' % (dataAddressRoot, i)
+            else:
+                dataAddress='%s%d' % (dataAddressRoot, i)
+            try:
+                data, xData=mdsData(shotno=shotno,
+                                    dataAddress=dataAddress)
+                self.spectrometerArrayNumber.append(i)
+                self.spectrometerData.append(data[0])
+            except _mds.MdsIpException:
+                print "usb spectrometer channel %d data does not exist for shot number %d" % (i, shotno)
+        
+        # get wavelength
+        yData, xData=mdsData(shotno=shotno,
+                            dataAddress='\HBTEP2::TOP.SENSORS.USB_SPECTROM:WAVELENGTH')
+        self.wavelength=yData[0]
+               
+        # plot if requested
+        if plot == True or plot=='all':
+            self.plot()
+        
+    def plotOfSpect(self):
+        # generate subplot of data
+        
+        figs=[]
+        for i in range(0,len(self.spectrometerArrayNumber)):
+            p1=_plot.plot(yLabel='Intensity',xLabel='Wavelength [nm]',
+                      subtitle='Spect. Ch. %d' % self.spectrometerArrayNumber[i],
+                      shotno=self.shotno)
+                      
+            if i==0:
+                p1.title=self.title
+                
+            p1.addTrace(yData=self.spectrometerData[i],xData=self.wavelength)
+            figs.append(p1)
+            
+        sp = _plot.subPlot(figs,plot=False)
+        return sp
+        
+    def plotOfStripey(self):
+        # generate stripey plot of data
+        p1=_plot.plot(yLabel='Channel',xLabel='Wavelength [nm]',zLabel='Intensity',
+                     plotType='contour', shotno=self.shotno,title=self.title)
+                     
+        p1.addTrace(zData=_np.array(self.spectrometerData),xData=self.wavelength,yData=_np.array(self.spectrometerArrayNumber))
+        return p1
+        
+    def plot(self):
+        """ Plot all relevant plots """
+        self.plotOfSpect().plot()
+        self.plotOfStripey().plot()
         
         
 class solData:
