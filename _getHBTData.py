@@ -730,7 +730,8 @@ class tpData:
             probes = 'tps8'
 
         # constants
-        A=1.5904e-5 #(1.5mm)^2/4*pi + pi*(3.0mm)*(1.5mm), probe area
+#        A=1.5904e-5 #(1.5mm)^2/4*pi + pi*(3.0mm)*(1.5mm), probe area
+        A = 2.0*(1.5/1000.0*3.0/1000.0)
         e=1.602e-19; # fundamental charge
         eV=1.60218e-19; # 1 eV = 1.60218e-19 joules
         M=2.014102*1.66054e-27;  # mass of ion, approx 2 amu converted to kg
@@ -762,7 +763,7 @@ class tpData:
                 self.tps5Temp[self.tps5Temp>=200]=0; # trim data over 200eV.  I trim this data because there are a few VERY high temperature points that throw off the autoscaling
                 tps5Temp=_copy(self.tps5Temp);
                 tps5Temp[tps5Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
-                self.tps5Density=self.tps5Current/(e*_np.sqrt(tps5Temp*eV/(M))*A);
+                self.tps5Density=self.tps5Current/(0.605*e*_np.sqrt(tps5Temp*eV/(M))*A);
                 self.tps5PlasmaPotential=self.tps5VFloat-self.tps5Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
     
             if probes=='both' or probes=='tps8':
@@ -788,7 +789,7 @@ class tpData:
                 self.tps8Temp[self.tps8Temp>=200]=0; # trim data over 200eV.  I trim this data because there are a few VERY high temperature points that throw off the autoscaling
                 tps8Temp=_copy(self.tps8Temp);
                 tps8Temp[tps5Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
-                self.tps8Density=self.tps8Current/(e*_np.sqrt(tps8Temp*eV/(M))*A);
+                self.tps8Density=self.tps8Current/(0.605*e*_np.sqrt(tps8Temp*eV/(M))*A);
                 self.tps8PlasmaPotential=self.tps8VFloat-self.tps8Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
                 
         else: # Shotno after 2017 summer upgrade = 97239.  TPS2 was moved to section 5.  Now, it's TPS5.
@@ -816,7 +817,7 @@ class tpData:
                 self.tps5Temp[self.tps5Temp>=200]=0; # trim data over 200eV.  I trim this data because there are a few VERY high temperature points that throw off the autoscaling
                 tps5Temp=_copy(self.tps5Temp);
                 tps5Temp[tps5Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
-                self.tps5Density=self.tps5Current/(e*_np.sqrt(tps5Temp*eV/(M))*A);
+                self.tps5Density=self.tps5Current/(0.605*e*_np.sqrt(tps5Temp*eV/(M))*A);
                 self.tps5PlasmaPotential=self.tps5VFloat-self.tps5Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
 
 #                
