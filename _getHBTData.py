@@ -788,7 +788,7 @@ class tpData:
                 self.tps8Temp=(self.tps8TipB-self.tps8TipC)/.693;
                 self.tps8Temp[self.tps8Temp>=200]=0; # trim data over 200eV.  I trim this data because there are a few VERY high temperature points that throw off the autoscaling
                 tps8Temp=_copy(self.tps8Temp);
-                tps8Temp[tps5Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
+                tps8Temp[tps8Temp<=0]=1e6; # i trim here to avoid imaginary numbers when I take the square root below
                 self.tps8Density=self.tps8Current/(0.605*e*_np.sqrt(tps8Temp*eV/(M))*A);
                 self.tps8PlasmaPotential=self.tps8VFloat-self.tps8Temp/e*_np.log(0.6*_np.sqrt(2*_np.pi*me/M))
                 
