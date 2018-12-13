@@ -717,7 +717,7 @@ class tpData:
     can still be loaded.  
     """
     
-    def __init__(self,shotno=95996,tStart=_TSTART,tStop=_TSTOP,plot=False,probes='tps5'):  #sectionNum=2,
+    def __init__(self,shotno=95996,tStart=_TSTART,tStop=_TSTOP,plot=False,probes='both'):  #sectionNum=2,
         
         self.shotno = shotno
         self.title = '%s, triple probe data' % shotno
@@ -744,10 +744,10 @@ class tpData:
                 # get data                
                 data, time=mdsData(shotno=shotno,
                               # TODO these addresses need to be updated to section 5 in the tree before they can be updated here
-                              dataAddress=['\HBTEP2::TOP.SENSORS.TRI_PROBE_S2.V_ION',
-                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_S2.V_ELEC',
-                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_S2.V_FLOAT',
-                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_S2.I_SAT'],
+                              dataAddress=['\HBTEP2::TOP.SENSORS.TRI_PROBE_S5.V_ION',
+                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_S5.V_ELEC',
+                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_S5.V_FLOAT',
+                                           '\HBTEP2::TOP.SENSORS.TRI_PROBE_S5.I_SAT'],
                               tStart=tStart, tStop=tStop)
                   
                 # raw TPS5 Data
