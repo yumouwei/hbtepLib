@@ -11,7 +11,7 @@ You can contact me, John Brooks, at <jwb2159@columbia.edu> with any questions.
 I recommend the following youtube video:
 [Git Tutorial for Beginners: Command-Line Fundamentals](https://www.youtube.com/watch?v=HVsySz-h9r4)
 
-## Installation from command line
+## Install library from command line on Ubuntu
 
 1. Make sure git is installed on your computer.  You can check by running `$ git --version`
 2. Clone the repository.  Navigate to a directory in which you want to place the library.  Then type `$ git clone https://github.com/jwbrooks0/hbtepLib`  . An hbtepLib folder should now exist there.
@@ -22,13 +22,20 @@ I recommend the following youtube video:
 
 You now have access to the library.  Make sure you watch the [Git Tutorial for Beginners: Command-Line Fundamentals](https://www.youtube.com/watch?v=HVsySz-h9r4) for instructions on how to work with the repository.  
 
+## Installation on Windows
+
+1.  Install python and whatever IDE you like.  I recommend [https://www.spyder-ide.org/](spyder).
+2.  Download the latest stable release of [http://www.mdsplus.org/index.php/Latest_Windows_Distributions](MDSplus) for Windows
+3.  At your python terminal, type `import MDSplus as mds`.  If successful, your MDSplus library is correctly installed.  
+4.  Install a git client.  The internet seems to recommend [https://www.syntevo.com/smartgit/](SmartGit). 
+5.  Clone this repository: https://github.com/jwbrooks0/hbtepLib
+6.  Add the directory containing hbtepLib to PYTHONPATH.  Spyder has a PYTHONPATH manager under tools (and restart spyder).  
+7.  At the terminal, type `import hbtepLib as hbt`.  It should give an error with something like `_hbtPreferences.py file not found` if correctly installed.  
+8.  Make a copy _hbtPreferences.template and rename it as _hbtPreferences.py.  Then fill out the variables with your details.  If you don't know what to put in these variables, please ask someone at the lab.  
+9.  At the terminal, again type  `import hbtepLib as hbt`.  There should be no error.  Then type, `hbt.get.tpData(95996,plot=True)` and you should get a plot.
+10.  Play around with autocomplete to explore the various commands within this library.  I've done a decent job commenting the various functions, so please play around with tab-auto-complete and the object inspector (renamed to 'help' recently) in Spyder.  Note that if you run the library from command line, it will work just fine, but you won't have access to tab-auto-complete and the object inspector.
 
 ## Notes
 
-You need to create a preferences.py file in the hbtep directory if you want to use this code.  This file should contain the variable:
+You need to create a preferences.py file in the hbtep directory and populate it correctly if you want to use this code locally on your computer.  Check out the instructions above.  
 
-_HBT_SERVER_ADDRESS = 'str'
-
-which points at our data server.  Because I don't wish for this address to be public knowledge, you will need to get this address from me.  This is also why preferences.py is an ignored file with the project.  
-
-When you clone the library from github, DO NOT INCLUDE www in the address.  I don't know why, but I'm not able to push if the project was setup with www in the address.  
