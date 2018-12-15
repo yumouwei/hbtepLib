@@ -39,3 +39,7 @@ You now have access to the library.  Make sure you watch the [Git Tutorial for B
 
 You need to create a preferences.py file in the hbtep directory and populate it correctly if you want to use this code locally on your computer.  Check out the instructions above.  
 
+## Tips for Spyder
+
+I like Spyder for my pthon IDE for two reasons.  1) It has tab-auto-complete of the library and sublibraries which make finding the function you want very easy.  2) It has the object inspector (now called Help) which will instantly show any documentation (instructions) associated with any command you are writing.  In my code base, I've documented a lot (but not all) of the functions in order to make them easier to use.  To make use of this second feature, I recommend going to Preferences -> Help and selecting "Automatic connections" for both "editor" and IPython-Console"
+
