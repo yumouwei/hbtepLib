@@ -11,6 +11,9 @@ You can contact me, John Brooks, at <jwb2159@columbia.edu> with any questions.
 I recommend the following youtube video:
 [Git Tutorial for Beginners: Command-Line Fundamentals](https://www.youtube.com/watch?v=HVsySz-h9r4)
 
+Also, this tutorial provides a much more thorough introduction to version control
+[Atlassian version control tutorial](https://www.atlassian.com/git/tutorials/what-is-version-control)
+
 ## Install library from command line on Ubuntu
 
 1. Make sure git is installed on your computer.  You can check by running `$ git --version`
