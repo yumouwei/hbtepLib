@@ -3090,7 +3090,7 @@ class mModeData:
     ----------
     
     """  
-    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,theta0=0,sensor='PA1'):
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,theta0=0,sensor='PA1',phaseFilter = 'gaussian'):
         self.shotno=shotno
         self.title= 'shotno = %d.  sensor = %s.  m mode analysis' % (shotno, sensor)
         
@@ -3101,9 +3101,9 @@ class mModeData:
             self._theta=data.theta
             [n,m]=_np.shape(self._data)
         if sensor=='PA2':
-            data=paData(self.shotno,tStart=tStart,tStop=tStop,sensor='PA2');
+            data=paData(self.shotno,tStart=tStart,tStop=tStop);
             self._data=data.pa2Data
-            self.time=data.time
+            self.time=data.pa2Time
             self._theta=data.theta
             [n,m]=_np.shape(self._data)
 
@@ -3125,32 +3125,34 @@ class mModeData:
         ## Solve for coefficients, x, for every time step and assign values to appropriate arrays 
         self._x=_np.zeros([11,m]);
         # self.m0Offset=_np.zeros(m)
+        self.m0Amp=_np.zeros(m)
         self.m1Amp=_np.zeros(m)
-        self.m1Phase=_np.zeros(m)
+        self.m1PhaseRaw=_np.zeros(m)
         self.m2Amp=_np.zeros(m)
-        self.m2Phase=_np.zeros(m)   
+        self.m2PhaseRaw=_np.zeros(m)   
         self.m3Amp=_np.zeros(m)
-        self.m3Phase=_np.zeros(m)     
+        self.m3PhaseRaw=_np.zeros(m)     
         self.m4Amp=_np.zeros(m)
-        self.m4Phase=_np.zeros(m)     
+        self.m4PhaseRaw=_np.zeros(m)     
         self.m5Amp=_np.zeros(m)
-        self.m5Phase=_np.zeros(m)          
+        self.m5PhaseRaw=_np.zeros(m)          
         for j in range(0,m):
             y=_np.zeros(n);
             for i in range(0,n):
                 y[i]=self._data[i][j]*1e4
             self._x[:,j]=Ainv.dot(y)
             # self.m0Offset=self.x[0,j]
+            self.m0Amp[j]=self._x[0,j]**2
             self.m1Amp[j]=_np.sqrt(self._x[1,j]**2+self._x[2,j]**2)
             self.m2Amp[j]=_np.sqrt(self._x[3,j]**2+self._x[4,j]**2)
             self.m3Amp[j]=_np.sqrt(self._x[5,j]**2+self._x[6,j]**2)
             self.m4Amp[j]=_np.sqrt(self._x[7,j]**2+self._x[8,j]**2)
             self.m5Amp[j]=_np.sqrt(self._x[9,j]**2+self._x[10,j]**2)
-            self.m1Phase[j]=_np.arctan2(self._x[1,j],self._x[2,j])
-            self.m2Phase[j]=_np.arctan2(self._x[3,j],self._x[4,j])
-            self.m3Phase[j]=_np.arctan2(self._x[5,j],self._x[6,j])
-            self.m4Phase[j]=_np.arctan2(self._x[7,j],self._x[8,j])
-            self.m5Phase[j]=_np.arctan2(self._x[9,j],self._x[10,j])
+            self.m1PhaseRaw[j]=_np.arctan2(self._x[1,j],self._x[2,j])
+            self.m2PhaseRaw[j]=_np.arctan2(self._x[3,j],self._x[4,j])
+            self.m3PhaseRaw[j]=_np.arctan2(self._x[5,j],self._x[6,j])
+            self.m4PhaseRaw[j]=_np.arctan2(self._x[7,j],self._x[8,j])
+            self.m5PhaseRaw[j]=_np.arctan2(self._x[9,j],self._x[10,j])
 #        m1PhaseUnwrapped=_process.unwrapPhase(self.m1Phase)
 #        m2PhaseUnwrapped=_process.unwrapPhase(self.m2Phase)
 #        m3PhaseUnwrapped=_process.unwrapPhase(self.m3Phase)
@@ -3159,9 +3161,46 @@ class mModeData:
         
         # TODO:  add frequency and phase data, raw and filtered
         
+        if phaseFilter == 'gaussian':
+            self.m1Phase=_process.wrapPhase(
+                            _process.convolutionSmoothing(
+                                _process.unwrapPhase(self.m1PhaseRaw),51,'gaussian'))
+            self.m2Phase=_process.wrapPhase(
+                            _process.convolutionSmoothing(
+                                _process.unwrapPhase(self.m2PhaseRaw),51,'gaussian'))
+            self.m3Phase=_process.wrapPhase(
+                            _process.convolutionSmoothing(
+                                _process.unwrapPhase(self.m3PhaseRaw),51,'gaussian'))
+            self.m4Phase=_process.wrapPhase(
+                            _process.convolutionSmoothing(
+                                _process.unwrapPhase(self.m4PhaseRaw),51,'gaussian'))
+            self.m5Phase=_process.wrapPhase(
+                            _process.convolutionSmoothing(
+                                _process.unwrapPhase(self.m5PhaseRaw),51,'gaussian'))
+        else:
+			self.m1Phase=_np.zeros(len(self.m1PhaseRaw))  
+			self.m1Phase[:]=self.m1PhaseRaw[:]
+			self.m2Phase=_np.zeros(len(self.m2PhaseRaw))  
+			self.m2Phase[:]=self.m2PhaseRaw[:]
+			self.m3Phase=_np.zeros(len(self.m3PhaseRaw))  
+			self.m3Phase[:]=self.m3PhaseRaw[:]
+			self.m4Phase=_np.zeros(len(self.m4PhaseRaw))  
+			self.m4Phase[:]=self.m4PhaseRaw[:]
+			self.m5Phase=_np.zeros(len(self.m5PhaseRaw))  
+			self.m5Phase[:]=self.m5PhaseRaw[:]
+			
+
+        self.m1Freq=_np.gradient(_process.unwrapPhase(self.m1Phase))/_np.gradient(self.time)/(2*_np.pi)        
+        self.m2Freq=_np.gradient(_process.unwrapPhase(self.m2Phase))/_np.gradient(self.time)/(2*_np.pi)        
+        self.m3Freq=_np.gradient(_process.unwrapPhase(self.m3Phase))/_np.gradient(self.time)/(2*_np.pi)        
+        self.m4Freq=_np.gradient(_process.unwrapPhase(self.m4Phase))/_np.gradient(self.time)/(2*_np.pi)        
+        self.m5Freq=_np.gradient(_process.unwrapPhase(self.m5Phase))/_np.gradient(self.time)/(2*_np.pi)        
         
+			
         if plot == True:
-            self.plotOfAmplitudes().plot()
+
+            self.plot()
+			
         elif plot == 'all':
             self.plotOfSlice(index=int(m/4)).plot();
             self.plotOfSlice(index=int(m/2)).plot();
@@ -3171,7 +3210,7 @@ class mModeData:
     def plotOfAmplitudes(self):
         # plot amplitudes
         p1=_plot.plot(title=self.title,shotno=self.shotno,
-                      xLabel='ms',yLabel='G')
+                      xLabel='ms',yLabel='G',yLim=[0,20])
         p1.addTrace(yData=self.m1Amp,xData=self.time*1000,
                    yLegendLabel=r'$|B_{pol, m=1}|$') 
         p1.addTrace(yData=self.m2Amp,xData=self.time*1000,
@@ -3183,6 +3222,57 @@ class mModeData:
         p1.addTrace(yData=self.m5Amp,xData=self.time*1000,
                    yLegendLabel=r'$|B_{pol, m=5}|$') 
         return p1
+	
+    def plotOfPhases(self):
+        # plot amplitudes
+        p1=_plot.plot(title=self.title,shotno=self.shotno,
+                      xLabel='ms',yLabel='rad')
+        p1.addTrace(yData=self.m1Phase,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=1}|$',linestyle='',marker='.')
+        p1.addTrace(yData=self.m2Phase,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=2}|$',linestyle='',marker='.')
+        p1.addTrace(yData=self.m3Phase,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=3}|$',linestyle='',marker='.')
+        p1.addTrace(yData=self.m4Phase,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=4}|$',linestyle='',marker='.')
+        p1.addTrace(yData=self.m5Phase,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=5}|$',linestyle='',marker='.')
+        return p1
+		
+    def plotOfFreqs(self):
+        # plot amplitudes
+        p1=_plot.plot(title=self.title,shotno=self.shotno,
+                      xLabel='ms',yLabel='kHz',yLim=[-20,20])
+        p1.addTrace(yData=self.m1Freq*1e-3,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=1}|$')
+        p1.addTrace(yData=self.m2Freq*1e-3,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=2}|$')
+        p1.addTrace(yData=self.m3Freq*1e-3,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=3}|$')
+        p1.addTrace(yData=self.m4Freq*1e-3,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=4}|$')
+        p1.addTrace(yData=self.m5Freq*1e-3,xData=self.time*1000,
+                   yLegendLabel=r'$|B_{pol, m=5}|$')
+        return p1
+	
+    def plot(self):
+        sp1=_plot.subPlot([self.plotOfAmplitudes(),self.plotOfPhases(),
+                           self.plotOfFreqs()],plot=False)
+#        if includeRaw==True:
+            # add phase raw data
+#            sp1.subPlots[1].addTrace(yData=self.n1PhaseRaw,
+#                                     xData=self.time*1000,
+#                                     linestyle='',
+#                                     marker='.',
+#                                     yLegendLabel='raw')
+#            
+#            # add frequency raw data
+#            sp1.subPlots[2].addTrace(yData=self.n1FreqRaw/1000.,
+#                                     xData=self.time*1000,
+#                                     yLegendLabel='raw')
+#            
+        sp1.plot()
+        return sp1
         
     # TODO:  add other plots
         
@@ -3199,6 +3289,7 @@ class mModeData:
         p1=_plot.plot(title='t=%.3f ms. %s ' % (self.time[j]*1000, self.title),
                       shotno=self.shotno)
         theta=_np.linspace(self._theta[0],self._theta[-1],100)
+#        m0Fit=self._x[0,j]
         m1Fit=self._x[0,j]+self._x[1,j]*_np.sin(theta)+self._x[2,j]*_np.cos(theta)
         m2Fit=self._x[0,j]+self._x[3,j]*_np.sin(2*theta)+self._x[4,j]*_np.cos(2*theta)
         m3Fit=self._x[0,j]+self._x[5,j]*_np.sin(3*theta)+self._x[6,j]*_np.cos(3*theta)
