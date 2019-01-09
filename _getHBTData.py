@@ -22,6 +22,7 @@ import MDSplus as _mds
 from copy import copy as _copy
 import sys as _sys
 import _socket
+import matplotlib.pyplot as _plt
 
 # hbtepLib libraries
 import _processData as _process
@@ -3314,6 +3315,58 @@ class mModeData:
         return p1
         
 
+
+def _hbtPlot(shotnos=_np.array([98147, 98148]),plot=True,bp=False,tZoom=[2e-3,4e-3],saveFig=True):
+	"""
+	This function acts similarly to hbtplot.py
+	Still under development
+	"""
+	try:
+		len(shotnos)
+	except:
+		shotnos=_np.array([shotnos])
+		
+	for i in range(0,len(shotnos)):
+		
+		shotno=shotnos[i]
+		print(str(shotno))
+		
+		subplots=[]
+		
+		
+		ip=ipData(shotno)
+		subplots.append(ip.plotOfIP())
+		
+		q=qStarData(shotno)
+		subplots.append(q.plotOfQStar())
+		
+		rad=plasmaRadiusData(shotno)
+		subplots.append(rad.plotOfMajorRadius())
+		
+		pol=paData(shotno)
+		subplots.append(pol.plotOfPA1Stripey(tZoom[0],tZoom[1]))
+		
+		mode=nModeData(shotno)
+		subplots.append(mode.plotOfN1Amp())
+		n1freq=mode.plotOfN1Freq()
+		n1freq.yLim=[-10,20]
+		subplots.append(n1freq)
+		
+		if bp==True:
+			bpIn=bpData(shotno)
+			bpIn.bps9Current*=-1
+			bpIn.bps9Voltage*=-1
+			subplots.append(bpIn.plotOfBPS9Voltage())
+			subplots.append(bpIn.plotOfBPS9Current())
+			
+		_plot.subPlot(subplots)
+	
+		if saveFig==True:
+			p=_plt.gcf()
+			p.savefig(str(shotno)+'.png')
+			_plt.close('all')
+			
+	
 ###############################################################################
 ### debugging code
 
