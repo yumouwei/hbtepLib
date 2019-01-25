@@ -533,8 +533,15 @@ class bpData:
                                tStart=tStart, tStop=tStop)
             self.bps5Voltage=data[0];
             self.bps5Current=data[1];
-            
-
+			
+        # transformer primary voltage.  first setup for shot 100505 and on.  
+        [primaryVoltage,primaryCurrent], time=mdsData(shotno=shotno,
+		                                             dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_86',
+						                                        '\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_87'],
+                                                      tStart=tStart, tStop=tStop)
+        self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
+        self.primaryCurrent=primaryCurrent*0.01**(-1) # correct for Pearson correction factor
+		
         # get gpu request voltage (for when the BP is under feedforward or feedback control)
         data, time=mdsData(shotno=shotno,
                            dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_93'],
@@ -557,8 +564,33 @@ class bpData:
         p1.addTrace(xData=self.time*1000,yData=self.bps9GPURequestVoltage,
                     yLegendLabel='BPS9')
         return p1
+	
+#    def plotOfPrimaryVoltage(self):
+#        """ 
+#        returns plot of transformer primary values
+#        (Preamp signal out from caliban)            
+#        """
+#        p1=_plot.plot(title=self.title,xLabel='ms',yLabel='V',
+#                      subtitle='Primary voltage',
+#                      shotno=self.shotno);
+#        p1.addTrace(xData=self.time*1000,yData=self.primaryVoltage,
+#                    yLegendLabel='')
+#        return p1
+#	
+#    def plotOfPrimaryCurrent(self):
+#        """ 
+#        returns plot of transformer primary values
+#        (Preamp signal out from caliban)            
+#        """
+#        p1=_plot.plot(title=self.title,xLabel='ms',yLabel='A',
+#                      subtitle='Primary current',
+#                      shotno=self.shotno);
+#        p1.addTrace(xData=self.time*1000,yData=self.primaryCurrent,
+#                    yLegendLabel='')
+#        return p1
         
-    def plotOfVoltage(self):
+        
+    def plotOfVoltage(self,primary=False):
         """ 
         returns plot of BP voltage          
         """
@@ -569,10 +601,13 @@ class bpData:
                     yLegendLabel='BPS9')
         p1.addTrace(xData=self.time*1000,yData=self.bps5Voltage,
                     yLegendLabel='BPS2')
+        if primary==True:
+            p1.addTrace(xData=self.time*1000,yData=self.primaryVoltage,
+                    yLegendLabel='Primary')
         
         return p1
         
-    def plotOfCurrent(self):
+    def plotOfCurrent(self,primary=False):
         """ 
         returns plot of BP current         
         """
@@ -583,6 +618,9 @@ class bpData:
                     yLegendLabel='BPS9')
         p1.addTrace(xData=self.time*1000,yData=self.bps5Current,
                     yLegendLabel='BPS2')
+        if primary==True:
+            p1.addTrace(xData=self.time*1000,yData=self.primaryCurrent,
+                    yLegendLabel='Primary')
         
         return p1
             
@@ -617,7 +655,7 @@ class bpData:
         if plotAll==False:
             sp1=_plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent()])
         else:
-            sp1=_plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent(),self.plotOfGPUVoltageRequest()])
+            sp1=_plot.subPlot([self.plotOfVoltage(True),self.plotOfCurrent(True),self.plotOfGPUVoltageRequest()])
         return sp1
         
     
