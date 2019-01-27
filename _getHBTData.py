@@ -476,7 +476,7 @@ class bpData:
                                             '\HBTEP2::TOP.SENSORS.BIAS_PROBE_9:CURRENT'],
                                tStart=tStart, tStop=tStop)
             self.bps9Voltage=data[0];
-            self.bps9Current=data[1]*-1; # signs are flipped somewhere
+            self.bps9Current=data[1];#r*-1; # signs are flipped somewhere
             self.time=time;
             
             # get current data
@@ -541,6 +541,7 @@ class bpData:
                                                       tStart=tStart, tStop=tStop)
         self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
         self.primaryCurrent=primaryCurrent*0.01**(-1) # correct for Pearson correction factor
+        self.primaryCurrent*=-1; #the sign is wrong.  
 		
         # get gpu request voltage (for when the BP is under feedforward or feedback control)
         data, time=mdsData(shotno=shotno,
@@ -594,7 +595,7 @@ class bpData:
         """ 
         returns plot of BP voltage          
         """
-        p1=_plot.plot(title=self.title,yLim=[-200,200],yLabel='V',
+        p1=_plot.plot(title=self.title,yLabel='V', #yLim=[-200,200]
                       xLabel='Time [ms]',subtitle='BP Voltage',
                       shotno=[self.shotno]);
         p1.addTrace(xData=self.time*1000,yData=self.bps9Voltage,
@@ -1665,10 +1666,13 @@ class taData:
         self.namesTARad=['TA01_S2R', 'TA02_S2R', 'TA03_S2R', 'TA04_S2R', 'TA05_S2R', 'TA06_S2R', 'TA07_S2R', 'TA08_S2R', 'TA09_S2R', 'TA10_S2R']
         
         # toroidal locations for the poloidal measurements
-        self.phi=_np.pi/180.*_np.array([-117., -108.,  -99.,  -81.,  -72.,  -63.,  -45.,  -36.,  -27.,  -9.,    0.,    9.,   27.,   36.,   45.,   63.,   72.,   81.,   99.,  108.,  117.,  135.,  144.,  153.,  171.,  180.,  189.,    207.,  216.,  225.])    
+        self.phi=_np.pi/180.*_np.array([241.5,250.5,259.5,277.5,286.5,295.5,313.5,322.5,331.5,349.5,358.5,7.5,25.5,34.5,43.5,61.5,70.5,79.5,97.5,106.5,115.5,133.5,142.5,151.5,169.5,178.5,187.5,205.5,214.5,223.5])    
         
-        # toroidal locations for the radial measurements
-        self.phiR=_np.pi/180.*_np.array([-108.,  -72.,  -36.,    0.,   36.,   72.,  108.,  144.,  180.,  216.])
+        # poloidal locations of sensors
+        self.theta=_np.ones(len(self.phi))*189*_np.pi/180
+        
+#        # toroidal locations for the radial measurements
+#        self.phiR=_np.pi/180.*_np.array([-108.,  -72.,  -36.,    0.,   36.,   72.,  108.,  144.,  180.,  216.])
         
         # compile full sensor addresses names
         taPolSensorAddresses=[]
