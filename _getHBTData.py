@@ -542,6 +542,7 @@ class bpData:
         self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
         self.primaryCurrent=primaryCurrent*0.01**(-1) # correct for Pearson correction factor
         self.primaryCurrent*=-1; #the sign is wrong.  
+        self.primaryVoltage*=-1; #the sign is wrong.  
 		
         # get gpu request voltage (for when the BP is under feedforward or feedback control)
         data, time=mdsData(shotno=shotno,
@@ -1406,15 +1407,17 @@ class fbData:
         self.fbRadNames=[['FB01_S1R', 'FB02_S1R', 'FB03_S1R', 'FB04_S1R', 'FB05_S1R', 'FB06_S1R', 'FB07_S1R', 'FB08_S1R', 'FB09_S1R', 'FB10_S1R'], ['FB01_S2R', 'FB02_S2R', 'FB03_S2R', 'FB04_S2R', 'FB05_S2R', 'FB06_S2R', 'FB07_S2R', 'FB08_S2R', 'FB09_S2R', 'FB10_S2R'], ['FB01_S3R', 'FB02_S3R', 'FB03_S3R', 'FB04_S3R', 'FB05_S3R', 'FB06_S3R', 'FB07_S3R', 'FB08_S3R', 'FB09_S3R', 'FB10_S3R'], ['FB01_S4R', 'FB02_S4R', 'FB03_S4R', 'FB04_S4R', 'FB05_S4R', 'FB06_S4R', 'FB07_S4R', 'FB08_S4R', 'FB09_S4R', 'FB10_S4R']]
         
         # sensor, toroidal location
-        self.phi=_np.pi/180.*_np.array([242.5-360, 278.5-360, 314.5-360, 350.5-360, 26.5, 62.5, 98.5, 134.5, 170.5, 206.5]);#*_np.pi/180.
-        
-        ## compile full sensor addresses 
+#        self.phi=_np.pi/180.*_np.array([242.5-360, 278.5-360, 314.5-360, 350.5-360, 26.5, 62.5, 98.5, 134.5, 170.5, 206.5]);#*_np.pi/180.
+        phi=_np.pi/180.*_np.array([241,277,313,349,25,61, 97,133,169,205])
+        self.phi=_np.array([phi,phi,phi,phi])
+        self.theta=_np.pi/180.*_np.array([_np.ones(10)*(360-83.4),_np.ones(10)*(360-29.3),_np.ones(10)*83.4,_np.ones(10)*29.3])
+		
+        ## construct full sensor addresses 
         fbPolSensorAddresses=[[],[],[],[]]
         fbRadSensorAddresses=[[],[],[],[]]   
         rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
         for j in range(0,4):
             for i in range(0,10):
-                
                 fbPolSensorAddresses[j].append(rootAddress+self.fbPolNames[j][i])
                 fbRadSensorAddresses[j].append(rootAddress+self.fbRadNames[j][i])
         
@@ -1492,7 +1495,7 @@ class fbData:
                       xLabel='Time [ms]', yLabel='phi [rad]',zLabel='Gauss',
                       plotType='contour',colorMap=_plot._red_green_colormap(),
                       centerColorMapAroundZero=True)
-        p1.addTrace(self.fbPolTime[iStart:iStop]*1e3,self.phi,
+        p1.addTrace(self.fbPolTime[iStart:iStop]*1e3,self.phi[0],
                     zData=_np.array(data))
         return p1
 
