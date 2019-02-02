@@ -542,7 +542,7 @@ class bpData:
         self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
         self.primaryCurrent=primaryCurrent*0.01**(-1) # correct for Pearson correction factor
         self.primaryCurrent*=-1; #the sign is wrong.  
-        self.primaryVoltage*=-1; #the sign is wrong.  
+#        self.primaryVoltage*=-1; #the sign is wrong.  
 		
         # get gpu request voltage (for when the BP is under feedforward or feedback control)
         data, time=mdsData(shotno=shotno,
@@ -1140,7 +1140,6 @@ class paData:
         p1.addTrace(self.pa2Time[iStart:iStop]*1e3,self.theta,
                     data)
         return p1
-            
 
     def plotOfPA1(self, i=0, alsoPlotRawAndFit=True):
         """ Plot one of the PA1 plots.  based on index, i. """
@@ -1372,8 +1371,10 @@ class fbData:
         name of every poloidal FB sensor
     fbRadNames : 2D list (of str)
         name of every radial FB sensor
-    phi : numpy.ndarray
+    phi : 2D numpy.ndarray
         toroidal locations for all sensors.  units in radians.
+    theta : 2D numpy.ndarray
+        poloidal locations for all sensors.  units in radians.
     fbPolRaw : 2D list (of numpy.ndarray)
         raw FB-poloidal data
     fbRadRaw : 2D list (of numpy.ndarray)
@@ -1782,7 +1783,7 @@ class taData:
         sp1.plot()
   
 
-class externalRogowskiData:
+class quartzJumperData:
     """
     External rogowski data
     
@@ -1850,6 +1851,7 @@ class externalRogowskiData:
         self.eRogC=data[2];
         self.eRogD=data[3];
         self.time=time;
+        self.sensorLocations=['A. Off (Section 9-10)','B. Section 3-4','C. Section 10-1','D. Off']
         
         if plot == True:
             self.plot()
@@ -1859,7 +1861,7 @@ class externalRogowskiData:
         p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
                       shotno=self.shotno)
         p1.addTrace(yData=self.eRogA,xData=self.time*1000,
-                    yLegendLabel='Ext. Rog. A') 
+                    yLegendLabel=self.sensorLocations[0]) 
         return p1
     
     def plotOfERogB(self):
@@ -1867,7 +1869,7 @@ class externalRogowskiData:
         p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
                       shotno=self.shotno)
         p1.addTrace(yData=self.eRogB,xData=self.time*1000,
-                    yLegendLabel='Ext. Rog. B') 
+                    yLegendLabel=self.sensorLocations[1]) 
         return p1
     
     def plotOfERogC(self):
@@ -1875,7 +1877,7 @@ class externalRogowskiData:
         p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
                       shotno=self.shotno)
         p1.addTrace(yData=self.eRogC,xData=self.time*1000,
-                    yLegendLabel='Ext. Rog. C') 
+                    yLegendLabel=self.sensorLocations[2]) 
         return p1
         
     def plotOfERogD(self):
@@ -1883,7 +1885,7 @@ class externalRogowskiData:
         p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
                       shotno=self.shotno)
         p1.addTrace(yData=self.eRogD,xData=self.time*1000,
-                    yLegendLabel='Ext. Rog. D') 
+                    yLegendLabel=self.sensorLocations[3]) 
         return p1
         
     def plotOfERogAll(self):        
@@ -2081,6 +2083,10 @@ class solData:
     plot : bool
         plots all relevant plots if true
         default is False
+    numPointsForSmothing : int
+        number of points to be used in removing the offset.  Note that 
+        numPointsForSmothing is effectively a high pass filter. the smaller the 
+        value, the more aggressive the filter is on high frequencies.
         
     Attributes
     ----------
@@ -2091,7 +2097,11 @@ class solData:
     sensorNames : list (of str)
         names of each SOL sensor
     solData : list (of numpy.ndarray)
-        SOL sensor data
+        SOL sensor data with offset subtracted
+    solFitData : list (of numpy.ndarray)
+        Fits that was used to remove the offset
+    solDataRaw : list (of numpy.ndarray)
+        Raw SOL data (prior to offset subtraction)
     time : numpy.ndarray
         time data
         
@@ -2103,145 +2113,112 @@ class solData:
         plots all SOL data
     
     """
-    def __init__(self,shotno=98030,tStart=_TSTART,tStop=_TSTOP,plot=False):
+    def __init__(self,shotno=98030,tStart=_TSTART,tStop=_TSTOP,plot=False,
+            numPointsForSmothing=201):
+        # note that numPointsForSmothing is effectively a high pass filter.
+        # the larger the value, the more aggressive the filter is on high frequencies.
+
+        # initialize
         self.shotno = shotno
         self.title = "shotno = %d, SOL Data" % shotno
         self.sensorNames = ['LFS01_S1', 'LFS01_S2', 'LFS01_S3', 'LFS01_S4', 'LFS01_S5', 'LFS01_S6', 'LFS01_S7', 'LFS01_S8', 'LFS04_S1', 'LFS04_S2', 'LFS04_S3', 'LFS04_S4', 'LFS08_S1', 'LFS08_S2', 'LFS08_S3', 'LFS08_S4', 'LFS08_S5', 'LFS08_S6', 'LFS08_S7', 'LFS08_S8']
-
+        sensorPathRoot='\HBTEP2::TOP.SENSORS.SOL:'
+		
         # compile list of sensor addresses for all 20 SOL tiles
         sensorAddress=[]
         for i in range(0,len(self.sensorNames)):
-            sensorAddress.append('\HBTEP2::TOP.SENSORS.SOL:%s' % self.sensorNames[i]) 
+            sensorAddress.append(sensorPathRoot+'%s' % self.sensorNames[i]) 
             
-        # get data
-        self.solData, self.time=mdsData(shotno=shotno,
+        # get raw data from the tree
+        self.solDataRaw, self.time=mdsData(shotno=shotno,
                               dataAddress=sensorAddress,
                               tStart=tStart, tStop=tStop)
                               
         # subtract offset from sensors
         self.solDataFit=[]
-        self.solDataMinusOffset=[]
+        self.solData=[]
         for i in range(0,len(self.sensorNames)):
-            self.solDataFit.append(_process.convolutionSmoothing(self.solData[i],
-                                                                 1000,'normal'))
-            self.solDataMinusOffset.append(self.solData[i]-self.solDataFit[i])
-                              
+            self.solDataFit.append(_process.convolutionSmoothing(self.solDataRaw[i],
+                                                                 numPointsForSmothing,
+														 'normal'))
+            self.solData.append(self.solDataRaw[i]-self.solDataFit[i])
+                        
+        # optional plotting    
         if plot == True:
             self.plot()
         if plot == 'all':
-            self.plot(True)
-            
-        self.sensorAddress=sensorAddress
+            self.plot('all')
                               
-    def plotOfSingleSensorRaw(self,index): #name='LFS01_S1'
-        """ returns plot of a single sol sensor """
+    def plotOfSingleSensor(self,index,plot='all'): #name='LFS01_S1'
+        """ 
+        Returns plot of a single sol sensor.  Plots raw, fit, and smoothed
+        """
         p1=_plot.plot(yLabel='V',xLabel='time [ms]',
                       subtitle=self.sensorNames[index],title=self.title,
                       shotno=self.shotno)
-        p1.addTrace(yData=self.solData[index],xData=self.time*1000,
-                    yLegendLabel=self.sensorNames[index]+' Raw') 
+        if plot=='all' or plot=='raw':
+	        p1.addTrace(yData=self.solDataRaw[index],xData=self.time*1000,
+	                    yLegendLabel=self.sensorNames[index]+' Raw')
+        if plot=='all' or plot=='fit': 
+	        p1.addTrace(yData=self.solDataFit[index],xData=self.time*1000,
+	                    yLegendLabel=self.sensorNames[index]+' Fit') 
+        if plot=='all' or plot=='smoothed' or plot=='smoothedOnly': 
+	        p1.addTrace(yData=self.solData[index],xData=self.time*1000,
+	                    yLegendLabel=self.sensorNames[index]+' Without Offset') 
         return p1
-        
-    def plotOfSingleSensorOffset(self,index,plotAll=False):
-        p1=_plot.plot(yLabel='V',xLabel='time [ms]',
-                      subtitle=self.sensorNames[index],title=self.title,
-                      shotno=self.shotno)
-        p1.addTrace(yData=self.solDataMinusOffset[index],xData=self.time*1000,
-                    yLegendLabel=self.sensorNames[index]+' MinusOffset') 
-        if plotAll==True: 
-            p1.addTrace(yData=self.solData[index],xData=self.time*1000,
-                        yLegendLabel=self.sensorNames[index]+' Raw') 
-            p1.addTrace(yData=self.solDataFit[index],xData=self.time*1000,
-                        yLegendLabel=self.sensorNames[index]+' Fit') 
-        return p1
-            
                 
-    def plotOfLFS01Contour(self,tStart=2e-3,tStop=4e-3):
+    def plotOfContour(self,tStart=2e-3,tStop=4e-3,section='LFS01'):
         """ 
         contour plot of LFS01 Data
         """
         iStart=_process.findNearest(self.time,tStart)
         iStop=_process.findNearest(self.time,tStop)
-        p1=_plot.plot(title=self.title,subtitle='LFS01 SOL sensors',
+        p1=_plot.plot(title=self.title,subtitle=section+' SOL sensors',
                       xLabel='Time [ms]', yLabel='phi [rad]',zLabel='A',
                       plotType='contour')
-        data=self.solDataMinusOffset[0:8]
+        if section=='LFS01':
+            data=self.solData[0:8]
+        elif section=='LFS04':
+            data=self.solData[8:12]
+        elif section=='LFS08':
+            data=self.solData[12:20]
+        elif section=='all':
+            data=self.solData[0:20]
+			
         for i in range(0,len(data)):
             data[i]=data[i][iStart:iStop]
-        p1.addTrace(self.time[iStart:iStop]*1e3,_np.arange(0,8),data)
+#        return data
+        p1.addTrace(self.time[iStart:iStop]*1e3,_np.arange(0,8),_np.array(data))
         return p1
         
-    def plot(self,plotRaw=True,plotOffset=True,plotAll=False,includeBP=True):
+    def plot(self,plot='smoothedOnly',includeBP=True):
         """ plots all 20 sol sensor currents on three plots """
 
-        count=0
+        if plot=='all':
+			for j in range(0,20):
+				    p1=self.plotOfSingleSensor(j,'all').plot()
+ 
+        else:
+	        for j in range(0,8):
+				print j
+				if j==0:
+				    p1=self.plotOfSingleSensor(j,plot) 
+				    p3=self.plotOfSingleSensor(12+j,plot) 
+				    if j<4:
+				        p2=self.plotOfSingleSensor(8+j,plot) 
+				else:
+				    p1.mergePlots(self.plotOfSingleSensor(j,plot))
+				    p3.mergePlots(self.plotOfSingleSensor(12+j,plot))
+				    if j<4:
+				        p2.mergePlots(self.plotOfSingleSensor(8+j,plot)) 	
+	        p1.subtitle='Section 1 SOL Sensors'	
+	        p2.subtitle='Section 4 SOL Sensors'	
+	        p3.subtitle='Section 8 SOL Sensors'			
+	        return _plot.subPlot([p1,p2,p3],plot=True)
+		
+
         
-        for j in range(0,8):
-            if j==0:
-                if plotRaw:
-                    p1=self.plotOfSingleSensorRaw(count) #name=self.sensorNames[count]
-                if plotOffset:
-                    p2=self.plotOfSingleSensorOffset(count,plotAll) 
-            else:
-                if plotRaw:
-                    p1.mergePlots(self.plotOfSingleSensorRaw(count) )
-                if plotOffset:
-                    p2.mergePlots(self.plotOfSingleSensorOffset(count,plotAll) )
-            count+=1;
-            
-        for j in range(0,4):
-            if j==0:
-                if plotRaw:
-                    p3=self.plotOfSingleSensorRaw(count) #name=self.sensorNames[count]
-                if plotOffset:
-                    p4=self.plotOfSingleSensorOffset(count,plotAll) 
-            else:
-                if plotRaw:
-                    p3.mergePlots(self.plotOfSingleSensorRaw(count) )
-                if plotOffset:
-                    p4.mergePlots(self.plotOfSingleSensorOffset(count,plotAll) )
-            count+=1;
-            
-        for j in range(0,8):
-            if j==0:
-                if plotRaw:
-                    p5=self.plotOfSingleSensorRaw(count) #name=self.sensorNames[count]
-                if plotOffset:
-                    p6=self.plotOfSingleSensorOffset(count,plotAll) 
-            else:
-                if plotRaw:
-                    p5.mergePlots(self.plotOfSingleSensorRaw(count) )
-                if plotOffset:
-                    p6.mergePlots(self.plotOfSingleSensorOffset(count,plotAll) )
-            count+=1;
-            
-        subplots=[]
-        if plotRaw:
-            p1.subtitle='LFS01'
-            p3.subtitle='LFS04'
-            p5.subtitle='LFS08'
-            p1.title='Raw SOL currents'
-            sp1=_plot.subPlot([p1,p3,p5],plot=False)
-#            sp1.shareY=True;
-            if includeBP == True:
-                a=bpData(self.shotno,self.time[0],self.time[-1])
-                sp1.subPlots.append(a.plotOfBPS9Current())
-            sp1.plot()
-            subplots.append(sp1)
-        if plotOffset:
-            p2.subtitle='LFS01'
-            p4.subtitle='LFS04'
-            p6.subtitle='LFS08'
-            p2.title='Zero Offset SOL currents'
-            sp2=_plot.subPlot([p2,p4,p6],plot=False)
-#            sp2.shareY=True;
-            if includeBP == True:
-                a=bpData(self.shotno,self.time[0],self.time[-1])
-                sp2.subPlots.append(a.plotOfBPS9Current())
-            sp2.plot()
-            subplots.append(sp2)
-        return subplots
-        
+	
 class loopVoltageData:
     """
     loo voltage data
@@ -3424,7 +3401,7 @@ def _debugPlotExamplesOfAll():
     bpData(plot=True)
     capBankData(plot=True)
     cos1RogowskiData(plot=True)
-    externalRogowskiData(plot=True)
+    quartzJumperData(plot=True)
     fbData(plot=True)
     ipData(plot=True)
     loopVoltageData(plot=True)
