@@ -1030,28 +1030,41 @@ class paData:
     plotOfPA2 : 
         returns plot of PA2 sensor based on the provided index
     plot :
-        plots all relevant plots        
+        plots all relevant plots    
+		
+		
+    Notes
+    -----
+    'PA2_S14P' is a known bad sensor
 
     """
     
     def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
-                 smoothingAlgorithm='tripleBoxCar'):
+                 smoothingAlgorithm='tripleBoxCar',removeBadSensors=True):
         self.shotno = shotno
         self.title = '%d, PA sensors' % shotno
         
         # poloidal location (in degrees)
-        self.theta = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
+        self.thetaPA1 = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
+        self.thetaPA2 = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
         
         # sensor names
         self.namesPA1=_np.array([   'PA1_S01P', 'PA1_S02P', 'PA1_S03P', 'PA1_S04P', 'PA1_S05P', 'PA1_S06P', 'PA1_S07P', 'PA1_S08P', 'PA1_S09P', 'PA1_S10P', 'PA1_S11P', 'PA1_S12P', 'PA1_S13P', 'PA1_S14P', 'PA1_S15P', 'PA1_S16P', 'PA1_S17P', 'PA1_S18P', 'PA1_S19P', 'PA1_S20P', 'PA1_S21P', 'PA1_S22P', 'PA1_S23P', 'PA1_S24P', 'PA1_S25P', 'PA1_S26P', 'PA1_S27P', 'PA1_S28P', 'PA1_S29P', 'PA1_S30P', 'PA1_S31P', 'PA1_S32P'])
         self.namesPA2=_np.array([   'PA2_S01P', 'PA2_S02P', 'PA2_S03P', 'PA2_S04P', 'PA2_S05P', 'PA2_S06P', 'PA2_S07P', 'PA2_S08P', 'PA2_S09P', 'PA2_S10P', 'PA2_S11P', 'PA2_S12P', 'PA2_S13P', 'PA2_S14P', 'PA2_S15P', 'PA2_S16P', 'PA2_S17P', 'PA2_S18P', 'PA2_S19P', 'PA2_S20P', 'PA2_S21P', 'PA2_S22P', 'PA2_S23P', 'PA2_S24P', 'PA2_S25P', 'PA2_S26P', 'PA2_S27P', 'PA2_S28P', 'PA2_S29P', 'PA2_S30P', 'PA2_S31P', 'PA2_S32P'])
 
+
+        if removeBadSensors==True:
+			iBad=_np.where(self.namesPA2=='PA2_S14P')
+			self.namesPA2=_np.delete(self.namesPA2,iBad)
+			self.thetaPA2=_np.delete(self.thetaPA2,iBad)
+
         # compile full sensor addresses names
         pa1SensorAddresses=[]
         pa2SensorAddresses=[]        
         rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
-        for i in range(0,32):
+        for i in range(0,len(self.namesPA1)):
             pa1SensorAddresses.append(rootAddress+self.namesPA1[i])
+        for i in range(0,len(self.namesPA2)):
             pa2SensorAddresses.append(rootAddress+self.namesPA2[i])
             
         # get raw data
@@ -1063,15 +1076,17 @@ class paData:
         self.pa1RawFit=[]
         self.pa2Data=[]
         self.pa2RawFit=[]
+		
         if smoothingAlgorithm=='tripleBoxCar':
             # jeff's triple boxcar smoothing
-            for i in range(0,32):
+            for i in range(0,len(self.namesPA1)):
                 temp=_process.convolutionSmoothing(self.pa1Raw[i][:],101,'box')
                 temp=_process.convolutionSmoothing(temp,101,'box')
                 temp=_process.convolutionSmoothing(temp,21,'box')
                 self.pa1RawFit.append(temp)
                 self.pa1Data.append(self.pa1Raw[i]-temp)
-                
+				
+            for i in range(0,len(self.namesPA2)):                
                 temp=_process.convolutionSmoothing(self.pa2Raw[i][:],101,'box')
                 temp=_process.convolutionSmoothing(temp,101,'box')
                 temp=_process.convolutionSmoothing(temp,21,'box')
@@ -1082,8 +1097,8 @@ class paData:
             numbers=_process.extractIntsFromStr(smoothingAlgorithm);
             order=numbers[0]
             print "%d order polynomial smoothing" % order
-#        elif smoothingAlgorithm=='3rdOrderPoly':
-            for i in range(0,32):
+			
+            for i in range(0,len(self.namesPA1)):
                 time,data=_trimTime(self.pa1Time,self.pa1Raw[i],self.pa1Time[0],self.pa1Time[-1])
                 fit=_process.polyFitData(self.pa1Raw[i],self.pa1Time,order=order,plot=False)
                 ffit = _np.poly1d(fit.coefs)
@@ -1091,17 +1106,11 @@ class paData:
                 
                 self.pa1RawFit.append(fitData)
                 self.pa1Data.append(self.pa1Raw[i]-fitData)
-                
-                
-#        elif smoothingAlgorithm=='4thOrderPoly':
-#            for i in range(0,32):
-#                time,data=_trimTime(self.pa1Time,self.pa1Raw[i],self.pa1Time[0],self.pa1Time[-1])
-#                fit=_process.polyFitData(self.pa1Raw[i],self.pa1Time,order=4,plot=False)
-#                ffit = _np.poly1d(fit.coefs)
-#                fitData=ffit(self.pa1Time)
-#                
-#                self.pa1RawFit.append(fitData)
-#                self.pa1Data.append(self.pa1Raw[i]-fitData)
+                # TODO(John) add pa2 Data for this fit
+				
+        elif 'GuassianConvolution' in smoothingAlgorithm:
+			print("Not working yet...")
+			# TODO(John) implement
                 
         else:
             _sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
@@ -1120,7 +1129,7 @@ class paData:
                       xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
                       plotType='contour',colorMap=_plot._red_green_colormap(),
                       centerColorMapAroundZero=True)
-        data=self.pa1Data[0:32]
+        data=self.pa1Data[0:len(self.namesPA1)]
         for i in range(0,len(data)):
             data[i]=data[i][iStart:iStop]*1e4
         p1.addTrace(self.pa1Time[iStart:iStop]*1e3,self.theta,
@@ -1134,7 +1143,7 @@ class paData:
                       xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
                       plotType='contour',
                       centerColorMapAroundZero=True)
-        data=self.pa2Data[0:32]
+        data=self.pa2Data[0:len(self.namesPA2)]
         for i in range(0,len(data)):
             data[i]=data[i][iStart:iStop]*1e4
         p1.addTrace(self.pa2Time[iStart:iStop]*1e3,self.theta,
@@ -1195,15 +1204,23 @@ class paData:
                 newPlot.subtitle=self.namesPA1[count]
                 newPlot.yLegendLabel=[]
                 sp1[i].append(newPlot)
-                
-                if plotAll==True:
-                    newPlot=self.plotOfPA2(count,alsoPlotRawAndFit=True)
+
+        k=0
+        for i in range(0,4):
+            for j in range(0,8):
+                k=i*8+j*1
+                print("i %d, j %d, k %d"%(i,j,k))
+                if k>=len(self.namesPA2):
+                    newPlot=_plot.plot()
                 else:
-                    newPlot=self.plotOfPA2(count,alsoPlotRawAndFit=False)
-                newPlot.subtitle=self.namesPA2[count]
-                newPlot.yLegendLabel=[]
-                sp2[i].append(newPlot)
-                count+=1;
+	                if plotAll==True:
+	                    newPlot=self.plotOfPA2(count,alsoPlotRawAndFit=True)
+	                else:
+	                    newPlot=self.plotOfPA2(count,alsoPlotRawAndFit=False)
+	                newPlot.subtitle=self.namesPA2[count]
+	                newPlot.yLegendLabel=[]
+	                sp2[i].append(newPlot)
+	                count+=1;
         sp1[0][0].title=self.title
         sp2[0][0].title=self.title
         sp1=_plot.subPlot(sp1,plot=False)
