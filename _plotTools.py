@@ -733,18 +733,18 @@ class subPlot:
 #                ax.locator_params(nbins=3)
                 ax.locator_params(axis='x', nbins=6)
                     
-                ## hide the top y tick label on each subplot
-                if j!=0: 
-                    ax.get_yticklabels()[-1].set_visible(False)
+#                ## hide the top y tick label on each subplot
+#                if j!=0: 
+#                    ax.get_yticklabels()[-1].set_visible(False)
                     
-                # temporary hack for a particular plot...  delete me
-#                if ax.publication==True:
-                if j==2:
-                    ax.get_yticklabels()[-2].set_visible(False)
+#                # temporary hack for a particular plot...  delete me
+##                if ax.publication==True:
+#                if j==2:
+#                    ax.get_yticklabels()[-2].set_visible(False)
                     
-                ## hide the right-most x tick label on each subplot
-                if i!=n-1: 
-                    ax.get_xticklabels()[-1].set_visible(False)
+#                ## hide the right-most x tick label on each subplot
+#                if i!=n-1: 
+#                    ax.get_xticklabels()[-1].set_visible(False)
                     
                 ## create x label 
                 if data.xLabel != []:
