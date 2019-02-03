@@ -2862,7 +2862,7 @@ class nModeData:
                         smoothingAlgorithm=smoothingAlgorithm);  # asking for an extra half millisecond (see Notes above) 
             data=temp.fbPolData[3]  ## top toroidal array = 0, bottom = 3
             self.time=temp.fbPolTime
-            phi=temp.phi
+            phi=temp.phi[0,:]
             [n,m]=_np.shape(data)
         self._data=data
         self._phi=phi
