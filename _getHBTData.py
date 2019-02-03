@@ -2711,6 +2711,7 @@ class qStarData:
         
         # calc q star
         self.qStar= plasmaRadius.minorRadius**2 * tfProbeData / (2e-7 * ip.ip * plasmaRadius.majorRadius)
+        self.qStarCorrected=self.qStar*(1.1) # 10% correction factor.  jeff believes our qstar measurement might be about 10% too low.  
         self.time=ip.time
         
         if plot == True:
