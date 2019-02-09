@@ -1036,6 +1036,7 @@ class paData:
     Notes
     -----
     'PA2_S14P' is a known bad sensor
+	pa1_s16 ???
 
     """
     
@@ -1045,8 +1046,10 @@ class paData:
         self.title = '%d, PA sensors' % shotno
         
         # poloidal location (in degrees)
-        self.thetaPA1 = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
-        self.thetaPA2 = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
+#        self.thetaPA1 = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
+#        self.thetaPA2 = _np.array([    5.625,      16.875,     28.125,     39.375,     50.625,     61.875,     73.125,     84.375,     95.625,     106.875,    118.125,    129.375,    140.625,    151.875,    163.125,    174.375,    185.625,    196.875,    208.125,    219.375,    230.625,    241.875,    253.125,    264.375,    275.625,    286.875,    298.125,    309.375,    320.625,    331.875,    343.125,    354.375])*_np.pi/180.
+        self.thetaPA1 =_np.array([-174.74778518, -164.23392461, -153.66901098, -143.01895411,       -132.24974382, -121.3277924 , -110.22067715,  -98.93591492,        -87.23999699,  -75.60839722,  -63.97679673,  -52.34519359,        -40.71359604,  -29.08199717,  -17.45039318,   -5.81879416,          5.81280487,   17.44440438,   29.07600466,   40.70760263,         52.33920936,   63.97080017,   75.60240749,   87.23400093,         98.93591492,  110.22067715,  121.3277924 ,  132.24974382,        143.01895411,  153.66901098,  164.23392461,  174.74778518])*_np.pi/180.
+        self.thetaPA2 =_np.array([-174.74778518, -164.23392461, -153.66901098, -143.01895411,       -132.24974382, -121.3277924 , -110.22067715,  -98.93591492,        -87.23999699,  -75.60839722,  -63.97679673,  -52.34519359,        -40.71359604,  -29.08199717,  -17.45039318,   -5.81879416,          5.81280487,   17.44440438,   29.07600466,   40.70760263,         52.33920936,   63.97080017,   75.60240749,   87.23400093,         98.93591492,  110.22067715,  121.3277924 ,  132.24974382,        143.01895411,  153.66901098,  164.23392461,  174.74778518])*_np.pi/180.
         
         # sensor names
         self.namesPA1=_np.array([   'PA1_S01P', 'PA1_S02P', 'PA1_S03P', 'PA1_S04P', 'PA1_S05P', 'PA1_S06P', 'PA1_S07P', 'PA1_S08P', 'PA1_S09P', 'PA1_S10P', 'PA1_S11P', 'PA1_S12P', 'PA1_S13P', 'PA1_S14P', 'PA1_S15P', 'PA1_S16P', 'PA1_S17P', 'PA1_S18P', 'PA1_S19P', 'PA1_S20P', 'PA1_S21P', 'PA1_S22P', 'PA1_S23P', 'PA1_S24P', 'PA1_S25P', 'PA1_S26P', 'PA1_S27P', 'PA1_S28P', 'PA1_S29P', 'PA1_S30P', 'PA1_S31P', 'PA1_S32P'])
@@ -1210,7 +1213,10 @@ class paData:
             for j in range(0,8):
                 k=i*8+j*1
                 print("i %d, j %d, k %d"%(i,j,k))
+				
+                # check to see if all 32 sensors are present
                 if k>=len(self.namesPA2):
+                    # and create an empty plot if not
                     newPlot=_plot.plot()
                 else:
 	                if plotAll==True:
@@ -1414,11 +1420,15 @@ class fbData:
         returns plot of a specified radial sensor
     plot :
         plots all relevant data
-        
+    
+    Notes
+    -----
+    Known bad sensors: FB08_S3P, FB06_S2P, FB03_S1P
     """
     def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,smoothingAlgorithm='tripleBoxCar'):
         self.shotno = shotno
         self.title = "%d, FB sensors" % shotno
+        self.badSensors=['FB08_S3P', 'FB06_S2P', 'FB03_S1P']
 
         # sensor names
         self.fbPolNames=[['FB01_S1P', 'FB02_S1P', 'FB03_S1P', 'FB04_S1P', 'FB05_S1P', 'FB06_S1P', 'FB07_S1P', 'FB08_S1P', 'FB09_S1P', 'FB10_S1P'], ['FB01_S2P', 'FB02_S2P', 'FB03_S2P', 'FB04_S2P', 'FB05_S2P', 'FB06_S2P', 'FB07_S2P', 'FB08_S2P', 'FB09_S2P', 'FB10_S2P'], ['FB01_S3P', 'FB02_S3P', 'FB03_S3P', 'FB04_S3P', 'FB05_S3P', 'FB06_S3P', 'FB07_S3P', 'FB08_S3P', 'FB09_S3P', 'FB10_S3P'], ['FB01_S4P', 'FB02_S4P', 'FB03_S4P', 'FB04_S4P', 'FB05_S4P', 'FB06_S4P', 'FB07_S4P', 'FB08_S4P', 'FB09_S4P', 'FB10_S4P']]
@@ -1427,15 +1437,26 @@ class fbData:
         # sensor, toroidal location
 #        self.phi=_np.pi/180.*_np.array([242.5-360, 278.5-360, 314.5-360, 350.5-360, 26.5, 62.5, 98.5, 134.5, 170.5, 206.5]);#*_np.pi/180.
         phi=_np.pi/180.*_np.array([241,277,313,349,25,61, 97,133,169,205])
-        self.phi=_np.array([phi,phi,phi,phi])
-        self.theta=_np.pi/180.*_np.array([_np.ones(10)*(360-83.4),_np.ones(10)*(360-29.3),_np.ones(10)*83.4,_np.ones(10)*29.3])
+        self.phi=[phi,phi,phi,phi]
+        theta=_np.pi/180.*_np.array([_np.ones(10)*(360-83.4),_np.ones(10)*(360-29.3),_np.ones(10)*83.4,_np.ones(10)*29.3])
+        self.theta=[theta[0,:],theta[1,:],theta[2,:],theta[3,:]]
 		
+		# remove bad sensors
+        for i in range(0,len(self.badSensors)):
+			for j in range(0,4):
+				if self.badSensors[i] in self.fbPolNames[j]:
+					iBad=_np.where(_np.array(self.fbPolNames[j])==self.badSensors[i])
+					self.fbPolNames[j]=list(_np.delete(self.fbPolNames[j],iBad))
+					self.phi[j]=_np.delete(self.phi[j],iBad)
+					self.theta[j]=_np.delete(self.theta[j],iBad)
+		
+
         ## construct full sensor addresses 
         fbPolSensorAddresses=[[],[],[],[]]
         fbRadSensorAddresses=[[],[],[],[]]   
         rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
         for j in range(0,4):
-            for i in range(0,10):
+            for i in range(0,len(self.fbPolNames[j])):
                 fbPolSensorAddresses[j].append(rootAddress+self.fbPolNames[j][i])
                 fbRadSensorAddresses[j].append(rootAddress+self.fbRadNames[j][i])
         
@@ -1460,7 +1481,7 @@ class fbData:
         if smoothingAlgorithm=='tripleBoxCar':
             # jeff's triple boxcar smoothing
             for j in range(0,4):
-                for i in range(0,10):
+                for i in range(0,len(self.fbPolNames[j])):
                     temp=_process.convolutionSmoothing(self.fbPolRaw[j][i][:],101,'box')
                     temp=_process.convolutionSmoothing(temp,101,'box')
                     temp=_process.convolutionSmoothing(temp,21,'box')
@@ -1482,7 +1503,7 @@ class fbData:
             # apply to all 40 sensors
             
             for j in range(0,4):
-                for i in range(0,10):
+                for i in range(0,len(self.fbPolNames[j])):
                     time,data=_trimTime(self.fbPolTime,self.fbPolRaw[j][i],self.fbPolTime[0],self.fbPolTime[-1])
                     fit=_process.polyFitData(self.fbPolRaw[j][i],self.fbPolTime,order=order,plot=False)
                     ffit = _np.poly1d(fit.coefs)
@@ -1575,36 +1596,47 @@ class fbData:
         """
         Plots all 80 poloidal and radial FB sensors
         """
-        sp1=[[],[],[],[]]
-        sp2=[[],[],[],[]]
-        count=0
+#        sp1=[[],[],[],[]]
+#        sp2=[[],[],[],[]]
+#        count=0
         for i in range(0,4):
-            for j in range(0,10):
+            for j in range(0,len(self.fbPolNames[i])):
+				
                 if plotAll==True:
                     newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=True)
                 else:
-                    newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=False)                    
-                newPlot.subtitle=self.fbPolNames[i][j]
-                newPlot.yLegendLabel=[]
-                sp1[i].append(newPlot)
+                    newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=False)
                 newPlot.plot()
-                if plotAll==True:
-                    newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=True)
-                else:
-                    newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=False)
-                newPlot.subtitle=self.fbRadNames[i][j]
-                newPlot.yLegendLabel=[]
-                sp2[i].append(newPlot)
-                count+=1;
-        sp1[0][0].title=self.title
-#        sp1[0][0].yLim=[-0.01,0.03]
-        sp2[0][0].title=self.title
-#        sp2[0][0].yLim=[-0.01,0.03]
-        sp1=_plot.subPlot(sp1,plot=False)
-        sp2=_plot.subPlot(sp2,plot=False)
-        # sp1.shareY=True;
-#        sp1.plot()
-        return sp1
+#                count+=1;
+#                if count>=len(self.fbPolNames):
+#					newPlot=_plot.plot()
+#                else:
+#	                if plotAll==True:
+#	                    newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=True)
+#	                else:
+#	                    newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=False)                    
+#	                newPlot.subtitle=self.fbPolNames[i][j]
+#	                newPlot.yLegendLabel=[]
+#	                sp1[i].append(newPlot)
+##	                newPlot.plot()
+#        for i in range(0,4):
+#            for j in range(0,len(self.fbPolNames[i])):
+#                if plotAll==True:
+#                    newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=True)
+#                else:
+#                    newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=False)
+#                newPlot.subtitle=self.fbRadNames[i][j]
+#                newPlot.yLegendLabel=[]
+#                sp2[i].append(newPlot)
+#        sp1[0][0].title=self.title
+##        sp1[0][0].yLim=[-0.01,0.03]
+#        sp2[0][0].title=self.title
+##        sp2[0][0].yLim=[-0.01,0.03]
+#        sp1=_plot.subPlot(sp1,plot=False)
+#        sp2=_plot.subPlot(sp2,plot=False)
+#        # sp1.shareY=True;
+##        sp1.plot()
+#        return sp1
 #        sp2.plot()    
     
     
@@ -1800,13 +1832,83 @@ class taData:
         sp1.plot()
   
 
+class groundCurrentData:
+    """
+    Ground current flowing through the west and north racks to the grounding bus.
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    wRackCurrent : numpy.ndarray
+        west rack current to grounding bus
+    nRackCurrent : numpy.ndarray
+        north rack current to grounding bus
+    wRackTime : numpy.ndarray
+        time data
+    nRackTime : numpy.ndarray
+        time data
+        
+    Subfunctions
+    ------------
+    plot :
+        plots data
+    
+    """
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
+        self.shotno = shotno
+        self.title = "shotno = %d, Ext. Rogowski Data" % shotno
+        
+        # get north rack data
+        data, time=mdsData(shotno=shotno,
+                           dataAddress=['\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_96'],
+                           tStart=tStart, tStop=tStop)
+        self.nRackCurrent=data[0];
+        self.nRackTime=time;
+		
+        # get west rack data
+        data, time=mdsData(shotno=shotno,
+                           dataAddress=['\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_96'],
+                           tStart=tStart, tStop=tStop)
+        self.wRackCurrent=data[0];
+        self.wRackTime=time;
+		
+        if plot == True:
+            self.plot().plot()
+        
+    def plot(self):
+        """ Plot all relevant plots """
+        p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
+                      shotno=self.shotno)
+        p1.addTrace(yData=self.nRackCurrent,xData=self.nRackTime*1000,
+                    yLegendLabel='North Rack Ground Current') 
+        p1.addTrace(yData=self.wRackCurrent,xData=self.wRackTime*1000,
+                    yLegendLabel='North Rack Ground Current') 
+        return p1
+		
+
 class quartzJumperData:
     """
     External rogowski data
     
     Parameters
     ----------
-
     shotno : int
         shot number of desired data
     tStart : float
@@ -2139,6 +2241,8 @@ class solData:
         self.shotno = shotno
         self.title = "shotno = %d, SOL Data" % shotno
         self.sensorNames = ['LFS01_S1', 'LFS01_S2', 'LFS01_S3', 'LFS01_S4', 'LFS01_S5', 'LFS01_S6', 'LFS01_S7', 'LFS01_S8', 'LFS04_S1', 'LFS04_S2', 'LFS04_S3', 'LFS04_S4', 'LFS08_S1', 'LFS08_S2', 'LFS08_S3', 'LFS08_S4', 'LFS08_S5', 'LFS08_S6', 'LFS08_S7', 'LFS08_S8']
+        self.phis=_np.array([234.8, 234.8, 234.8, 234.8, 234.8, 234.8, 234.8, 234.8, 342.8, 342.8, 342.8, 342.8, 126.8, 126.8, 126.8, 126.8, 126.8, 126.8, 126.8, 126.8])
+        self.thetas=_np.array([-70. , -50. , -30. , -10. ,  10. ,  30. ,  50. ,  70. , -83. ,       -28.2,  28.2,  83. , -70. , -50. , -30. , -10. ,  10. ,  30. ,  50. ,  70. ])
         sensorPathRoot='\HBTEP2::TOP.SENSORS.SOL:'
 		
         # compile list of sensor addresses for all 20 SOL tiles
@@ -2728,7 +2832,7 @@ class qStarData:
         
         # calc q star
         self.qStar= plasmaRadius.minorRadius**2 * tfProbeData / (2e-7 * ip.ip * plasmaRadius.majorRadius)
-        self.qStarCorrected=self.qStar*(1.1) # 10% correction factor.  jeff believes our qstar measurement might be about 10% too low.  
+        self.qStarCorrected=self.qStar*(1.15) # 10% correction factor.  jeff believes our qstar measurement might be about 15% to 20% too low.  
         self.time=ip.time
         
         if plot == True:
