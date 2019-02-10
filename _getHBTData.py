@@ -1899,7 +1899,7 @@ class groundCurrentData:
         p1.addTrace(yData=self.nRackCurrent,xData=self.nRackTime*1000,
                     yLegendLabel='North Rack Ground Current') 
         p1.addTrace(yData=self.wRackCurrent,xData=self.wRackTime*1000,
-                    yLegendLabel='North Rack Ground Current') 
+                    yLegendLabel='West Rack Ground Current') 
         return p1
 		
 
