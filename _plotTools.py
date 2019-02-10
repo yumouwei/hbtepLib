@@ -546,7 +546,7 @@ class subPlot:
 
                     # error bar plot
                     elif (data.plotType == 'errorbar') or (data.plotType == 'errorBar'):
-                        print 'errorbar plot'
+                        print('errorbar plot')
                         if data.yerr[k]==[]:
                             ax.plot(data.xData[k], data.yData[k], marker=marker, 
                                     linestyle=linestyle,label=label,alpha=alpha,
@@ -593,7 +593,7 @@ class subPlot:
                         lineWidth=0.1; # the circles look silly without at least a very small outline
                         
                         # make scatter plot
-                        print c
+#                        print c
                         p1 = ax.scatter(data.xData[k], data.yData[k], 
                                           c=c, s=markersize, cmap=cm,
                                           lw=lineWidth,alpha=alpha) 
@@ -715,7 +715,7 @@ class subPlot:
                     try:
                         ax.set_aspect('equal',adjustable='box') 
                     except ValueError:
-                        print "error: share x axes must be turned off to adjust aspect ratio"
+                        print("error: share x axes must be turned off to adjust aspect ratio")
     
                 ## create y limit    
                 if data.yLim!=[]:

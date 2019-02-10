@@ -138,22 +138,22 @@ class langmuirProbe:
         
         # temperature
         self.temperatureInEV=self.calcTempInEV(popt[1])#q*popt[1]/eV
-        print "Temperature = " + str(self.temperatureInEV) + ' eV'
+        print("Temperature = " + str(self.temperatureInEV) + ' eV')
         
         # density calculation from the exp fit offset
         self.densityFromExpFitOffset=self.calcDensity(popt[2],
                                                       probeArea=self.probeArea,
                                                       temperatureInEV=self.temperatureInEV)
-        print "Density from the exp. fit offset current = " + str(self.densityFromExpFitOffset) + ' m^3'
+        print("Density from the exp. fit offset current = " + str(self.densityFromExpFitOffset) + ' m^3')
         
         # density calculation from averaging the values in the ion sat region
         i=self.V<self.ionSatRegionMaxVoltage
         aveIonSatCurrent=_np.average(self.I[i])
-        print "Average Current in the ion sat. region = " + str(aveIonSatCurrent)
+        print("Average Current in the ion sat. region = " + str(aveIonSatCurrent))
         self.densityFromAveIonSatRegion=self.calcDensity(aveIonSatCurrent,
                                                       probeArea=self.probeArea,
                                                       temperatureInEV=self.temperatureInEV)
-        print "Density from the average current in the ion sat. region = " + str(self.densityFromAveIonSatRegion) + ' m^3'
+        print("Density from the average current in the ion sat. region = " + str(self.densityFromAveIonSatRegion) + ' m^3')
         
         # optional plot
         if plot==True:
@@ -526,7 +526,7 @@ class picCode:
             
             # print time every integer step
             if _np.remainder(self.time[i],1.)==0:
-                print "t = " + str(self.time[i])
+                print("t = " + str(self.time[i]))
             
             ## Solve force
             self.Ei[:,i-1]=self.fieldWeighting(self.x[:,i-1], self.Xj, self.Ex[:,i-1], order=order);

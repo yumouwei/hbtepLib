@@ -39,8 +39,8 @@ def convertDataToStairstepData(x,y):
     yOut=_np.zeros(len(x)*2)
     dx=x[1]-x[0];
     for i in range(0,len(x)):
-        print yOut[i*2]
-        print y[i]
+#        print yOut[i*2]
+#        print y[i]
         xOut[2*i]=x[i]
         if i == len(x)-1:
             xOut[2*i+1]=xOut[2*i]+dx
@@ -224,7 +224,7 @@ def hasNan(inArray):
         if _math.isnan(inArray[i]):
             count+=1;
             
-    print "There was/were %d instances of NaN" % count
+    print("There was/were %d instances of NaN" % count)
     
     if count == 0:
         return False
@@ -910,7 +910,7 @@ class genericCurveFit:
 #        print fitSoln
 
         self.R2=rSquared(indepVars, self.fitSoln)
-        print r"$R^2$ = %.3E" % self.R2
+        print(r"$R^2$ = %.3E" % self.R2)
 
         if plot==True:
             self.plot();
@@ -1176,8 +1176,8 @@ class genericLeastSquaresFit:
         self.rSquared=rSquared(y,self.yFit)
         
         # print results to screen
-        print r'R2 =  %.5E' % self.rSquared
-        print 'fit parameters'
+        print(r'R2 =  %.5E' % self.rSquared)
+        print('fit parameters')
         print('\n'.join('{}: {}'.format(*k) for k in enumerate(self.res.x)))
         
         # plot data

@@ -1498,7 +1498,7 @@ class fbData:
 			# get order number from string
 			numbers=_process.extractIntsFromStr(smoothingAlgorithm);
 			order=numbers[0]
-			print "%d order polynomial smoothing" % order
+			print("%d order polynomial smoothing" % order)
 			
 			# apply to all 40 sensors
 			
@@ -2142,7 +2142,7 @@ class usbSpectrometerData:
 				self.spectrometerArrayNumber.append(i)
 				self.spectrometerData.append(data[0])
 			except:# _mds.MdsIpException:
-				print "usb spectrometer channel %d data does not exist for shot number %d" % (i, shotno)
+				print("usb spectrometer channel %d data does not exist for shot number %d" % (i, shotno))
 		
 		# get wavelength
 		yData, xData=mdsData(shotno=shotno,
@@ -2321,7 +2321,6 @@ class solData:
  
 		else:
 			for j in range(0,8):
-				print j
 				if j==0:
 					p1=self.plotOfSingleSensor(j,plot) 
 					p3=self.plotOfSingleSensor(12+j,plot) 
