@@ -74,3 +74,17 @@ I like Spyder for my pthon IDE for two reasons.
 
 2. It has the object inspector (now called Help) which will instantly show any documentation (instructions) associated with any command you are writing.  In my code base, I've documented a lot (but not all) of the functions in order to make them easier to use.  To make use of this second feature, I recommend going to Preferences -> Help and selecting "Automatic connections" for both "editor" and IPython-Console"
 
+## Tips for installing MDSplus
+
+Installing MDSplus is typically the hardest part of this entire process.  Start [here](http://www.mdsplus.org/index.php?title=Downloads&open=82992333933183500305&page=Software%2FDownloads) and carefully follow their instructions.
+
+##### Alternate method for installing MDSplus
+
+I've only tried this once, but it worked on the first go for me.  It was also MUCH easier than doing the above.  
+
+  1. Download the [MDSplus sources](http://www.mdsplus.org/index.php?title=Downloads&open=82992333933183500305&page=Software%2FDownloads#MDSplus_Sources) stable file.  [Direct link](https://github.com/MDSplus/mdsplus/archive/stable.zip).  
+  2.  Extract the compressed files and navigate to ```/mdsplus-stable/mdsobjects``` 
+  3.  Rename the ```plasma``` directory to ```MDSplus```.  This is case sensitive so be careful.
+  4.  Move this directory to whereever you keep your python libraries.  
+  5.  Add the directory where the MDSplus folder sits to your PYTHONPATH environment.  Spyder has an option under ```Tools``` to do this.  For Ubuntu, modfiy your .bashrc file as described [here](https://stackoverflow.com/questions/3402168/permanently-add-a-directory-to-pythonpath).
+
