@@ -618,44 +618,124 @@ def convolutionSmoothing(data,numPoints,method='gaussian',plot=False):
         
     return smoothedData
     
-    
-#def boxCar(data,c=25):
-#    """
-#    box car smoothing algorithm.  home brew.
-#    
-#    Parameters
-#    ----------
-#    data : numpy.ndarray
-#        data being smoothed
-#    c : int
-#        plus and minus number of points to include in box car.  I.e. c=25 means
-#        that the function is smoothing over 51 points
-#        
-#    Return
-#    ------
-#    sData : numpy.ndarray
-#        smoothed data array
-#        
-#    Notes
-#    -----
-#    TODO(John) Check indices.  I'm not 100% this function works EXACTLY as 
-#    stated above.  I think it may be using 2*c points instead of 2*c+1
-#    
-#    References
-#    ----------
-#    https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
-#    """
-#    n=len(data);
-#    sData=_np.zeros(n);
-#    for i in range(0,n):
-#        if i < c:  # left edge
-#            sData[i]=_np.sum(data[0:i+c])/(i+c)
-#        elif i > n-c:  # right edge
-#            sData[i]=_np.sum(data[i-c:n])/(n-i+c+1)            
-#        else:
-#            sData[i]=_np.sum(data[i-c:i+c+1])/(2.*c+1)
-#    return sData
-    
+def gaussianLowPassFilter(y,t,timeWidth=1e-4,plot=False,plotGaussian=False):
+	"""
+	Low pass filter using scipy's gaussian filters
+	
+	Parameters
+	----------
+	y : numpy.array
+		time dependent data
+	t : numpy.array
+		time
+	timeWidth : float
+		full width at half maximum of the gaussian with units in time.  this
+		effectively sets the corner frequency of the filter
+		(f_{corner} \approx 1/timeWidth)
+	plot : bool
+		plots the results
+	plotGaussian : bool
+		plots the gaussian distribution used for the filter
+		
+	Returns
+	-------
+	yFiltered : numpy.array
+		filtered time dependent data
+		
+	References
+	----------
+	https://en.wikipedia.org/wiki/Full_width_at_half_maximum
+	https://docs.scipy.org/doc/scipy-0.19.0/reference/generated/scipy.signal.gaussian.html
+	https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter1d.html
+	
+	Example
+	-------
+	import numpy as np
+	t=np.arange(0,10e-3,2e-6)
+	y = np.random.randn(len(t)).cumsum()
+	y+=np.sin(2*np.pi*1000+np.pi*2*np.random.rand())
+	y+=np.sin(2*np.pi*3300+np.pi*2*np.random.rand())
+	y+=np.sin(2*np.pi*10000+np.pi*2*np.random.rand())
+	y+=np.sin(2*np.pi*33000+np.pi*2*np.random.rand())
+	gaussianLowPassFilter(y,t,timeWidth=1e-4,plot=True,plotGaussian=True)
+	"""
+	
+	
+	from scipy.ndimage import gaussian_filter1d
+
+	dt=t[1]-t[0]
+	sigma=2.355*timeWidth/dt 
+	yFiltered=gaussian_filter1d(y,sigma)
+	
+	if plot==True:
+		
+		_plt.figure()
+		_plt.plot(t,y,label='Raw')
+		_plt.plot(t,yFiltered,label='Filtered')
+		_plt.legend()
+
+	if plotGaussian==True:
+		
+		from scipy import signal
+		_plt.figure()
+		_plt.plot(t,signal.gaussian(len(t), std=sigma),label='gaussian')
+		_plt.legend()
+		
+	return yFiltered
+
+
+def gaussianHighPassFilter(y,t,timeWidth=1e-4,plot=False,plotGaussian=False):
+	"""
+	High pass filter using scipy's gaussian filters
+	
+	Parameters
+	----------
+	y : numpy.array
+		time dependent data
+	t : numpy.array
+		time
+	timeWidth : float
+		full width at half maximum of the gaussian with units in time.  this
+		effectively sets the corner frequency of the filter
+		(f_{corner} \approx 1/timeWidth)
+	plot : bool
+		plots the results
+	plotGaussian : bool
+		plots the gaussian distribution used for the filter
+		
+	Returns
+	-------
+	yFiltered : numpy.array
+		filtered time dependent data
+		
+	References
+	----------
+	https://en.wikipedia.org/wiki/Full_width_at_half_maximum
+	https://docs.scipy.org/doc/scipy-0.19.0/reference/generated/scipy.signal.gaussian.html
+	https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter1d.html
+	
+	Example
+	-------
+	import numpy as np
+	t=np.arange(0,10e-3,2e-6)
+	y = np.random.randn(len(t)).cumsum()
+	y+=np.sin(2*np.pi*1000+np.pi*2*np.random.rand())
+	y+=np.sin(2*np.pi*3300+np.pi*2*np.random.rand())
+	y+=np.sin(2*np.pi*10000+np.pi*2*np.random.rand())
+	y+=np.sin(2*np.pi*33000+np.pi*2*np.random.rand())
+	gaussianHighPassFilter(y,t,timeWidth=1e-4,plot=True,plotGaussian=True)
+	"""
+	yFiltered= y-gaussianLowPassFilter(y,t,timeWidth,plot=False,plotGaussian=plotGaussian)
+	
+	if plot==True:
+		
+		_plt.figure()
+		_plt.plot(t,y,label='Raw')
+		_plt.plot(t,yFiltered,label='Filtered')
+		_plt.legend()
+		
+	return yFiltered
+
     
 def butterworthFilter(y, x,filterOrder=2, samplingRate=1/(2*1e-6), 
                       cutoffFreq=20*1e3, filterType='low',plot=False):
