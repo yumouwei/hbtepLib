@@ -3242,13 +3242,13 @@ class mModeData:
 			data=paData(self.shotno,tStart=tStart,tStop=tStop);
 			self._data=data.pa1Data
 			self.time=data.pa1Time
-			self._theta=data.theta
+			self._theta=data.thetaPA1
 			[n,m]=_np.shape(self._data)
 		if sensor=='PA2':
 			data=paData(self.shotno,tStart=tStart,tStop=tStop);
 			self._data=data.pa2Data
 			self.time=data.pa2Time
-			self._theta=data.theta
+			self._theta=data.thetaPA2
 			[n,m]=_np.shape(self._data)
 
 		## Construct A matrix and its inversion
