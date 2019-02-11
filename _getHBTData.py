@@ -1662,9 +1662,9 @@ class taData:
 		True - Plots a sample of each FB poloidal and radial data
 		'sample'- same as True
 		'all' - Plots all 80 sensor data
-	smoothingAlgorithm : str
-		informs function as to which smoothing algorithm to use on each PA 
-		sensor
+#	smoothingAlgorithm : str
+#		informs function as to which smoothing algorithm to use on each PA 
+#		sensor
 		
 	Attributes
 	----------
@@ -1709,8 +1709,7 @@ class taData:
 
 	"""
 		
-	def __init__(self,shotno=98173,tStart=_TSTART,tStop=_TSTOP,plot=False,
-				 smoothingAlgorithm='tripleBoxCar'):
+	def __init__(self,shotno=98173,tStart=_TSTART,tStop=_TSTOP,plot=False):
 		self.shotno = shotno
 		self.title = "%d, TA sensor data." % shotno
 		
@@ -1745,24 +1744,12 @@ class taData:
 		self.taPolRawFit=[]
 		self.taRadData=[]
 		self.taRadRawFit=[]
-		if smoothingAlgorithm=='tripleBoxCar':
-			# jeff's triple boxcar smoothing
-			for i in range(0,30):
-				temp=_process.convolutionSmoothing(self.taPolRaw[i][:],101,'box')
-				temp=_process.convolutionSmoothing(temp,101,'box')
-				temp=_process.convolutionSmoothing(temp,21,'box')
-				self.taPolRawFit.append(temp)
-				self.taPolData.append(self.taPolRaw[i]-temp)
-				
-				if i < 10:
-					temp=_process.convolutionSmoothing(self.taRadRaw[i][:],101,'box')
-					temp=_process.convolutionSmoothing(temp,101,'box')
-					temp=_process.convolutionSmoothing(temp,21,'box')
-					self.taRadRawFit.append(temp)
-					self.taRadData.append(self.taRadRaw[i]-temp)
-		else:
-			_sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
-			 
+		
+		# high pass filter the measurements
+		for i in range(0,30):
+			temp=_process.gaussianHighPassFilter(self.taPolRaw[i][:],self.taPolTime,timeWidth=1./20000)
+			self.taPolData.append(temp)
+
 		# plot
 		if plot=='sample':
 			self.plotOfSinglePol().plot();
@@ -1799,9 +1786,9 @@ class taData:
 			p1.addTrace(yData=self.taPolRaw[i],xData=self.taPolTime*1000,
 						yLegendLabel='raw') 
 			
-			# fit data (which is subtracted from raw)
-			p1.addTrace(yData=self.taPolRawFit[i],xData=self.taPolTime*1000,
-						yLegendLabel='fit') 
+#			# fit data (which is subtracted from raw)
+#			p1.addTrace(yData=self.taPolRawFit[i],xData=self.taPolTime*1000,
+#						yLegendLabel='fit') 
 
 		return p1
 		
