@@ -1,6 +1,3 @@
-# list of git commands for my personal use
-gitCommands
-
 # preferences file.  keeps user specific settings as well as hides the HBTEP server address from the public
 _hbtPreferences.py
 
@@ -18,5 +15,4 @@ _rwDataTools.pyc
 _feedBackTools.pyc
 _feedBackTools_depricated.py
 _feedBackTools.py
-_feedBackTools.pyc
 _processPlasma.pyc
