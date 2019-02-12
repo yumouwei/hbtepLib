@@ -1045,6 +1045,7 @@ class paData:
 		self.shotno = shotno
 		self.title1 = '%d, PA1 sensors' % shotno
 		self.title2 = '%d, PA2 sensors' % shotno
+		self.badSensors=['PA2_S14P','PA2_S27P']
 		
 		# poloidal location (in degrees)
 #		self.thetaPA1 = _np.array([	5.625,	  16.875,	 28.125,	 39.375,	 50.625,	 61.875,	 73.125,	 84.375,	 95.625,	 106.875,	118.125,	129.375,	140.625,	151.875,	163.125,	174.375,	185.625,	196.875,	208.125,	219.375,	230.625,	241.875,	253.125,	264.375,	275.625,	286.875,	298.125,	309.375,	320.625,	331.875,	343.125,	354.375])*_np.pi/180.
@@ -1180,8 +1181,10 @@ class paData:
 				newPlot.subtitle=self.namesPA1[count]
 				newPlot.yLegendLabel=[]
 				sp1[i].append(newPlot)
+				count+=1;
 
 		k=0
+		count=0
 		for i in range(0,4):
 			for j in range(0,8):
 				k=i*8+j*1
@@ -1192,6 +1195,7 @@ class paData:
 					# and create an empty plot if not
 					newPlot=_plot.plot()
 				else:
+					print("%d" %k)
 					if plotAll==True:
 						newPlot=self.plotOfPA2(count,alsoPlotRawAndFit=True)
 					else:
@@ -1396,14 +1400,13 @@ class fbData:
 	
 	Notes
 	-----
-	Known bad sensors: 'FB08_S3P', 'FB06_S2P', 'FB03_S1P', 'FB08_S4P', 'FB04_S3P'
-	Sensors known to be wired backwards : 'FB01_S1P','FB01_S2P','FB01_S3P'
+	Known bad sensors: 'FB03_S1P','FB06_S2P','FB08_S3P'
+	The S4P array has no broken sensors at present.  
 	"""
 	def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,removeBadSensors=True):
 		self.shotno = shotno
 		self.title = "%d, FB sensors" % shotno
-		self.badSensors=['FB08_S3P', 'FB06_S2P', 'FB03_S1P', 'FB08_S4P', 'FB04_S3P'] # some sensors appear to be broken
-		self.invertedSensorList=['FB01_S1P','FB01_S2P','FB01_S3P'] # some sensors have been wired backwards
+		self.badSensors=['FB03_S1P','FB06_S2P','FB08_S3P'] # some sensors appear to be broken
 
 		# sensor names
 		self.fbPolNames=[['FB01_S1P', 'FB02_S1P', 'FB03_S1P', 'FB04_S1P', 'FB05_S1P', 'FB06_S1P', 'FB07_S1P', 'FB08_S1P', 'FB09_S1P', 'FB10_S1P'], ['FB01_S2P', 'FB02_S2P', 'FB03_S2P', 'FB04_S2P', 'FB05_S2P', 'FB06_S2P', 'FB07_S2P', 'FB08_S2P', 'FB09_S2P', 'FB10_S2P'], ['FB01_S3P', 'FB02_S3P', 'FB03_S3P', 'FB04_S3P', 'FB05_S3P', 'FB06_S3P', 'FB07_S3P', 'FB08_S3P', 'FB09_S3P', 'FB10_S3P'], ['FB01_S4P', 'FB02_S4P', 'FB03_S4P', 'FB04_S4P', 'FB05_S4P', 'FB06_S4P', 'FB07_S4P', 'FB08_S4P', 'FB09_S4P', 'FB10_S4P']]
@@ -1450,14 +1453,14 @@ class fbData:
 		self.fbRadRaw[3], self.fbRadTime =mdsData(shotno,fbRadSensorAddresses[3], tStart, tStop)		
 			   
 		# correct for signal inversion (I believe that the polarity of the wiring of the sensors is backwards for a few sensors)
-		self.invertedSensorList=['FB01_S1P','FB01_S2P','FB01_S3P']
-		for j in range(0,4):
-			for i in range(0,len(self.fbPolNames[j])):
-				if self.fbPolNames[j][i] in self.invertedSensorList:
-					print("Correcting inverted signal: %s" % self.fbPolNames[j][i])
-					self.fbPolRaw[j][i]*=-1
+#		self.invertedSensorList=['FB01_S1P','FB01_S2P','FB01_S3P']
+#		for j in range(0,4):
+#			for i in range(0,len(self.fbPolNames[j])):
+#				if self.fbPolNames[j][i] in self.invertedSensorList:
+#					print("Correcting inverted signal: %s" % self.fbPolNames[j][i])
+#					self.fbPolRaw[j][i]*=-1
 		
-		# data smoothing algorithm
+		# remove offset 
 		self.fbPolData=[[],[],[],[]]
 		self.fbPolRawFit=[[],[],[],[]]
 		self.fbRadData=[[],[],[],[]]
@@ -2201,9 +2204,6 @@ class solData:
 		self.solDataFit=[]
 		self.solData=[]
 		for i in range(0,len(self.sensorNames)):
-#			self.solDataFit.append(_process.convolutionSmoothing(self.solDataRaw[i],
-#																 numPointsForSmothing,
-#														 'normal'))
 			temp,temp2=_process.gaussianHighPassFilter(self.solDataRaw[i],self.time,timeWidth=1./20000)
 			self.solData.append(temp)
 			self.solDataFit.append(temp2)
@@ -2905,29 +2905,30 @@ class nModeData:
 		
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 				 nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
-				 frequencyFilter='',smoothingAlgorithm='tripleBoxCar'):
+				 frequencyFilter=''):
 		
 		self.shotno=shotno
 		self.title = 'shotno = %d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
 		self.nModeSensor=nModeSensor
 #		self.frequencyFilter=frequencyFilter
 #		self._phaseFilter=phaseFilter
-
+		
+		
+		# load data from requested sensor array
 		if nModeSensor=='TA':
 			## load TA data
-			temp=taData(self.shotno,tStart,tStop+0.5e-3,
-						smoothingAlgorithm=smoothingAlgorithm);  # asking for an extra half millisecond (see Notes above) 
+			temp=taData(self.shotno,tStart,tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
 			data=temp.taPolData
 			self.time=temp.taPolTime
 			phi=temp.phi
 			[n,m]=_np.shape(data)
-		elif nModeSensor=='FB':
+		elif nModeSensor=='FB' or nModeSensor=='FB_S4':
 			## load FB data
-			temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3,
-						smoothingAlgorithm=smoothingAlgorithm);  # asking for an extra half millisecond (see Notes above) 
-			data=temp.fbPolData[3]  ## top toroidal array = 0, bottom = 3
+			array=3 # the 4th array (4-1=3) is the top most FB array and has no broken sensors
+			temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
+			data=temp.fbPolData[array]  ## top toroidal array = 0, bottom = 3
 			self.time=temp.fbPolTime
-			phi=temp.phi[3]
+			phi=temp.phi[array]
 			[n,m]=_np.shape(data)
 		self._data=data
 		self._phi=phi
@@ -2967,64 +2968,54 @@ class nModeData:
 		self.n1Phase=_np.zeros(len(self.n1PhaseRaw))   
 		if phaseFilter == 'gaussian':
 			self.n1Phase=_process.wrapPhase(
-							_process.convolutionSmoothing(
-								_process.unwrapPhase(self.n1PhaseRaw),301,'gaussian'))
-		elif phaseFilter == 'box' or phaseFilter == 'boxcar':
-			self.n1Phase=_process.wrapPhase(
-							_process.convolutionSmoothing(
-								_process.unwrapPhase(self.n1PhaseRaw),101,'box'))
-		elif phaseFilter == 'savgol':
-			self.n1Phase=_process.wrapPhase(
-							_process.savgolFilter(
-								_process.unwrapPhase(self.n1PhaseRaw),41,1))
-			
-		elif phaseFilter == '' or phaseFilter == None:
-			self.n1Phase=_copy(self.n1PhaseRaw)
+					_process.gaussianLowPassFilter(
+							_process.unwrapPhase(self.n1PhaseRaw),
+							self.time,
+							timeWidth=1./20e3))
 		else:
 			_sys.exit("Invalid phase filter requested.")
 					
 		## Calculate frequency (in Hz) using second order deriv 
-		self.n1FreqRaw=_np.gradient(_process.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)		
+		self.n1Freq=_np.gradient(_process.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)		
 		
-		# filter frequency
-		self.n1Freq=_np.zeros(len(self.n1FreqRaw)) 
-		if 'Butterworth' in frequencyFilter or 'butterworth' in frequencyFilter:
-			
-			filterOrder=1
-			cutoffFreq=1000
-
-			# implement filter
-			self.n1Freq=_process.butterworthFilter(self.n1FreqRaw,
-														   self.time,
-														   filterOrder=filterOrder,
-														   samplingRate=1./(2*1e-6),
-														   cutoffFreq=cutoffFreq,
-														   filterType='low')
-														   
-		elif frequencyFilter=='boxcar' or frequencyFilter=='boxCar':
-			self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,81,'box')
-			
-		elif frequencyFilter=='gaussian':
-			self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,120,'gaussian')
-			
-		elif frequencyFilter=='' or frequencyFilter==None:
-			self.n1Freq=_copy(self.n1FreqRaw)
-			
-		else:
-			_sys.exit("Invalid frequency filter requested.")
-			
+#		# filter frequency
+#		self.n1Freq=_np.zeros(len(self.n1FreqRaw)) 
+#		if 'Butterworth' in frequencyFilter or 'butterworth' in frequencyFilter:
+#			
+#			filterOrder=1
+#			cutoffFreq=1000
+#
+#			# implement filter
+#			self.n1Freq=_process.butterworthFilter(self.n1FreqRaw,
+#														   self.time,
+#														   filterOrder=filterOrder,
+#														   samplingRate=1./(2*1e-6),
+#														   cutoffFreq=cutoffFreq,
+#														   filterType='low')
+#														   
+#		elif frequencyFilter=='boxcar' or frequencyFilter=='boxCar':
+#			self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,81,'box')
+#			
+#		elif frequencyFilter=='gaussian':
+#			self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,120,'gaussian')
+#			
+#		elif frequencyFilter=='' or frequencyFilter==None:
+#			self.n1Freq=_copy(self.n1FreqRaw)
+#			
+#		else:
+#			_sys.exit("Invalid frequency filter requested.")
+#			
 			
 		# trim off extra half millisecond (see Notes)
 		self.time, temp=_trimTime(self.time,
 								  [self.n1Amp,self.n2Amp,self.n1Phase,
-								   self.n1PhaseRaw,self.n1Freq,self.n1FreqRaw],
+								   self.n1PhaseRaw,self.n1Freq],
 								  tStart,tStop)
 		self.n1Amp=temp[0]
 		self.n2Amp=temp[1]
 		self.n1Phase=temp[2]
 		self.n1PhaseRaw=temp[3]
 		self.n1Freq=temp[4]
-		self.n1FreqRaw=temp[5]
 		
 		## plot data
 		if plot==True:
@@ -3054,11 +3045,11 @@ class nModeData:
 									 linestyle='',
 									 marker='.',
 									 yLegendLabel='raw')
-			
-			# add frequency raw data
-			sp1.subPlots[2].addTrace(yData=self.n1FreqRaw/1000.,
-									 xData=self.time*1000,
-									 yLegendLabel='raw')
+#			
+#			# add frequency raw data
+#			sp1.subPlots[2].addTrace(yData=self.n1FreqRaw/1000.,
+#									 xData=self.time*1000,
+#									 yLegendLabel='raw')
 			
 		sp1.plot()
 		return sp1
@@ -3241,30 +3232,29 @@ class mModeData:
 			self.m3PhaseRaw[j]=_np.arctan2(self._x[5,j],self._x[6,j])
 			self.m4PhaseRaw[j]=_np.arctan2(self._x[7,j],self._x[8,j])
 			self.m5PhaseRaw[j]=_np.arctan2(self._x[9,j],self._x[10,j])
-#		m1PhaseUnwrapped=_process.unwrapPhase(self.m1Phase)
-#		m2PhaseUnwrapped=_process.unwrapPhase(self.m2Phase)
-#		m3PhaseUnwrapped=_process.unwrapPhase(self.m3Phase)
-#		m4PhaseUnwrapped=_process.unwrapPhase(self.m4Phase)
-#		m5PhaseUnwrapped=_process.unwrapPhase(self.m5Phase)
-		
-		# TODO:  add frequency and phase data, raw and filtered
-		
+
 		if phaseFilter == 'gaussian':
 			self.m1Phase=_process.wrapPhase(
-							_process.convolutionSmoothing(
-								_process.unwrapPhase(self.m1PhaseRaw),51,'gaussian'))
+							_process.gaussianLowPassFilter(
+								_process.unwrapPhase(self.m1PhaseRaw),
+								self.time,timeWidth=1./20e3))
 			self.m2Phase=_process.wrapPhase(
-							_process.convolutionSmoothing(
-								_process.unwrapPhase(self.m2PhaseRaw),51,'gaussian'))
+							_process.gaussianLowPassFilter(
+								_process.unwrapPhase(self.m2PhaseRaw),
+								self.time,timeWidth=1./20e3))
 			self.m3Phase=_process.wrapPhase(
-							_process.convolutionSmoothing(
-								_process.unwrapPhase(self.m3PhaseRaw),51,'gaussian'))
+							_process.gaussianLowPassFilter(
+								_process.unwrapPhase(self.m3PhaseRaw),
+								self.time,timeWidth=1./20e3))
 			self.m4Phase=_process.wrapPhase(
-							_process.convolutionSmoothing(
-								_process.unwrapPhase(self.m4PhaseRaw),51,'gaussian'))
+							_process.gaussianLowPassFilter(
+								_process.unwrapPhase(self.m4PhaseRaw),
+								self.time,timeWidth=1./20e3))
 			self.m5Phase=_process.wrapPhase(
-							_process.convolutionSmoothing(
-								_process.unwrapPhase(self.m5PhaseRaw),51,'gaussian'))
+							_process.gaussianLowPassFilter(
+								_process.unwrapPhase(self.m5PhaseRaw),
+								self.time,timeWidth=1./20e3))
+			
 		else:
 			self.m1Phase=_np.zeros(len(self.m1PhaseRaw))  
 			self.m1Phase[:]=self.m1PhaseRaw[:]
@@ -3346,19 +3336,6 @@ class mModeData:
 	def plot(self):
 		sp1=_plot.subPlot([self.plotOfAmplitudes(),self.plotOfPhases(),
 						   self.plotOfFreqs()],plot=False)
-#		if includeRaw==True:
-			# add phase raw data
-#			sp1.subPlots[1].addTrace(yData=self.n1PhaseRaw,
-#									 xData=self.time*1000,
-#									 linestyle='',
-#									 marker='.',
-#									 yLegendLabel='raw')
-#			
-#			# add frequency raw data
-#			sp1.subPlots[2].addTrace(yData=self.n1FreqRaw/1000.,
-#									 xData=self.time*1000,
-#									 yLegendLabel='raw')
-#			
 		sp1.plot()
 		return sp1
 		
