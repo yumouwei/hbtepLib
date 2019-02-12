@@ -1041,9 +1041,10 @@ class paData:
 	"""
 	
 	def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
-				 smoothingAlgorithm='tripleBoxCar',removeBadSensors=True):
+			  removeBadSensors=True):
 		self.shotno = shotno
-		self.title = '%d, PA sensors' % shotno
+		self.title1 = '%d, PA1 sensors' % shotno
+		self.title2 = '%d, PA2 sensors' % shotno
 		
 		# poloidal location (in degrees)
 #		self.thetaPA1 = _np.array([	5.625,	  16.875,	 28.125,	 39.375,	 50.625,	 61.875,	 73.125,	 84.375,	 95.625,	 106.875,	118.125,	129.375,	140.625,	151.875,	163.125,	174.375,	185.625,	196.875,	208.125,	219.375,	230.625,	241.875,	253.125,	264.375,	275.625,	286.875,	298.125,	309.375,	320.625,	331.875,	343.125,	354.375])*_np.pi/180.
@@ -1080,44 +1081,16 @@ class paData:
 		self.pa2Data=[]
 		self.pa2RawFit=[]
 		
-		if smoothingAlgorithm=='tripleBoxCar':
-			# jeff's triple boxcar smoothing
-			for i in range(0,len(self.namesPA1)):
-				temp=_process.convolutionSmoothing(self.pa1Raw[i][:],101,'box')
-				temp=_process.convolutionSmoothing(temp,101,'box')
-				temp=_process.convolutionSmoothing(temp,21,'box')
-				self.pa1RawFit.append(temp)
-				self.pa1Data.append(self.pa1Raw[i]-temp)
-				
-			for i in range(0,len(self.namesPA2)):				
-				temp=_process.convolutionSmoothing(self.pa2Raw[i][:],101,'box')
-				temp=_process.convolutionSmoothing(temp,101,'box')
-				temp=_process.convolutionSmoothing(temp,21,'box')
-				self.pa2RawFit.append(temp)
-				self.pa2Data.append(self.pa2Raw[i]-temp)
-			 
-		elif 'OrderPoly' in smoothingAlgorithm:
-			numbers=_process.extractIntsFromStr(smoothingAlgorithm);
-			order=numbers[0]
-			print("%d order polynomial smoothing" % order)
-			
-			for i in range(0,len(self.namesPA1)):
-				time,data=_trimTime(self.pa1Time,self.pa1Raw[i],self.pa1Time[0],self.pa1Time[-1])
-				fit=_process.polyFitData(self.pa1Raw[i],self.pa1Time,order=order,plot=False)
-				ffit = _np.poly1d(fit.coefs)
-				fitData=ffit(self.pa1Time)
-				
-				self.pa1RawFit.append(fitData)
-				self.pa1Data.append(self.pa1Raw[i]-fitData)
-				# TODO(John) add pa2 Data for this fit
-				
-		elif 'GuassianConvolution' in smoothingAlgorithm:
-			print("Not working yet...")
-			# TODO(John) implement
-				
-		else:
-			_sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
-		
+		# gaussian offset subtraction
+		for i in range(0,len(self.namesPA1)):
+			temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./20000)
+			self.pa1RawFit.append(temp2)
+			self.pa1Data.append(temp)
+		for i in range(0,len(self.namesPA2)):
+			temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./20000)
+			self.pa2RawFit.append(temp2)
+			self.pa2Data.append(temp)
+
 		# plot 
 		if plot==True or plot=='all':
 			self.plot(True)
@@ -1128,7 +1101,7 @@ class paData:
 	def plotOfPA1Stripey(self,tStart=2e-3,tStop=4e-3):
 		iStart=_process.findNearest(self.pa1Time,tStart)
 		iStop=_process.findNearest(self.pa1Time,tStop)
-		p1=_plot.plot(title=self.title,subtitle='PA1 Sensors',
+		p1=_plot.plot(title=self.title1,subtitle='PA1 Sensors',
 					  xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
 					  plotType='contour',colorMap=_plot._red_green_colormap(),
 					  centerColorMapAroundZero=True)
@@ -1142,7 +1115,7 @@ class paData:
 	def plotOfPA2Stripey(self,tStart=2e-3,tStop=4e-3):
 		iStart=_process.findNearest(self.pa2Time,tStart)
 		iStop=_process.findNearest(self.pa2Time,tStop)
-		p1=_plot.plot(title=self.title,subtitle='PA2 Sensors',
+		p1=_plot.plot(title=self.title2,subtitle='PA2 Sensors',
 					  xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
 					  plotType='contour',
 					  centerColorMapAroundZero=True)
@@ -1155,7 +1128,7 @@ class paData:
 
 	def plotOfPA1(self, i=0, alsoPlotRawAndFit=True):
 		""" Plot one of the PA1 plots.  based on index, i. """
-		p1=_plot.plot(xLabel='time [ms]',yLabel=r'Gauss',title=self.title,
+		p1=_plot.plot(xLabel='time [ms]',yLabel=r'Gauss',title=self.title1,
 					  shotno=[self.shotno],subtitle=self.namesPA1[i]);
 		
 		# smoothed data
@@ -1176,7 +1149,7 @@ class paData:
 	def plotOfPA2(self, i=0, alsoPlotRawAndFit=True):
 		""" Plot one of the PA2 plots.  based on index, i. """
 		p1=_plot.plot(xLabel='time [ms]',yLabel='Gauss',
-					  title=self.title,subtitle=self.namesPA2[i],
+					  title=self.title2,subtitle=self.namesPA2[i],
 					  shotno=self.shotno);
 		
 		# smoothed data
@@ -1227,8 +1200,8 @@ class paData:
 					newPlot.yLegendLabel=[]
 					sp2[i].append(newPlot)
 					count+=1;
-		sp1[0][0].title=self.title
-		sp2[0][0].title=self.title
+		sp1[0][0].title=self.title1
+		sp2[0][0].title=self.title2
 		sp1=_plot.subPlot(sp1,plot=False)
 		sp2=_plot.subPlot(sp2,plot=False)
 		# sp1.shareY=True;
