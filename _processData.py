@@ -723,18 +723,21 @@ def gaussianHighPassFilter(y,t,timeWidth=1e-4,plot=False,plotGaussian=False):
 	y+=np.sin(2*np.pi*3300+np.pi*2*np.random.rand())
 	y+=np.sin(2*np.pi*10000+np.pi*2*np.random.rand())
 	y+=np.sin(2*np.pi*33000+np.pi*2*np.random.rand())
-	gaussianHighPassFilter(y,t,timeWidth=1e-4,plot=True,plotGaussian=True)
+	gaussianHighPassFilter(y,t,timeWidth=1./20000,plot=True,plotGaussian=True)
 	"""
-	yFiltered= y-gaussianLowPassFilter(y,t,timeWidth,plot=False,plotGaussian=plotGaussian)
+	fit=gaussianLowPassFilter(y,t,timeWidth,plot=False,plotGaussian=plotGaussian)
+	yFiltered= y-fit
 	
 	if plot==True:
 		
 		_plt.figure()
 		_plt.plot(t,y,label='Raw')
+		_plt.plot(t,fit,label='Fit')
 		_plt.plot(t,yFiltered,label='Filtered')
 		_plt.legend()
 		
-	return yFiltered
+	return yFiltered, fit
+
 
     
 def butterworthFilter(y, x,filterOrder=2, samplingRate=1/(2*1e-6), 
