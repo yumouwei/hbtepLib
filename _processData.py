@@ -618,7 +618,7 @@ def convolutionSmoothing(data,numPoints,method='gaussian',plot=False):
         
     return smoothedData
     
-def gaussianLowPassFilter(y,t,timeWidth=1e-4,plot=False,plotGaussian=False):
+def gaussianLowPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False):
 	"""
 	Low pass filter using scipy's gaussian filters
 	
@@ -684,7 +684,7 @@ def gaussianLowPassFilter(y,t,timeWidth=1e-4,plot=False,plotGaussian=False):
 	return yFiltered
 
 
-def gaussianHighPassFilter(y,t,timeWidth=1e-4,plot=False,plotGaussian=False):
+def gaussianHighPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False):
 	"""
 	High pass filter using scipy's gaussian filters
 	
