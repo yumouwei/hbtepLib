@@ -400,22 +400,7 @@ class subPlot:
                                    # 2) settle into a standard window size.  prev code:   figsize=(15*n, 2.5*m)
                                    figsize=(self.figSizeX, self.figSizeY), # units in inches.  not sure how this actually maps to a screen though since it doesn't actually measure 16 inches ...
                                     dpi=80); # dpi=300 is required for RSI color images
-#                           
-#        else:
-#            fig, axarr = _plt.subplots(nrows=m,
-#                                       ncols=n, 
-#                                       sharex=self.shareX,#True,
-#                                       sharey=self.shareY,
-#                                       facecolor='w', 
-#                                       edgecolor='k', 
-#                                       # TODO either 
-#                                       # 1) find a way to maximize the figure window such that the tools in the bottom left remain 
-#                                       # or
-#                                       # 2) settle into a standard window size.  prev code:   figsize=(15*n, 2.5*m)
-#                                       figsize=(self.figSizeX, self.figSizeY), # units in inches.  not sure how this actually maps to a screen though since it doesn't actually measure 16 inches ...
-#                                        dpi=300); # dpi=300 is required for RSI color images
-         
-                   
+        
                    
         self.fig=fig;
 
