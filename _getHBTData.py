@@ -1396,12 +1396,14 @@ class fbData:
 	
 	Notes
 	-----
-	Known bad sensors: FB08_S3P, FB06_S2P, FB03_S1P
+	Known bad sensors: 'FB08_S3P', 'FB06_S2P', 'FB03_S1P', 'FB08_S4P', 'FB04_S3P'
+	Sensors known to be wired backwards : 'FB01_S1P','FB01_S2P','FB01_S3P'
 	"""
-	def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,smoothingAlgorithm='tripleBoxCar'):
+	def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,removeBadSensors=True):
 		self.shotno = shotno
 		self.title = "%d, FB sensors" % shotno
-		self.badSensors=['FB08_S3P', 'FB06_S2P', 'FB03_S1P']
+		self.badSensors=['FB08_S3P', 'FB06_S2P', 'FB03_S1P', 'FB08_S4P', 'FB04_S3P'] # some sensors appear to be broken
+		self.invertedSensorList=['FB01_S1P','FB01_S2P','FB01_S3P'] # some sensors have been wired backwards
 
 		# sensor names
 		self.fbPolNames=[['FB01_S1P', 'FB02_S1P', 'FB03_S1P', 'FB04_S1P', 'FB05_S1P', 'FB06_S1P', 'FB07_S1P', 'FB08_S1P', 'FB09_S1P', 'FB10_S1P'], ['FB01_S2P', 'FB02_S2P', 'FB03_S2P', 'FB04_S2P', 'FB05_S2P', 'FB06_S2P', 'FB07_S2P', 'FB08_S2P', 'FB09_S2P', 'FB10_S2P'], ['FB01_S3P', 'FB02_S3P', 'FB03_S3P', 'FB04_S3P', 'FB05_S3P', 'FB06_S3P', 'FB07_S3P', 'FB08_S3P', 'FB09_S3P', 'FB10_S3P'], ['FB01_S4P', 'FB02_S4P', 'FB03_S4P', 'FB04_S4P', 'FB05_S4P', 'FB06_S4P', 'FB07_S4P', 'FB08_S4P', 'FB09_S4P', 'FB10_S4P']]
@@ -1415,15 +1417,16 @@ class fbData:
 		self.theta=[theta[0,:],theta[1,:],theta[2,:],theta[3,:]]
 		
 		# remove bad sensors
-		for i in range(0,len(self.badSensors)):
-			for j in range(0,4):
-				if self.badSensors[i] in self.fbPolNames[j]:
-					iBad=_np.where(_np.array(self.fbPolNames[j])==self.badSensors[i])
-					self.fbPolNames[j]=list(_np.delete(self.fbPolNames[j],iBad))
-					self.phi[j]=_np.delete(self.phi[j],iBad)
-					self.theta[j]=_np.delete(self.theta[j],iBad)
-		
-
+		if removeBadSensors==True:
+			for i in range(0,len(self.badSensors)):
+				for j in range(0,4):
+					if self.badSensors[i] in self.fbPolNames[j]:
+						iBad=_np.where(_np.array(self.fbPolNames[j])==self.badSensors[i])
+						self.fbPolNames[j]=list(_np.delete(self.fbPolNames[j],iBad))
+						self.phi[j]=_np.delete(self.phi[j],iBad)
+						self.theta[j]=_np.delete(self.theta[j],iBad)
+						print("Removing broken signal: %s" % self.fbPolNames[j][i])
+			
 		## construct full sensor addresses 
 		fbPolSensorAddresses=[[],[],[],[]]
 		fbRadSensorAddresses=[[],[],[],[]]   
@@ -1446,47 +1449,25 @@ class fbData:
 		self.fbRadRaw[2], self.fbRadTime =mdsData(shotno,fbRadSensorAddresses[2], tStart, tStop)
 		self.fbRadRaw[3], self.fbRadTime =mdsData(shotno,fbRadSensorAddresses[3], tStart, tStop)		
 			   
+		# correct for signal inversion (I believe that the polarity of the wiring of the sensors is backwards for a few sensors)
+		self.invertedSensorList=['FB01_S1P','FB01_S2P','FB01_S3P']
+		for j in range(0,4):
+			for i in range(0,len(self.fbPolNames[j])):
+				if self.fbPolNames[j][i] in self.invertedSensorList:
+					print("Correcting inverted signal: %s" % self.fbPolNames[j][i])
+					self.fbPolRaw[j][i]*=-1
+		
 		# data smoothing algorithm
 		self.fbPolData=[[],[],[],[]]
 		self.fbPolRawFit=[[],[],[],[]]
 		self.fbRadData=[[],[],[],[]]
 		self.fbRadRawFit=[[],[],[],[]]
-		if smoothingAlgorithm=='tripleBoxCar':
-			# jeff's triple boxcar smoothing
-			for j in range(0,4):
-				for i in range(0,len(self.fbPolNames[j])):
-					temp=_process.convolutionSmoothing(self.fbPolRaw[j][i][:],101,'box')
-					temp=_process.convolutionSmoothing(temp,101,'box')
-					temp=_process.convolutionSmoothing(temp,21,'box')
-					self.fbPolRawFit[j].append(temp)
-					self.fbPolData[j].append(self.fbPolRaw[j][i]-temp)
-					
-					temp=_process.convolutionSmoothing(self.fbRadRaw[j][i][:],101,'box')
-					temp=_process.convolutionSmoothing(temp,101,'box')
-					temp=_process.convolutionSmoothing(temp,21,'box')
-					self.fbRadRawFit[j].append(temp)
-					self.fbRadData[j].append(self.fbRadRaw[j][i]-temp)
-					
-		elif 'OrderPoly' in smoothingAlgorithm:
-			# get order number from string
-			numbers=_process.extractIntsFromStr(smoothingAlgorithm);
-			order=numbers[0]
-			print("%d order polynomial smoothing" % order)
-			
-			# apply to all 40 sensors
-			
-			for j in range(0,4):
-				for i in range(0,len(self.fbPolNames[j])):
-					time,data=_trimTime(self.fbPolTime,self.fbPolRaw[j][i],self.fbPolTime[0],self.fbPolTime[-1])
-					fit=_process.polyFitData(self.fbPolRaw[j][i],self.fbPolTime,order=order,plot=False)
-					ffit = _np.poly1d(fit.coefs)
-					fitData=ffit(self.fbPolTime)
-					
-					self.fbPolRawFit[j].append(fitData)
-					self.fbPolData[j].append(self.fbPolRaw[j][i]-fitData)
-		else:
-			_sys.exit("You must specify a correct smoothing algorithm.  Exiting code...")
-	 
+		for j in range(0,4):
+			for i in range(0,len(self.fbPolNames[j])):
+				temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./20000)
+				self.fbPolRawFit[j].append(temp2)
+				self.fbPolData[j].append(temp)
+
 		# plot
 		if plot=='sample':
 			self.plotOfSinglePol().plot();
