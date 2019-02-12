@@ -1747,8 +1747,9 @@ class taData:
 		
 		# high pass filter the measurements
 		for i in range(0,30):
-			temp=_process.gaussianHighPassFilter(self.taPolRaw[i][:],self.taPolTime,timeWidth=1./20000)
+			temp,temp2=_process.gaussianHighPassFilter(self.taPolRaw[i][:],self.taPolTime,timeWidth=1./20000)
 			self.taPolData.append(temp)
+			self.taPolRawFit.append(temp2)
 
 		# plot
 		if plot=='sample':
@@ -1786,9 +1787,9 @@ class taData:
 			p1.addTrace(yData=self.taPolRaw[i],xData=self.taPolTime*1000,
 						yLegendLabel='raw') 
 			
-#			# fit data (which is subtracted from raw)
-#			p1.addTrace(yData=self.taPolRawFit[i],xData=self.taPolTime*1000,
-#						yLegendLabel='fit') 
+			# fit data (which is subtracted from raw)
+			p1.addTrace(yData=self.taPolRawFit[i],xData=self.taPolTime*1000,
+						yLegendLabel='fit') 
 
 		return p1
 		
@@ -2246,10 +2247,12 @@ class solData:
 		self.solDataFit=[]
 		self.solData=[]
 		for i in range(0,len(self.sensorNames)):
-			self.solDataFit.append(_process.convolutionSmoothing(self.solDataRaw[i],
-																 numPointsForSmothing,
-														 'normal'))
-			self.solData.append(self.solDataRaw[i]-self.solDataFit[i])
+#			self.solDataFit.append(_process.convolutionSmoothing(self.solDataRaw[i],
+#																 numPointsForSmothing,
+#														 'normal'))
+			temp,temp2=_process.gaussianHighPassFilter(self.solDataRaw[i],self.time,timeWidth=1./20000)
+			self.solData.append(temp)
+			self.solDataFit.append(temp2)
 						
 		# optional plotting	
 		if plot == True:
