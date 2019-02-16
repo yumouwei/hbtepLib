@@ -86,7 +86,7 @@ def _trimTime(time,data,tStart,tStop):
 	Notes
 	-----
 	This function does not concern itself with units (e.g. s or ms). Instead, 
-	it is assumed that tStart and tStop have the same units as time.  
+	it is assumed that tStart and tStop have the same units as the variable, time.  
 	"""	
 	if tStart is None:
 		iStart=0;
@@ -148,6 +148,9 @@ def _initRemoteMDSConnection(shotno):
 def latestShotNumber():
 	"""
 	Gets the latest shot number from the tree
+	
+	Parameters
+	----------
 	
 	Returns
 	-------
@@ -1897,6 +1900,11 @@ class quartzJumperData:
 		plot of all 4 external rogowskis
 	plot :
 		plots plotOfERogAll()
+		
+	Notes
+	-----
+	Rog. D is permanently off for the time being
+	Rog. B is typically off in favor of Rog. A (not always)	
 	
 	"""
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
@@ -1915,7 +1923,10 @@ class quartzJumperData:
 		self.eRogC=data[2];
 		self.eRogD=data[3];
 		self.time=time;
-		self.sensorLocations=['A. Off (Section 9-10)','B. Section 3-4','C. Section 10-1','D. Off']
+#		self.sensorLocations=['A. Section 9-10','B. Section 3-4','C. Section 10-1','D. Section 5-6']
+		self.sensorNames=['A. Section 9-10','B. Section 3-4','C. Section 10-1','D. Section 5-6']
+		self.phi=_np.array([198,342,234,54])*_np.pi/180.
+		self.theta=_np.array([0,0,0,0])
 		
 		if plot == True:
 			self.plot()
