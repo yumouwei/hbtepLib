@@ -1419,7 +1419,7 @@ class fbData:
 #		self.phi=_np.pi/180.*_np.array([242.5-360, 278.5-360, 314.5-360, 350.5-360, 26.5, 62.5, 98.5, 134.5, 170.5, 206.5]);#*_np.pi/180.
 		phi=_np.pi/180.*_np.array([241,277,313,349,25,61, 97,133,169,205])
 		self.phi=[phi,phi,phi,phi]
-		theta=_np.pi/180.*_np.array([_np.ones(10)*(360-83.4),_np.ones(10)*(360-29.3),_np.ones(10)*83.4,_np.ones(10)*29.3])
+		theta=_np.pi/180.*_np.array([_np.ones(10)*(-83.4),_np.ones(10)*(-29.3),_np.ones(10)*29.3,_np.ones(10)*83.4])
 		self.theta=[theta[0,:],theta[1,:],theta[2,:],theta[3,:]]
 		
 		# remove bad sensors
@@ -3139,20 +3139,20 @@ class nModeData:
 				y[i]=self._data[i][j]*1e4
 		p1=_plot.plot(shotno=[self.shotno],
 					  title=self.title+', t='+str(self.time[j]*1000)+'ms.')
-		phi=_np.linspace(self._phi[0],self._phi[-1],100)
+		phi=_np.linspace(0,_np.pi*2,100)
 		n1Fit=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)
 		n2Fit=self._x[0,j]+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
 		fitTotal=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
 
 		# plot
 		p1.addTrace(yData=y,xData=self._phi,
-					marker='.',linestyle='',yLegendLabel='raw') 
+					marker='x',linestyle='',yLegendLabel='raw') 
 		p1.addTrace(yData=n1Fit,xData=phi,
 					yLegendLabel='n=1') 
 		p1.addTrace(yData=n2Fit,xData=phi,
 					yLegendLabel='n=2') 
 		p1.addTrace(yData=fitTotal,xData=phi,
-					yLegendLabel='n=3') 
+					yLegendLabel='Superposition') 
 		return p1
 		
 
