@@ -6,6 +6,8 @@ The code was originially developed for personal use, but I working on making it 
 
 You can contact me, John Brooks, at `jwb2159 at columbia dot edu` with any questions.  
 
+The library already exists on the local HBT-EP server.  If you do not need the install the library locally, you may skip straight to the tutorial section.  
+
 ## 1. Getting started with git
 
 There is a somewhat steep learning curve with git.  I find it easier to start with a GUI interface like [SmartGit](https://www.syntevo.com/smartgit/) and eventually working down to the command line.  
@@ -15,10 +17,26 @@ Here are a few tutorials to get your started:
 2.  [Git Tutorial for Beginners: Command-Line Fundamentals](https://www.youtube.com/watch?v=HVsySz-h9r4)
 3.  [Atlassian version control tutorial](https://www.atlassian.com/git/tutorials/what-is-version-control)
 
-## 2. Installing the library
-The library is already installed on spizter, and you can skip this step if you only plan to use it there.  If you wish to install the library on your personal computer, then this section is for you.  
+## 2.  Installing the MDSplus library
 
-#### 2A. Installation on Ubuntu from the command line
+Before installing this library locally, I strongly recommend that you install the MDSplus library first.  Installing MDSplus is typically the hardest part of this entire process.  Start [here](http://www.mdsplus.org/index.php?title=Downloads&open=82992333933183500305&page=Software%2FDownloads) and carefully follow their instructions.
+
+##### Alternate method for installing MDSplus
+
+For full discolure, I'm still learning how to manage python libraries, and I find the MDSplus library to be particulary difficult to manage.  I've tried this alternate method to install the library, and it worked for me on Ubuntu.  One of my colleagues tried it on Windows, and it didn't work.  
+
+  1. Download the [MDSplus sources](http://www.mdsplus.org/index.php?title=Downloads&open=82992333933183500305&page=Software%2FDownloads#MDSplus_Sources) stable file.  [Direct link](https://github.com/MDSplus/mdsplus/archive/stable.zip).  
+  2.  Extract the compressed files and navigate to ```/mdsplus-stable/mdsobjects``` 
+  3.  Rename the ```plasma``` directory to ```MDSplus```.  This is case sensitive so be careful.
+  4.  Move this directory to whereever you keep your python libraries.  
+  5.  Add the directory where the MDSplus folder sits to your PYTHONPATH environment.  Spyder has an option under ```Tools``` to do this.  For Ubuntu, modfiy your .bashrc file as described [here](https://stackoverflow.com/questions/3402168/permanently-add-a-directory-to-pythonpath).
+
+
+## 3. Installing the library
+ 
+If you wish to install the library on your personal computer, then this section is for you.  
+
+#### 3A. Installation on Ubuntu from the command line
 
 This assumes you have the mdsplus python library already installed.  If you do not, see the later section below.  
 
@@ -31,7 +49,7 @@ This assumes you have the mdsplus python library already installed.  If you do n
 
 You now have access to the library.  Refer the tutorials above for how to manage the repo.  
 
-#### 2B. Installation on Windows
+#### 3B. Installation on Windows
 
 This assumes you do not have mdsplus already installed on your computer.  
 
@@ -44,14 +62,14 @@ This assumes you do not have mdsplus already installed on your computer.
 7.  At the terminal, type `import hbtepLib as hbt`.  It should give an error with something like `_hbtPreferences.py file not found` if correctly installed.  
 
 
-## 3.  Setting up the library
+## 4.  Setting up the library
 
 After you have installed the library on your personal computer, you need to configure the preferences file.
 
 1.   Start by making a copy of _hbtPreferences.template and renaming it as _hbtPreferences.py.  Then fill out `_HBT_SERVER_ADDRESS = ""` and `_HBT_SERVER_NAME = ""` with the correct values.  If you don't know what to put in these variables, please ask someone at the lab.  
 2.  Return to python command line and type  `import hbtepLib as hbt`.  There should be no error.  Then type, `hbt.get.tpData(95996,plot=True)` and you should get a plot of the triple probe data.
 
-## 4. Quick tutorial on using the library
+## 5. Quick tutorial on using the library
 
 1.  At the python terminal, type `import hbtepLib as hbt`.  If the library is installed correctly, you should receive no errors.
 2.  Next, play around with autocomplete (in spyder) to explore the various commands within this library.  Read the *Tips for Spyder* sections below.  
@@ -74,17 +92,7 @@ I like Spyder for my pthon IDE for two reasons.
 
 2. It has the object inspector (now called Help) which will instantly show any documentation (instructions) associated with any command you are writing.  In my code base, I've documented a lot (but not all) of the functions in order to make them easier to use.  To make use of this second feature, I recommend going to Preferences -> Help and selecting "Automatic connections" for both "editor" and IPython-Console"
 
-## Tips for installing MDSplus
 
-Installing MDSplus is typically the hardest part of this entire process.  Start [here](http://www.mdsplus.org/index.php?title=Downloads&open=82992333933183500305&page=Software%2FDownloads) and carefully follow their instructions.
 
-##### Alternate method for installing MDSplus
 
-I've only tried this once, but it worked on the first go for me.  It was also MUCH easier than doing the above.  
-
-  1. Download the [MDSplus sources](http://www.mdsplus.org/index.php?title=Downloads&open=82992333933183500305&page=Software%2FDownloads#MDSplus_Sources) stable file.  [Direct link](https://github.com/MDSplus/mdsplus/archive/stable.zip).  
-  2.  Extract the compressed files and navigate to ```/mdsplus-stable/mdsobjects``` 
-  3.  Rename the ```plasma``` directory to ```MDSplus```.  This is case sensitive so be careful.
-  4.  Move this directory to whereever you keep your python libraries.  
-  5.  Add the directory where the MDSplus folder sits to your PYTHONPATH environment.  Spyder has an option under ```Tools``` to do this.  For Ubuntu, modfiy your .bashrc file as described [here](https://stackoverflow.com/questions/3402168/permanently-add-a-directory-to-pythonpath).
 
