@@ -159,7 +159,7 @@ def latestShotNumber():
 	"""
 	conn = _mds.Connection(_pref._HBT_SERVER_ADDRESS+':8003');
 	shot_num = conn.get('current_shot("hbtep2")')
-	return shot_num
+	return int(shot_num)
 		
 		
 def mdsData(shotno=None,
@@ -192,6 +192,10 @@ def mdsData(shotno=None,
 	# convert dataAddress to a list if it not one originally 
 	if type(dataAddress) is not list:
 		dataAddress=[dataAddress];
+		
+	# if shotno == -1, use the latest shot number
+	if shotno==-1:
+		shotno=latestShotNumber()
 		
 	# init arrays
 	time =[]
@@ -470,7 +474,7 @@ class bpData:
 		self.shotno = shotno
 		self.title = "%s, BP Data." % shotno
 				
-		if shotno > 99035:
+		if shotno > 99035 or shotno==-1:
 			# BPS5 was moved to section 2
 			
 			# get voltage data
@@ -484,11 +488,13 @@ class bpData:
 			
 			# get current data
 			data, time=mdsData(shotno=shotno,
-							   dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_85',
-											'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_84'],
+							   dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:VOLTAGE',
+											'\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:CURRENT'],
+#							   dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_85',
+#											'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_84'],
 							   tStart=tStart, tStop=tStop)
-			self.bps5Voltage=data[0]*100; #TODO get actual voltage divider info
-			self.bps5Current=data[1]/0.05;  
+			self.bps2Voltage=data[0]#*100; #TODO get actual voltage divider info
+			self.bps2Current=data[1]*-1#/0.05;  
 			
 
 		elif shotno > 96000 and shotno < 99035 :
@@ -544,7 +550,7 @@ class bpData:
 													  tStart=tStart, tStop=tStop)
 		self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
 		self.primaryCurrent=primaryCurrent*0.01**(-1) # correct for Pearson correction factor
-		self.primaryCurrent*=-1; #the sign is wrong.  
+#		self.primaryCurrent*=1; #the sign is wrong.  
 #		self.primaryVoltage*=-1; #the sign is wrong.  
 		
 		# get gpu request voltage (for when the BP is under feedforward or feedback control)
@@ -604,8 +610,12 @@ class bpData:
 					  shotno=[self.shotno]);
 		p1.addTrace(xData=self.time*1000,yData=self.bps9Voltage,
 					yLegendLabel='BPS9')
-		p1.addTrace(xData=self.time*1000,yData=self.bps5Voltage,
+		try:
+			p1.addTrace(xData=self.time*1000,yData=self.bps2Voltage,
 					yLegendLabel='BPS2')
+		except:
+			p1.addTrace(xData=self.time*1000,yData=self.bps5Voltage,
+					yLegendLabel='BPS5')
 		if primary==True:
 			p1.addTrace(xData=self.time*1000,yData=self.primaryVoltage,
 					yLegendLabel='Primary')
@@ -621,8 +631,12 @@ class bpData:
 					  shotno=[self.shotno])
 		p1.addTrace(xData=self.time*1000,yData=self.bps9Current,
 					yLegendLabel='BPS9')
-		p1.addTrace(xData=self.time*1000,yData=self.bps5Current,
-					yLegendLabel='BPS2')
+		try:
+			p1.addTrace(xData=self.time*1000,yData=self.bps2Current,
+						yLegendLabel='BPS2')
+		except:
+			p1.addTrace(xData=self.time*1000,yData=self.bps5Current,
+						yLegendLabel='BPS5')
 		if primary==True:
 			p1.addTrace(xData=self.time*1000,yData=self.primaryCurrent,
 					yLegendLabel='Primary')
@@ -655,6 +669,167 @@ class bpData:
 	
 		# TODO(john) also make plots for BPS5 only
 
+	def plot(self,plotAll=False):
+		""" Plot relevant plots """
+		if plotAll==False:
+			sp1=_plot.subPlot([self.plotOfVoltage(),self.plotOfCurrent()])
+		else:
+			sp1=_plot.subPlot([self.plotOfVoltage(True),self.plotOfCurrent(True),self.plotOfGPUVoltageRequest()])
+		return sp1
+	
+	
+class dpData:
+	"""
+	Downloads directional (double) probe data f
+	
+	Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before \line
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	ip : numpy.ndarray
+		plasma current data
+	time : numpy.ndarray
+		time data
+	title : str
+		title of all included figures
+	dp1Voltage : numpy.ndarray
+		double probe 1 voltage
+	dp1Current : numpy.ndarray
+		double probe 1 current
+	gpuRequestVoltage : numpy.ndarray
+		CPCI measurement of pre-amp voltage, out from the GPU, and going to 
+		the probe
+		
+	Subfunctions
+	------------
+	#TODO
+		
+	Notes
+	-----  
+	
+	"""
+	def __init__(self,shotno,tStart=_TSTART,tStop=_TSTOP,plot=False):
+		self.shotno = shotno
+		self.title = "%s, DP Data." % shotno
+				
+		# get probe results
+		data, time=mdsData(shotno=shotno,
+							   dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_85',
+											'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_84',
+											'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_83'],
+							   tStart=tStart, tStop=tStop)
+		self.dp1VoltageLeft=data[0]*(469.7/(469.7+100000))**(-1);
+		self.dp1Current=data[1]*0.1**(-1)
+		self.dp1VoltageRight=data[2]*(470./(470+99800))**(-1);
+		self.dp1VoltageDiff=self.dp1VoltageLeft-self.dp1VoltageRight
+		self.time=time;
+		self.dp1Current*=-1;
+					
+		# transformer primary voltage.  first setup for shot 100505 and on.  
+		[primaryVoltage,primaryCurrent], time=mdsData(shotno=shotno,
+													 dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_86',
+																'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_87'],
+													  tStart=tStart, tStop=tStop)
+		self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
+		self.primaryCurrent=primaryCurrent*0.01**(-1) # correct for Pearson correction factor
+		self.primaryCurrent*=-1
+		
+		# get gpu request voltage (for when the BP is under feedforward or feedback control)
+		data, time=mdsData(shotno=shotno,
+						   dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_93'],
+						   tStart=tStart, tStop=tStop)
+		self.gpuRequestVoltage=data[0];
+		
+		if plot==True:
+			self.plot()
+		if plot=='all':
+			self.plot(True)
+
+	def plotOfGPUVoltageRequest(self):
+		""" 
+		returns plot of gpu voltage request 
+		(Preamp signal out from caliban)			
+		"""
+		p1=_plot.plot(title=self.title,xLabel='ms',yLabel='V',
+					  subtitle='Voltage Request from GPU (pre-amplifier)',
+					  shotno=self.shotno);
+		p1.addTrace(xData=self.time*1000,yData=self.gpuRequestVoltage)#,
+					#yLegendLabel='BPS9')
+		return p1
+	
+#	def plotOfPrimaryVoltage(self):
+#		""" 
+#		returns plot of transformer primary values
+#		(Preamp signal out from caliban)			
+#		"""
+#		p1=_plot.plot(title=self.title,xLabel='ms',yLabel='V',
+#					  subtitle='Primary voltage',
+#					  shotno=self.shotno);
+#		p1.addTrace(xData=self.time*1000,yData=self.primaryVoltage,
+#					yLegendLabel='')
+#		return p1
+#	
+#	def plotOfPrimaryCurrent(self):
+#		""" 
+#		returns plot of transformer primary values
+#		(Preamp signal out from caliban)			
+#		"""
+#		p1=_plot.plot(title=self.title,xLabel='ms',yLabel='A',
+#					  subtitle='Primary current',
+#					  shotno=self.shotno);
+#		p1.addTrace(xData=self.time*1000,yData=self.primaryCurrent,
+#					yLegendLabel='')
+#		return p1
+		
+		
+	def plotOfVoltage(self,primary=False):
+		""" 
+		returns plot of DP voltage		  
+		"""
+		p1=_plot.plot(title=self.title,yLabel='V', #yLim=[-200,200]
+					  xLabel='Time [ms]',subtitle='DP Voltage',
+					  shotno=[self.shotno]);
+		p1.addTrace(xData=self.time*1000,yData=self.dp1VoltageRight,
+					yLegendLabel='DP1 Right')
+		p1.addTrace(xData=self.time*1000,yData=self.dp1VoltageLeft,
+					yLegendLabel='DP1 Left')
+		p1.addTrace(xData=self.time*1000,yData=self.dp1VoltageDiff,
+					yLegendLabel='DP1 Difference')
+		if primary==True:
+			p1.addTrace(xData=self.time*1000,yData=self.primaryVoltage,
+					yLegendLabel='Primary')
+		
+		return p1
+		
+	def plotOfCurrent(self,primary=False):
+		""" 
+		returns plot of DP current		 
+		"""
+		p1=_plot.plot(title=self.title,yLabel='A',
+					  xLabel='Time [ms]',subtitle='DP Current',
+					  shotno=[self.shotno])
+		p1.addTrace(xData=self.time*1000,yData=self.dp1Current,
+					yLegendLabel='DP1')
+		if primary==True:
+			p1.addTrace(xData=self.time*1000,yData=self.primaryCurrent,
+					yLegendLabel='Primary')
+		
+		return p1
+	
 	def plot(self,plotAll=False):
 		""" Plot relevant plots """
 		if plotAll==False:
@@ -2100,14 +2275,28 @@ class usbSpectrometerData:
 			except:# _mds.MdsIpException:
 				print("usb spectrometer channel %d data does not exist for shot number %d" % (i, shotno))
 		
+		self.spectrometerArrayNumber=_np.array(self.spectrometerArrayNumber)
 		# get wavelength
 		yData, xData=mdsData(shotno=shotno,
 							dataAddress='\HBTEP2::TOP.SENSORS.USB_SPECTROM:WAVELENGTH')
 		self.wavelength=yData[0]
 			   
 		# plot if requested
-		if plot == True or plot=='all':
-			self.plot()
+		if plot == True:
+			self.plotOfSpect().plot()
+		if plot == 'all':
+			self.plotOfSpect().plot()
+			self.plotOfStripey().plot()
+			
+	def plotOfSingleChannel(self,ch):
+		# generate plot of single channel
+		index=_np.where(self.spectrometerArrayNumber==ch)[0][0]
+		data=self.spectrometerData[index]
+		p1=_plot.plot(yLabel='Intensity',xLabel='Wavelength [nm]',
+					  subtitle='Spect. Ch. %d' % ch,
+					  shotno=self.shotno)
+		p1.addTrace(yData=data,xData=self.wavelength)
+		return p1
 		
 	def plotOfSpect(self):
 		# generate subplot of data
@@ -2139,7 +2328,6 @@ class usbSpectrometerData:
 		""" Plot all relevant plots """
 		self.plotOfSpect().plot()
 		self.plotOfStripey().plot()
-		
 		
 class solData:
 	"""
