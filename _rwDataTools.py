@@ -60,8 +60,50 @@ def writeDataToFile(data,filename='out.csv',delimiter=',',
     
 # TODO need readDataFromFile code
     
-# TODO do the same as above for binary as well (for better file storage)
-    
+###############################################################################
+### binary files
+def readBinaryFileInto2DMatrix(fileName,numColumns=None,numRows=None,dataType=_np.float32):
+	"""
+	Reads a binary data file into a 1D or 2D numpy array, depending on the 
+	number of columns specified.
+	
+	# fileName='/home/john/Downloads/ai_store.dat'
+	
+	Example #1
+	----------
+	::
+		
+		# write and then read 1D binary file
+		
+		fileName='out.dat'
+		a=np.arange(0,21,dtype=np.float32)
+		write2DNumpyArrayToSeqBinaryFile(a,fileName)
+		data=readSeqBinaryFileInto2DMatrix(fileName)
+			
+	Example #2
+	----------
+	::
+		
+		# write and then read 2D binary file
+		
+		fileName='out.dat'
+		numColumns=3
+		a=np.arange(0,21,dtype=np.float32).reshape(-1,numColumns)
+		write2DNumpyArrayToSeqBinaryFile(a,fileName)
+		data=readSeqBinaryFileInto2DMatrix(fileName,numColumns=numColumns)
+	"""
+	if type(numColumns)==type(None) and type(numRows)==type(None):
+		numColumns=1
+	
+	if type(numRows)==type(None):
+		data= _np.fromfile(fileName, dataType).reshape((-1,numColumns))
+	elif type(numColumns)==type(None):
+		data= _np.fromfile(fileName, dataType).reshape((numRows,-1))
+	(m,n)=_np.shape(data)
+	if n==1:
+		return data[:,0]
+	else:
+		return data	
     
 ###############################################################################
 ### keyring password management for python
@@ -89,7 +131,7 @@ def setPwd(password,system=_pref._HBT_SERVER_NAME,username=_HBT_SERVER_USERNAME)
     keyring.set_password(system,username,password)
     
     
-def getPwd(system=_pref._HBT_SERVER_NAME,username=_HBT_SERVER_USERNAME):
+def getPwd(systemName=_pref._HBT_SERVER_NAME,userName=_HBT_SERVER_USERNAME):
     """ 
     Returns unencrypted password
     
@@ -113,8 +155,8 @@ def getPwd(system=_pref._HBT_SERVER_NAME,username=_HBT_SERVER_USERNAME):
     function keyring is installed and the password has already been set for 
     that user.  i'm using this on ubuntu.  not sure if it'll work on windows
     """
-    import keyring
-    return str(keyring.get_password(system, username))
+    import keyring as kr
+    return str(kr.get_password(systemName, userName))
 
     
 ###############################################################################
