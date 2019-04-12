@@ -487,15 +487,18 @@ class bpData:
 			self.time=time;
 			
 			# get current data
-			data, time=mdsData(shotno=shotno,
-							   dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:VOLTAGE',
-											'\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:CURRENT'],
-#							   dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_85',
-#											'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_84'],
-							   tStart=tStart, tStop=tStop)
-			self.bps2Voltage=data[0]#*100; #TODO get actual voltage divider info
-			self.bps2Current=data[1]*-1#/0.05;  
-			
+			try:
+				data, time=mdsData(shotno=shotno,
+								   dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:VOLTAGE',
+												'\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:CURRENT'],
+	#							   dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_85',
+	#											'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_84'],
+								   tStart=tStart, tStop=tStop)
+				self.bps2Voltage=data[0]#*100; #TODO get actual voltage divider info
+				self.bps2Current=data[1]*-1#/0.05;  
+			except:
+				"no bp2"
+				
 
 		elif shotno > 96000 and shotno < 99035 :
 			#TODO(determine when this probe was rewired or moved)
@@ -737,16 +740,19 @@ class dpData:
 		self.dp1VoltageRight=data[2]*(470./(470+99800))**(-1);
 		self.dp1VoltageDiff=self.dp1VoltageLeft-self.dp1VoltageRight
 		self.time=time;
-		self.dp1Current*=-1;
+#		self.dp1Current*=-1;
 					
 		# transformer primary voltage.  first setup for shot 100505 and on.  
-		[primaryVoltage,primaryCurrent], time=mdsData(shotno=shotno,
+		[primaryVoltage,primaryCurrent,secondaryVoltage], time=mdsData(shotno=shotno,
 													 dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_86',
-																'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_87'],
+																'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_87',
+																'\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_88'],
 													  tStart=tStart, tStop=tStop)
-		self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
+#		self.primaryVoltage=primaryVoltage*(0.745/(110+.745))**(-1) # correct for voltage divider
+		self.primaryVoltage=primaryVoltage*(507.2/102900.)**(-1) # correct for voltage divider
 		self.primaryCurrent=primaryCurrent*0.01**(-1) # correct for Pearson correction factor
-		self.primaryCurrent*=-1
+#		self.primaryCurrent*=-1
+		self.secondaryVoltage=secondaryVoltage*(514.6/102500)**(-1)
 		
 		# get gpu request voltage (for when the BP is under feedforward or feedback control)
 		data, time=mdsData(shotno=shotno,
@@ -812,6 +818,8 @@ class dpData:
 		if primary==True:
 			p1.addTrace(xData=self.time*1000,yData=self.primaryVoltage,
 					yLegendLabel='Primary')
+			p1.addTrace(xData=self.time*1000,yData=self.secondaryVoltage,
+					yLegendLabel='Secondary')
 		
 		return p1
 		
@@ -2329,6 +2337,7 @@ class usbSpectrometerData:
 		self.plotOfSpect().plot()
 		self.plotOfStripey().plot()
 		
+				
 class solData:
 	"""
 	SOL tile sensor data
@@ -2974,7 +2983,7 @@ class qStarData:
 		
 		# calc q star
 		self.qStar= plasmaRadius.minorRadius**2 * tfProbeData / (2e-7 * ip.ip * plasmaRadius.majorRadius)
-		self.qStarCorrected=self.qStar*(1.15) # 10% correction factor.  jeff believes our qstar measurement might be about 15% to 20% too low.  
+		self.qStarCorrected=self.qStar*(1.15) # 15% correction factor.  jeff believes our qstar measurement might be about 15% to 20% too low.  
 		self.time=ip.time
 		
 		if plot == True:
@@ -3170,7 +3179,7 @@ class nModeData:
 					_process.gaussianLowPassFilter(
 							_process.unwrapPhase(self.n1PhaseRaw),
 							self.time,
-							timeWidth=1./20e3))
+							timeWidth=1./50e3))
 		else:
 			_sys.exit("Invalid phase filter requested.")
 					
