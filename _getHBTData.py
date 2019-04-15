@@ -314,6 +314,81 @@ class ipData:
 		self.plotOfIP().plot()
 		
 		
+class egunData:
+	"""
+	Gets egun data
+	
+	Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	title : str
+		title to go on all plots
+	heatingCurrent : numpy.ndarray
+		egun heating current
+	time : numpy.ndarray
+		time data
+		
+	Subfunctions
+	------------
+	plot :
+		Plots all relevant plots
+	
+	"""
+	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
+		self.shotno = shotno
+		self.title = "%d, egun Data" % shotno
+		
+		# get data
+		data,time=mdsData(101169,
+			  dataAddress=['\HBTEP2::TOP.OPER_DIAGS.E_GUN:I_EMIS', 
+					    '\HBTEP2::TOP.OPER_DIAGS.E_GUN:I_HEAT',
+						'\HBTEP2::TOP.OPER_DIAGS.E_GUN:V_BIAS',])
+		self.I_EMIS=data[0]
+		self.heatingCurrent=data[1]
+		self.biasVoltage=data[2]
+		self.heatingCurrentRMS=_np.sqrt(_np.average((self.heatingCurrent-_np.average(self.heatingCurrent))**2));
+		self.time=time;
+		
+		if plot == True or plot=='all':
+			self.plot()
+		
+		
+	def plotOfHeatingCurrent(self):
+		"""
+		returns the plot of heating current vs time
+		"""
+		p1=_plot.plot(title=self.title,
+					  xLabel='time [ms]',
+					  yLabel='A',
+					  subtitle='egun heating current',
+					  shotno=self.shotno)
+		p1.addTrace(xData=self.time*1000,yData=self.heatingCurrent)
+		
+		return p1
+		
+			
+	def plot(self):
+		""" 
+		Plot all relevant plots 
+		"""
+		self.plotOfHeatingCurrent().plot()
+		
+		
 class cos1RogowskiData:
 	"""
 	Gets cos 1 rogowski data
