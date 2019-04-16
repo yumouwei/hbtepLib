@@ -101,7 +101,7 @@ def rmse(data, targets=0):
     # http://statweb.stanford.edu/~susan/courses/s60/split/node60.html
     """
     return _np.sqrt(((data - targets) ** 2).mean())
-    
+
     
 def rms(data):
     """
@@ -126,27 +126,31 @@ def rms(data):
     
     
 def rejectOutliers(data, sigma=2):
-    """
-    remove outliers from set of data
-    
-    Parameters
-    ----------
-    data : numpy.ndarray
-        data array being considered
-    sigma : int
-        the number of std. devs. about which to reject data.  E.g. sigma=2 
-        rejects outliers outside of +-2*sigma
-        
-    Return
-    ------
-    Data array as above but missing entires considered as outliers
-    
-    References
-    ----------
-    http://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
-    """
-    return data[abs(data - _np.mean(data)) < sigma* _np.std(data)]
-                
+	"""
+	remove outliers from set of data
+	
+	Parameters
+	----------
+	data : numpy.ndarray
+		data array being considered
+	sigma : int
+		the number of std. devs. about which to reject data.  E.g. sigma=2 
+		rejects outliers outside of +-2*sigma
+		
+	Return
+	------
+	 : numpy.ndarray 
+		Same as databut missing entires considered as outliers
+	indicesToKeep : numpy.ndarray (of bool)
+		Boolean indices associated with entries of data that are kept
+	
+	References
+	----------
+	http://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
+	"""
+	indicesToKeep=abs(data - _np.mean(data)) < sigma* _np.std(data)
+	return data[indicesToKeep],indicesToKeep
+				    
             
 def wrapPhase(data): 
     """
