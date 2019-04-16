@@ -614,12 +614,15 @@ class bpData:
 			self.time=time;
 			
 			# get current data
-			data, time=mdsData(shotno=shotno,
-							   dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:VOLTAGE',
-											'\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:CURRENT'],
-							   tStart=tStart, tStop=tStop)
-			self.bps5Voltage=data[0];
-			self.bps5Current=data[1];
+			try:
+				data, time=mdsData(shotno=shotno,
+								   dataAddress=['\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:VOLTAGE',
+												'\HBTEP2::TOP.SENSORS.BIAS_PROBE_2:CURRENT'],
+								   tStart=tStart, tStop=tStop)
+				self.bps5Voltage=data[0];
+				self.bps5Current=data[1];
+			except:
+				print("skipping bps5")
 			
 		# transformer primary voltage.  first setup for shot 100505 and on.  
 		[primaryVoltage,primaryCurrent], time=mdsData(shotno=shotno,
@@ -1664,48 +1667,37 @@ class fbData:
 	Known bad sensors: 'FB03_S1P','FB06_S2P','FB08_S3P'
 	The S4P array has no broken sensors at present.  
 	"""
-	def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,removeBadSensors=True):
+	def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,removeBadSensors=True,invertNegSignals=True):
 		self.shotno = shotno
 		self.title = "%d, FB sensors" % shotno
-		self.badSensors=['FB03_S1P','FB06_S2P','FB08_S3P'] # some sensors appear to be broken
+#		self.badSensors=['FB03_S1P','FB06_S2P','FB08_S3P'] # some sensors appear to be broken
 
 		# sensor names
-		self.fbPolNames=[['FB01_S1P', 'FB02_S1P', 'FB03_S1P', 'FB04_S1P', 'FB05_S1P', 'FB06_S1P', 'FB07_S1P', 'FB08_S1P', 'FB09_S1P', 'FB10_S1P'], ['FB01_S2P', 'FB02_S2P', 'FB03_S2P', 'FB04_S2P', 'FB05_S2P', 'FB06_S2P', 'FB07_S2P', 'FB08_S2P', 'FB09_S2P', 'FB10_S2P'], ['FB01_S3P', 'FB02_S3P', 'FB03_S3P', 'FB04_S3P', 'FB05_S3P', 'FB06_S3P', 'FB07_S3P', 'FB08_S3P', 'FB09_S3P', 'FB10_S3P'], ['FB01_S4P', 'FB02_S4P', 'FB03_S4P', 'FB04_S4P', 'FB05_S4P', 'FB06_S4P', 'FB07_S4P', 'FB08_S4P', 'FB09_S4P', 'FB10_S4P']]
+		fbPolNames=[['FB01_S1P', 'FB02_S1P', 'FB03_S1P', 'FB04_S1P', 'FB05_S1P', 'FB06_S1P', 'FB07_S1P', 'FB08_S1P', 'FB09_S1P', 'FB10_S1P'], ['FB01_S2P', 'FB02_S2P', 'FB03_S2P', 'FB04_S2P', 'FB05_S2P', 'FB06_S2P', 'FB07_S2P', 'FB08_S2P', 'FB09_S2P', 'FB10_S2P'], ['FB01_S3P', 'FB02_S3P', 'FB03_S3P', 'FB04_S3P', 'FB05_S3P', 'FB06_S3P', 'FB07_S3P', 'FB08_S3P', 'FB09_S3P', 'FB10_S3P'], ['FB01_S4P', 'FB02_S4P', 'FB03_S4P', 'FB04_S4P', 'FB05_S4P', 'FB06_S4P', 'FB07_S4P', 'FB08_S4P', 'FB09_S4P', 'FB10_S4P']]
 		self.fbRadNames=[['FB01_S1R', 'FB02_S1R', 'FB03_S1R', 'FB04_S1R', 'FB05_S1R', 'FB06_S1R', 'FB07_S1R', 'FB08_S1R', 'FB09_S1R', 'FB10_S1R'], ['FB01_S2R', 'FB02_S2R', 'FB03_S2R', 'FB04_S2R', 'FB05_S2R', 'FB06_S2R', 'FB07_S2R', 'FB08_S2R', 'FB09_S2R', 'FB10_S2R'], ['FB01_S3R', 'FB02_S3R', 'FB03_S3R', 'FB04_S3R', 'FB05_S3R', 'FB06_S3R', 'FB07_S3R', 'FB08_S3R', 'FB09_S3R', 'FB10_S3R'], ['FB01_S4R', 'FB02_S4R', 'FB03_S4R', 'FB04_S4R', 'FB05_S4R', 'FB06_S4R', 'FB07_S4R', 'FB08_S4R', 'FB09_S4R', 'FB10_S4R']]
 		
 		# sensor, toroidal location
 #		self.phi=_np.pi/180.*_np.array([242.5-360, 278.5-360, 314.5-360, 350.5-360, 26.5, 62.5, 98.5, 134.5, 170.5, 206.5]);#*_np.pi/180.
 		phi=_np.pi/180.*_np.array([241,277,313,349,25,61, 97,133,169,205])
-		self.phi=[phi,phi,phi,phi]
+		phi=[phi,phi,phi,phi]
 		theta=_np.pi/180.*_np.array([_np.ones(10)*(-83.4),_np.ones(10)*(-29.3),_np.ones(10)*29.3,_np.ones(10)*83.4])
-		self.theta=[theta[0,:],theta[1,:],theta[2,:],theta[3,:]]
+		theta=[theta[0,:],theta[1,:],theta[2,:],theta[3,:]]
 		
-		# remove bad sensors
-		if removeBadSensors==True:
-			for i in range(0,len(self.badSensors)):
-				for j in range(0,4):
-					if self.badSensors[i] in self.fbPolNames[j]:
-						iBad=_np.where(_np.array(self.fbPolNames[j])==self.badSensors[i])
-						self.fbPolNames[j]=list(_np.delete(self.fbPolNames[j],iBad))
-						self.phi[j]=_np.delete(self.phi[j],iBad)
-						self.theta[j]=_np.delete(self.theta[j],iBad)
-						print("Removing broken signal: %s" % self.fbPolNames[j][i])
-			
 		## construct full sensor addresses 
 		fbPolSensorAddresses=[[],[],[],[]]
 		fbRadSensorAddresses=[[],[],[],[]]   
 		rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
 		for j in range(0,4):
-			for i in range(0,len(self.fbPolNames[j])):
-				fbPolSensorAddresses[j].append(rootAddress+self.fbPolNames[j][i])
+			for i in range(0,len(fbPolNames[j])):
+				fbPolSensorAddresses[j].append(rootAddress+fbPolNames[j][i])
 				fbRadSensorAddresses[j].append(rootAddress+self.fbRadNames[j][i])
 		
 		# get raw data
-		self.fbPolRaw=[[],[],[],[]];
-		self.fbPolRaw[0], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[0], tStart, tStop)
-		self.fbPolRaw[1], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[1], tStart, tStop)
-		self.fbPolRaw[2], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[2], tStart, tStop)
-		self.fbPolRaw[3], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[3], tStart, tStop)
+		fbPolRaw=[[],[],[],[]];
+		fbPolRaw[0], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[0], tStart, tStop)
+		fbPolRaw[1], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[1], tStart, tStop)
+		fbPolRaw[2], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[2], tStart, tStop)
+		fbPolRaw[3], self.fbPolTime =mdsData(shotno,fbPolSensorAddresses[3], tStart, tStop)
 
 		self.fbRadRaw=[[],[],[],[]];
 		self.fbRadRaw[0], self.fbRadTime =mdsData(shotno,fbRadSensorAddresses[0], tStart, tStop)
@@ -1713,15 +1705,45 @@ class fbData:
 		self.fbRadRaw[2], self.fbRadTime =mdsData(shotno,fbRadSensorAddresses[2], tStart, tStop)
 		self.fbRadRaw[3], self.fbRadTime =mdsData(shotno,fbRadSensorAddresses[3], tStart, tStop)		
 			   
-		# correct for signal inversion (I believe that the polarity of the wiring of the sensors is backwards for a few sensors)
-#		self.invertedSensorList=['FB01_S1P','FB01_S2P','FB01_S3P']
-#		for j in range(0,4):
-#			for i in range(0,len(self.fbPolNames[j])):
-#				if self.fbPolNames[j][i] in self.invertedSensorList:
-#					print("Correcting inverted signal: %s" % self.fbPolNames[j][i])
-#					self.fbPolRaw[j][i]*=-1
+		# remove bad/broken sensors using a sigma=1 outlier rejection method
+		if removeBadSensors==True:
+			linArrayOfSensorData=[]
+			linListOfSensorNames=[]
+			for i in range(0,4):
+				for j in range(0,len(fbPolNames[i])):
+					linArrayOfSensorData.append(_np.average(_np.abs(fbPolRaw[i][j])))
+					linListOfSensorNames.append(fbPolNames[i][j])
+			temp,indicesOfGoodSensors=_process.rejectOutliers(_np.array(linArrayOfSensorData),sigma=1.0)
+			indicesOfBadSensors = indicesOfGoodSensors==False
+			self.badSensors=_np.array(linListOfSensorNames)[indicesOfBadSensors]
+			self.fbPolNames=[[],[],[],[]]
+			self.fbPolRaw=[[],[],[],[]];
+			self.phi=[[],[],[],[]];
+			self.theta=[[],[],[],[]];
+			for j in range(0,4):
+				for i in range(0,len(fbPolNames[j])):
+					if fbPolNames[j][i] not in self.badSensors:
+						self.fbPolRaw[j].append(fbPolRaw[j][i])
+						self.fbPolNames[j].append(fbPolNames[j][i])
+						self.theta[j].append(theta[j][i])
+						self.phi[j].append(phi[j][i])
+					else:
+						print("Removing broken signal: %s" % fbPolNames[j][i])
+		else:
+			self.fbPolNames=fbPolNames
+			self.fbPolRaw=fbPolRaw
+			self.theta=theta
+			self.phi=phi
+
+		# make sure the signals are not inverted
+		if invertNegSignals==True:
+			for i in range(0,4):
+				for j in range(0,len(self.fbPolRaw[i])):
+					if _np.average(self.fbPolRaw[i][j])<0:
+						self.fbPolRaw[i][j]*=-1
+						print("inverting signal %s"%self.fbPolNames[i][j])
 		
-		# remove offset 
+		# remove low-frequency offset (we are only interested in high-freq data)
 		self.fbPolData=[[],[],[],[]]
 		self.fbPolRawFit=[[],[],[],[]]
 		self.fbRadData=[[],[],[],[]]
@@ -1782,7 +1804,6 @@ class fbData:
 			
 		return p1
 		
-		
 	def plotOfSingleRad(self, row=0, col=0,plot=True,alsoPlotRawAndFit=True):
 		"""
 		Plots radial data from FB sensors
@@ -1808,15 +1829,11 @@ class fbData:
 						yLegendLabel='Fit')  
 		
 		return p1
-		
-
+	
 	def plot(self,plotAll=True):
 		"""
-		Plots all 80 poloidal and radial FB sensors
+		Plots all 40 poloidal FB sensors
 		"""
-#		sp1=[[],[],[],[]]
-#		sp2=[[],[],[],[]]
-#		count=0
 		for i in range(0,4):
 			for j in range(0,len(self.fbPolNames[i])):
 				
@@ -1825,38 +1842,7 @@ class fbData:
 				else:
 					newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=False)
 				newPlot.plot()
-#				count+=1;
-#				if count>=len(self.fbPolNames):
-#					newPlot=_plot.plot()
-#				else:
-#					if plotAll==True:
-#						newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=True)
-#					else:
-#						newPlot=self.plotOfSinglePol(i,j,alsoPlotRawAndFit=False)					
-#					newPlot.subtitle=self.fbPolNames[i][j]
-#					newPlot.yLegendLabel=[]
-#					sp1[i].append(newPlot)
-##					newPlot.plot()
-#		for i in range(0,4):
-#			for j in range(0,len(self.fbPolNames[i])):
-#				if plotAll==True:
-#					newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=True)
-#				else:
-#					newPlot=self.plotOfSingleRad(i,j,alsoPlotRawAndFit=False)
-#				newPlot.subtitle=self.fbRadNames[i][j]
-#				newPlot.yLegendLabel=[]
-#				sp2[i].append(newPlot)
-#		sp1[0][0].title=self.title
-##		sp1[0][0].yLim=[-0.01,0.03]
-#		sp2[0][0].title=self.title
-##		sp2[0][0].yLim=[-0.01,0.03]
-#		sp1=_plot.subPlot(sp1,plot=False)
-#		sp2=_plot.subPlot(sp2,plot=False)
-#		# sp1.shareY=True;
-##		sp1.plot()
-#		return sp1
-#		sp2.plot()	
-	
+
 	
 class taData:
 	"""
@@ -3211,7 +3197,7 @@ class nModeData:
 			temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
 			data=temp.fbPolData[array]  ## top toroidal array = 0, bottom = 3
 			self.time=temp.fbPolTime
-			phi=temp.phi[array]
+			phi=_np.array(temp.phi[array])
 			[n,m]=_np.shape(data)
 		self._data=data
 		self._phi=phi
@@ -3254,7 +3240,7 @@ class nModeData:
 					_process.gaussianLowPassFilter(
 							_process.unwrapPhase(self.n1PhaseRaw),
 							self.time,
-							timeWidth=1./50e3))
+							timeWidth=1./100e3))
 		else:
 			_sys.exit("Invalid phase filter requested.")
 					
