@@ -278,7 +278,8 @@ class ipData:
 		Plots all relevant plots
 	
 	"""
-	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
+	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
+			  findDisruption=True,verbose=False):
 		self.shotno = shotno
 		self.title = "%d, Ip Data" % shotno
 		
@@ -288,6 +289,37 @@ class ipData:
 							  tStart=tStart, tStop=tStop)
 		self.ip=data[0];
 		self.time=time;
+		
+		if findDisruption==True:
+			
+			# only look at data after breakdown
+			iStart=_process.findNearest(time,1.5e-3)
+			ipTime=time[iStart:]
+			ip=data[0][iStart:]
+			
+			# filter data to remove low-frequency offset
+			ip2,temp=_process.gaussianHighPassFilter(ip,ipTime,
+											timeWidth=1./20e3,plot=verbose)
+			
+			# find time derivative of ip2
+			dip2dt=_np.gradient(ip2)				
+			
+			# find the first large rise in d(ip2)/dt
+			threshold=40.0
+			index=_np.where(dip2dt>threshold)[0][0]
+			
+			# debugging feature
+			if verbose==True:
+				_plt.figure()
+				_plt.plot(ipTime,dip2dt,label=r'$\frac{d(ip)}{dt}$')
+				_plt.plot([ipTime[0],ipTime[-1]],[threshold,threshold],
+						  label='threshold')
+				_plt.legend()
+			
+			# find the max value of ip immediately after the disrup. onset
+			while(ip[index]<ip[index+1]):
+				index+=1
+			self.timeDisruption=ipTime[index]
 		
 		if plot == True or plot=='all':
 			self.plot()
@@ -303,6 +335,10 @@ class ipData:
 					  subtitle='Plasma Current',
 					  shotno=self.shotno)
 		p1.addTrace(xData=self.time*1000,yData=self.ip*1e-3)
+		try:
+			p1.addTrace(self.timeDisruption*1e3,self.ip[self.time==self.timeDisruption]*1e-3,yLegendLabel="disruption",marker='x',linestyle='')
+		except:
+			"Disruption info not requested"
 		
 		return p1
 		
@@ -2926,7 +2962,7 @@ class plasmaRadiusData:
 		
 		# get plasma current
 		ip=ipData(shotno=shotno,tStart=tStart,tStop=tStop)
-		ip=ip.ip*1212*1e-9  # ip gain
+		ip=ip.ip*1212.3*1e-9  # ip gain
 		
 		# get cos-1 raw data
 		cos1=cos1RogowskiData(shotno=shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
@@ -3240,7 +3276,7 @@ class nModeData:
 					_process.gaussianLowPassFilter(
 							_process.unwrapPhase(self.n1PhaseRaw),
 							self.time,
-							timeWidth=1./100e3))
+							timeWidth=1./50e3))
 		else:
 			_sys.exit("Invalid phase filter requested.")
 					
