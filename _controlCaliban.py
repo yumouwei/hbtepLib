@@ -7,6 +7,7 @@ import matplotlib.pyplot as _plt
 import hbtepLib as _hbt
 _plot=_hbt.plot
 
+
 class gpuControlData:
 	"""
 	reads control data from Caliban's control files
@@ -14,8 +15,9 @@ class gpuControlData:
 	
 	Parameters
 	----------
-	shotno : int
+	shotno : int or None
 		shot number of desired data
+		if None, the code loads the simulated data from the /control directory
 	tStart : float
 		time (in seconds) to trim data before
 		default is 0 ms
@@ -29,18 +31,20 @@ class gpuControlData:
 		ssh password to gpu computer
 	forceDownload : bool
 		causes data to all be downloaded locally even if already there
-	calibrateTime : bool
-		...
+#	calibrateTime : bool
+#		...
 	plotEVERYTHING : bool
 		...
-	operatingMode : str
-		'' or 'currentControl' or 'frequencyControl'
+#	operatingMode : str
+#		'' or 'currentControl' or 'frequencyControl'
 	
 	Attributes
 	----------
 	
 	Notes
 	-----
+	Presently, the function is setup to run remotely but could be modified to 
+	operate locally without too much effort
 	"""
 	def __init__(self,shotno=99591, tStart=0*1e-3, tStop=10*1e-3, plot=False, #shotno=96496
 			  password='', forceDownload=True, 
@@ -50,6 +54,7 @@ class gpuControlData:
 		
 		self.shotno=shotno;
 		self.cpciShotno=cpciShotno
+		
 		if self.shotno!=None and self.cpciShotno==None:
 			self.cpciShotno=self.shotno
 			self.nModeData=_hbt.get.nModeData(shotno)
@@ -130,6 +135,7 @@ class gpuControlData:
 		return _plot.subPlot([self.plotOfAmplitudes(),self.plotOfPhase(),self.plotOfFreq(),self.plotOfProbeReqVoltage()],plot=plot)
 
 	def plotOfProbeReqVoltage(self):
+		""" This is specific to my probe work and should eventually be moved out"""
 		# initialize BPS9 voltage plot
 		p1=_hbt.plot.plot(title=str(self.shotno),
 					xLabel='Time [ms]',
@@ -137,7 +143,7 @@ class gpuControlData:
 #					yLim=[-11,11],
 					subtitle='Probe Voltage Request')
 		p1.addTrace(self.time*1000,self.BP1VoltageReq,yLegendLabel='GPU-BP1_Req.')
-		p1.addTrace(self.time*1000,self.BP2VoltageReq,yLegendLabel='GOU-BP2_Req.')
+		p1.addTrace(self.time*1000,self.BP2VoltageReq,yLegendLabel='GPU-BP2_Req.')
 #		if self.cpci==True:
 #			p1.addTrace(self.bpData.time*1e3,self.bpData.bps9Voltage,yLegendLabel='CPCI')
 		
@@ -462,13 +468,13 @@ def _downloadCDFromCaliban(shotno,
 				   _HBT_SERVER_USERNAME="brooks",
 				   _REMOTE_DATA_PATH='/opt/hbt/data/control'  ):
 	"""
-	Downloads control data files from control computer using ssh
+	Downloads control data files from control computer using ssh to local computer
 	"""
 	
 	# get password
 	if password=='' or password == None:
 		#password = raw_input("Enter spitzer password:  ")
-		password=_hbt._rwDataTools.getPwd(systemName=_hbt._hbtPreferences._HBT_SERVER_NAME,userName=_HBT_SERVER_USERNAME); #username=_pref._HBT_SERVER_USERNAME
+#			password=_hbt._rwDataTools.getPwd(systemName=_hbt._hbtPreferences._HBT_SERVER_NAME,userName=_HBT_SERVER_USERNAME); #username=_pref._HBT_SERVER_USERNAME
 		try:
 			password=_hbt._rwDataTools.getPwd(systemName=_hbt._hbtPreferences._HBT_SERVER_NAME,userName=_HBT_SERVER_USERNAME); #username=_pref._HBT_SERVER_USERNAME
 		except:
@@ -512,3 +518,55 @@ def _downloadCDFromCaliban(shotno,
 
 	# close connection
 	sshCon.closeConnection();
+
+
+def prepAwg(waveform):
+	"""
+	Creates feedforward signal to be piped to the GPU's analog output by the
+	./do_awg function in the /control directory.  The output file is 
+	'awgdata.dat'
+	
+	waveform : 2D numpy.ndarray
+		2D numpy array with dimensnions (NUMBER_OF_SAMPLES,AO_CHANNELS)
+	
+	Example
+	-------
+	::
+		
+		import numpy as np
+		import matplotlib.pyplot as plt
+		
+		CYCLE_TIME=6e-6
+		AO_CHANNELS=60
+		
+		# create time
+		SAMPLES=int(10e-3//CYCLE_TIME)+2 # 10 ms worth of samples
+		t=np.arange(0,10e-3+CYCLE_TIME,CYCLE_TIME)-1e-3; 
+		
+		# create signals
+		y1=np.zeros(len(t))
+		y1[t>1.5e-3]=1.
+		y1[t>2e-3]+=np.sin(2*np.pi*(t[t>2e-3]-2e-3)*4000)
+		index1=41;
+			
+		y2=np.zeros(len(t))
+		y2[t>1.25e-3]=-1.
+		index2=43;
+		
+		# add signals to 2D waveform matrix
+		waveform = np.zeros((SAMPLES,AO_CHANNELS))
+		waveform[:,index1]=y1
+		waveform[:,index2]=y2
+		
+		# plot all waveform signals as a sanity check
+		plt.plot(t,waveform)
+		
+		prepAwg(waveform)
+	"""
+	import struct
+	INT16_MAX = _np.iinfo(_np.int16).max
+	AO_CHANNELS=60 # number of channels (i.e. width of waveform matrix)
+	
+	fh = open('awgdata.dat', 'wb') 
+	fh.write(struct.pack('=h', AO_CHANNELS))
+	fh.write((waveform * INT16_MAX / 10).astype(_np.int16).tostring())
