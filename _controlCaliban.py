@@ -199,6 +199,89 @@ class gpuControlData:
 			p1.addTrace(self.time*1000,self.mFreqSec2*1e-3, yLegendLabel='GPU-Sec2')
 			p1.addTrace(self.time*1000,self.mFreqSec3*1e-3, yLegendLabel='GPU-Sec3')
 		return p1
+  
+
+def calcLeastSquaresMatrix(shotno):
+    """
+    Calculates the psuedo-inverse matrix used in the least squares 
+    operation: x = A^-1 * b
+    
+    Parameters
+    ----------
+    shotno : int
+        Looks at a recent shot number to 1) exclude the broken FB sensors
+        from A and 2) get the theta and phi coordinates for those that ARE
+        functional.  
+        
+    Returns
+    -------
+    invMtx : numpy.array (8 by number of working sensors)
+        A^-1 matrix from the least squares operation: x = A^-1 * b
+    outText : str
+        String version of invMtx that can be copy and pasted into fbsettigs.h
+    
+    Example
+    -------
+    ::
+        
+        aInv,aInvString=hbt.get.fbData(101169)
+    
+    
+    Code for sanity checking
+    ------------------------    
+    ### this commented code uses the old fbtools.py code to do roughly the 
+    ### same thing.  I leave it here as a sanity check for those who follow
+    import fbtools as fbt; 
+        
+    # 2D list of functioning sensor names
+    sensors=[['FB01_S1P', 'FB02_S1P', 'FB03_S1P', 'FB04_S1P', 'FB05_S1P', 'FB06_S1P', 'FB07_S1P', 'FB08_S1P', 'FB09_S1P', 'FB10_S1P'], ['FB01_S2P', 'FB02_S2P', 'FB03_S2P', 'FB04_S2P', 'FB05_S2P', 'FB07_S2P', 'FB08_S2P', 'FB09_S2P', 'FB10_S2P'], ['FB01_S3P', 'FB02_S3P', 'FB03_S3P', 'FB05_S3P', 'FB06_S3P', 'FB07_S3P', 'FB08_S3P', 'FB09_S3P', 'FB10_S3P'], ['FB01_S4P', 'FB02_S4P', 'FB03_S4P', 'FB04_S4P', 'FB05_S4P', 'FB06_S4P', 'FB07_S4P', 'FB09_S4P', 'FB10_S4P']]
+    #b2,b2a=fbt.get_IN_MODE_MATRIX(True)
+    b,temp=fbt.get_IN_MODE_MATRIX_johnEdit(sensors) # not working?
+    #a=hbt.get.fbData(101169)
+    #b3,temp=fbt.get_IN_MODE_MATRIX_johnEdit(a.fbPolNames)
+    
+    
+    """
+    
+    # get FB sensor data
+    a=_hbt.get.fbData(101169)
+    phi=a.phi # list of arrays of sensor phi coordinates
+    theta=a.theta # list of arrays of sensor theta coordinates
+    n=len(a.fbPolNames[0])+len(a.fbPolNames[1])+len(a.fbPolNames[2])+len(a.fbPolNames[3]) # total number of sensors
+    
+    # calculate least squares matrix
+    outMtx=_np.zeros((n,8))
+    n1=0
+    for i in range(0,4):
+        print i
+        mtx=_np.zeros((len(a.fbPolNames[i]),2))
+        mtx[:,0]=1.0*_np.cos(3*_np.array(theta[i])-_np.array(phi[i]))
+        mtx[:,1]=1.0*_np.sin(3*_np.array(theta[i])-_np.array(phi[i]))
+        outMtx[n1:n1+len(a.fbPolNames[i]),i*2:i*2+2]=mtx
+        n1+=len(a.fbPolNames[i])
+        
+    # pseudo-invert least squares matrix
+    invMtx=_np.linalg.pinv(outMtx)
+    
+    # create text string to be placed in fbsettings.h
+    outText=''
+    outText+='#define IN_MODE_MATRIX {'
+    for i in range(0,8):
+        print(i)
+        if i!=0:
+            outText+="\t\t\t\t\t\t"
+        outText+="{"
+        for j in range(0,len(invMtx[i])):
+            print(j)
+            outText+="%.5f"%invMtx[i,j]
+            if j!=len(invMtx[i])-1:
+                outText+=",\t"
+        if i!=7:
+            outText+="},\\\n"
+        else:
+            outText+="}}"
+        
+    return invMtx,outText
 
 
 def get_ctrl_ai(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData',plot=False):#,numCols=37):
