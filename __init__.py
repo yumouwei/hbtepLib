@@ -46,6 +46,13 @@ if osVer==2:
 else:
 	importlib.reload(readWrite)
     
+# functions related to the caliban control computer
+import _controlCaliban as control
+if osVer==2:
+	reload(control)
+else:
+	importlib.reload(control)
+    
 
 """
 how to reload modules.  This allows the all subpackages to be reloaded when 
