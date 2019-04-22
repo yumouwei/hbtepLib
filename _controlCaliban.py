@@ -259,7 +259,7 @@ def calcLeastSquaresMatrix(shotno):
     outMtx=_np.zeros((n,8))
     n1=0
     for i in range(0,4):
-        print i
+        #print i
         mtx=_np.zeros((len(a.fbPolNames[i]),2))
         mtx[:,0]=1.0*_np.cos(3*_np.array(theta[i])-_np.array(phi[i]))
         mtx[:,1]=1.0*_np.sin(3*_np.array(theta[i])-_np.array(phi[i]))
@@ -298,10 +298,11 @@ def get_ctrl_ai(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData',p
 	-----
 	This file must have been previously downloaded to your computer using the
 	_downloadCDFromCaliban() function.
+	
+	#TODO(John) I'm not sure if this function works correctly...
 	"""
 	
 	#INT16_MAX = _np.iinfo(_np.int16).max
-	#TODO(John) I'm not sure if this function works correctly...
 	if type(TOTAL_SAMPLES)==type(None):
 		TOTAL_SAMPLES=get_total_samples(shotno)
 	if shotno==None:  #
@@ -337,7 +338,7 @@ def get_ctrl_ao(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData'):
 		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numRows=TOTAL_SAMPLES,dataType=_np.int16)* 10. / INT16_MAX 
 		  
 
-def get_fb(shotno,numCols=14,LOCAL_FILE_DIR='/home/john/shotData'):
+def get_fb(shotno,numCols=14,LOCAL_FILE_DIR='/home/john/shotData',plot=False):
 	""" 
 	Read data tfrom fb_store_<shotno>.dat. 
 	
@@ -355,10 +356,22 @@ def get_fb(shotno,numCols=14,LOCAL_FILE_DIR='/home/john/shotData'):
 	c= a[:-b].reshape((-1,numCols))
 	
 	# there is a lot of dead data on either end (don't konw why).  clipping
-	d=c[:,0]
-	iStart=_np.where(d>0)[0][0]
-	iStop=int(_np.where(d==d.max())[0][0])
-	return c[iStart:iStop+1,:]
+	if False:
+		d=c[:,0]
+		iStart=_np.where(d>0)[0][0]
+		iStop=int(_np.where(d==d.max())[0][0])
+		fb= c[iStart:iStop+1,:]
+	else:
+		iStop=int(_np.where(c[:,0]==c[:,0].max())[0][0])
+		fb=c[:iStop+1,:]
+	
+	if plot == True:
+		fig,ax=_plt.subplots(numCols-1,sharex=True)
+		# assuming the first column is time
+		for j in range(0,numCols-1):
+			ax[j].plot(fb[:,0],fb[:,j+1])
+	
+	return fb
 	
 
 def get_ctrl_mamp(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData',plot=False):#numCols=8):
