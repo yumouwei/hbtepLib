@@ -931,3 +931,14 @@ def _red_green_colormap():
 #    Checkbox()
 #    main()
 
+def zeroAxisLines(ax,color='k',linestyle=':',alpha=0.3):
+	"""
+	Adds faint dotted lines along the x=0 and y=0 axes
+	"""
+	ylim=ax.get_ylim()
+	xlim=ax.get_xlim()
+	ax.plot(xlim,[0,0],color=color,linestyle=linestyle,alpha=alpha)
+	ax.plot([0,0],ylim,color=color,linestyle=linestyle,alpha=alpha)
+	ax.set_ylim(ylim)
+	ax.set_xlim(xlim)
+	
