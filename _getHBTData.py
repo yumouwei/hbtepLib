@@ -2827,69 +2827,43 @@ class capBankData:
 
 		if plot == True:
 			self.plot()
-		
-	def plotOfVF(self):
-		# generate vf plot
-		p1=_plot.plot(yLabel='kA',xLabel='time [ms]',
-					  subtitle='VF Bank Current',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.vfBankCurrent/1000.,xData=self.vfTime*1000) 
-		return p1
-		
-	def plotOfOH(self):
-		# generate oh plot
-		p1=_plot.plot(yLabel='kA',xLabel='time [ms]',
-					  subtitle='OH Bank Current',title=self.title,
-					  shotno=self.shotno,yLim=[-3.5e1,3.5e1])
-		p1.addTrace(yData=self.ohBankCurrent/1000.,xData=self.ohTime*1000) 
-		return p1
-		
-	def plotOfSH(self):
-		# generate sh plot
-		p1=_plot.plot(yLabel='kA',xLabel='time [ms]',
-					  subtitle='SH Bank Current',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.shBankCurrent/1000.,xData=self.shTime*1000) 
-		return p1
-		
-	def subplotOfAll(self):
-		# subplot of all 3 bank current data and tf field data
-		
-		# load tf data because it's always nice to compare it with the cap banks
-		tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
-		
-		# note: most of this code is determining and setting the appropriate
-		# x and y limits
-		sp1=_plot.subPlot([self.plotOfVF(),self.plotOfOH(),self.plotOfSH(),
-						tf.plotOfTF()],plot=False)
-		xMin=_np.min(sp1.subPlots[0].xData)
-		xMax=_np.max(sp1.subPlots[0].xData)
-		sp1.subPlots[0].xLim=[xMin,xMax]
-		subData=sp1.subPlots[3].yData[0]
-		subTime=sp1.subPlots[3].xData[0]
-		iMin=_process.findNearest(subTime,xMin)
-		iMax=_process.findNearest(subTime,xMax)
-		yMin=_np.min(subData[iMin:iMax])
-		yMax=_np.max(subData[iMin:iMax])
-		dY=yMax-yMin
-		sp1.subPlots[3].yLim=[yMin,yMax+0.25*dY] #[yMin-0.25*dY,yMax+0.25*dY]
-		
-		return sp1
-		
 			
 	def plot(self):
 		""" Plot all relevant plots """
 		
-		# plot of TF with shaded region representing x-limits in subplot
 		tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
-		p1=tf.plotOfTF()
-		p1.axvspan=[self.ohTime[0]*1e3,self.ohTime[-1]*1e3]
-		p1.axvspanColor=['r']
-		p1.plot()
-	
-		# subplot of all 4 bank data
-		self.subplotOfAll().plot()
 		
+		ax1 = _plt.subplot2grid((3,2), (0,1), rowspan=3)  #tf
+		ax2 = _plt.subplot2grid((3,2), (0,0)) #vf
+		ax3 = _plt.subplot2grid((3,2), (1,0),sharex=ax2) #oh
+		ax4 = _plt.subplot2grid((3,2), (2, 0),sharex=ax2) #sh
+		fig=_plt.gcf()
+		fig.set_size_inches(10,5)
+		
+		tStart=-2
+		tStop=20
+		
+		ax1.plot(tf.time*1e3,tf.tfBankField)
+		ax1.set_xlabel('Time (s)')
+		ax1.set_ylabel('TF Field (T)')
+		ax1.axvspan(tStart,tStop,color='r',alpha=0.3)
+		ax1.set_xlim(-150,450)
+		_plot.zeroAxisLines(ax1)
+		ax2.plot(self.vfTime*1e3,self.vfBankCurrent*1e-3) 
+		ax2.set_ylabel('VF Current\n(kA)')
+		_plot.zeroAxisLines(ax2)
+		ax3.plot(self.ohTime*1e3,self.ohBankCurrent*1e-3)
+		ax3.set_ylabel('OH Current\n(kA)')
+		ax3.set_ylim([-20,30])
+		_plot.zeroAxisLines(ax3)
+		ax4.plot(self.shTime*1e3,self.shBankCurrent*1e-3)
+		ax4.set_ylabel('SH Current\n(kA)')
+		ax4.set_xlabel('Time (ms)')
+		_plot.zeroAxisLines(ax4)
+		ax4.set_xlim([tStart,tStop])
+		fig.set_tight_layout(True)
+		
+		return fig
 		
 		
 #####################################################
