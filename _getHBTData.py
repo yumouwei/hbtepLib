@@ -3208,6 +3208,7 @@ class nModeData:
 			data=temp.fbPolData[array]  ## top toroidal array = 0, bottom = 3
 			self.time=temp.fbPolTime
 			phi=_np.array(temp.phi[array])
+			theta=_np.array(temp.theta[array])
 			[n,m]=_np.shape(data)
 		self._data=data
 		self._phi=phi
@@ -3217,7 +3218,9 @@ class nModeData:
 			A=_np.zeros((n,5))
 			A[:,0]=_np.ones(n);
 			A[:,1]=_np.sin(phi)
-			A[:,2]=_np.cos(phi)
+			A[:,2]=_np.cos(phi) #_
+#			A[:,1]=_np.sin(3*_np.array(theta)-_np.array(phi))
+#			A[:,2]=_np.cos(3*_np.array(theta)-_np.array(phi))
 			A[:,3]=_np.sin(2*phi)
 			A[:,4]=_np.cos(2*phi)
 			Ainv=_np.linalg.pinv(A)
