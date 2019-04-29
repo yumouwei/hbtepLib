@@ -8,7 +8,7 @@ import hbtepLib as _hbt
 _plot=_hbt.plot
 
 
-class gpuControlData:
+class calibanData:
 	"""
 	reads control data from Caliban's control files
 	under ACTIVE developement
@@ -31,12 +31,13 @@ class gpuControlData:
 		ssh password to gpu computer
 	forceDownload : bool
 		causes data to all be downloaded locally even if already there
-#	calibrateTime : bool
-#		...
 	plotEVERYTHING : bool
 		...
-#	operatingMode : str
-#		'' or 'currentControl' or 'frequencyControl'
+	_LOCAL_DATA_DIR : str
+		string to your remote directory to download the gpu data to
+	cpciShotno : int
+		If a cpci shotnumber if supplied, it will plot that data alongside 
+		the gpu data
 	
 	Attributes
 	----------
@@ -48,13 +49,15 @@ class gpuControlData:
 	"""
 	def __init__(self,shotno=99591, tStart=0*1e-3, tStop=10*1e-3, plot=False, #shotno=96496
 			  password='', forceDownload=True, 
-			  plotEVERYTHING=False, _LOCAL_DATA_DIR='/home/john/shotData',cpciShotno=None):
+			  plotEVERYTHING=False, _REMOTE_DATA_DIR='/home/john/shotData',cpciShotno=None):
 
 		import os	 
 		
 		self.shotno=shotno;
 		self.cpciShotno=cpciShotno
+		_LOCAL_DATA_PATH='/opt/hbt/data/control' 
 		
+		# handles cases where shotno and cpciShotno are different or not defined
 		if self.shotno!=None and self.cpciShotno==None:
 			self.cpciShotno=self.shotno
 			self.nModeData=_hbt.get.nModeData(shotno)
@@ -66,37 +69,46 @@ class gpuControlData:
 			self.cpci=True
 		else:
 			self.cpci=False
+			
+		# enforces a minimum time of 1ms
 		if tStart<1.0e-3:
 			tStart=1.0e-3
+		
 		self._tStart=tStart
 		self._tStop=tStop
 		self._plotEVERYTHING=plotEVERYTHING 
 		
+		# if operating remotely on another computer (not the HBT server)
 		if _hbt.get._ON_HBTEP_SERVER==False:
 			# ssh data must be transfered if operating remotely.
 			# this copies control data to your local computer.
 		
 			# check to see if the file has previously been downloaded to local directory.  if not, it is downloaded
 			if shotno!=None:
-				filePath=_LOCAL_DATA_DIR + "/fbsettings_" +str(int(shotno))+'.py';
+				filePath=_REMOTE_DATA_DIR + "/fbsettings_" +str(int(shotno))+'.py';
 			else:
-				filePath=_LOCAL_DATA_DIR + '/fbsettings.py';
+				filePath=_REMOTE_DATA_DIR + '/fbsettings.py';
 			print filePath
 			if os.path.isfile(filePath)==False or forceDownload==True:
 #				print('Downloading %d data' % shotno)
 				_downloadCDFromCaliban(shotno,password=password)
+			dataDir=_REMOTE_DATA_DIR
+			
+		# if operating locally on the HBT server
+		elif _hbt.get._ON_HBTEP_SERVER==True:
+			dataDir=_LOCAL_DATA_PATH
 			
 		# load data and time from control files
-		time=get_ctrl_times(shotno)
+		time=get_ctrl_times(shotno,dataDir)
 		self.time=time
-		self.TOTAL_SAMPLES=get_total_samples(shotno)
-		analogIn=get_ctrl_ai(shotno,self.TOTAL_SAMPLES)
-		analogOut=get_ctrl_ao(shotno,self.TOTAL_SAMPLES);
-		mAmp=get_ctrl_mamp(shotno,self.TOTAL_SAMPLES);
-		mPhase=get_ctrl_mphase(shotno,self.TOTAL_SAMPLES);
-		mFreq=get_ctrl_mfreq(shotno,self.TOTAL_SAMPLES);
+		self.TOTAL_SAMPLES=get_total_samples(shotno,dataDir)
+		analogIn=get_ctrl_ai(shotno,self.TOTAL_SAMPLES,dataDir)
+		analogOut=get_ctrl_ao(shotno,self.TOTAL_SAMPLES,dataDir);
+		mAmp=get_ctrl_mamp(shotno,self.TOTAL_SAMPLES,dataDir);
+		mPhase=get_ctrl_mphase(shotno,self.TOTAL_SAMPLES,dataDir);
+		mFreq=get_ctrl_mfreq(shotno,self.TOTAL_SAMPLES,dataDir);
 	
-		# trim time and data
+		# trim time and data to specified time range
 		temp,self.analogOut=_hbt.get._trimTime(time,list(_np.transpose(analogOut)),tStart,tStop)
 		temp,analogIn=_hbt.get._trimTime(time,list(_np.transpose(analogIn)),tStart,tStop)
 		temp,mAmp=_hbt.get._trimTime(time,list(_np.transpose(mAmp)),tStart,tStop)
@@ -290,7 +302,7 @@ def calcLeastSquaresMatrix(shotno):
     return invMtx,outText
 
 
-def get_ctrl_ai(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData',plot=False):#,numCols=37):
+def get_ctrl_ai(shotno,TOTAL_SAMPLES=None,DATA_PATH='/home/john/shotData',plot=False):#,numCols=37):
 	""" 
 	Read data tfrom ai_store_<shotno>.dat. 
 	
@@ -306,10 +318,10 @@ def get_ctrl_ai(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData',p
 	if type(TOTAL_SAMPLES)==type(None):
 		TOTAL_SAMPLES=get_total_samples(shotno)
 	if shotno==None:  #
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store.dat'%(LOCAL_FILE_DIR),numColumns=37,dataType=_np.float32)
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store.dat'%(DATA_PATH),numColumns=37,dataType=_np.float32)
 	else:
-#		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numColumns=37,dataType=_np.float32)#* 10. / INT16_MAX 
+#		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store_%d.dat'%(DATA_PATH,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store_%d.dat'%(DATA_PATH,shotno),numColumns=37,dataType=_np.float32)#* 10. / INT16_MAX 
 
 	if plot==True:
 		fig,ax=_plt.subplots()
@@ -319,7 +331,7 @@ def get_ctrl_ai(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData',p
 	return data
 
 
-def get_ctrl_ao(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData'):#numCols=64):
+def get_ctrl_ao(shotno,TOTAL_SAMPLES=None,DATA_PATH='/home/john/shotData'):#numCols=64):
 	""" 
 	Read data tfrom ao_store_<shotno>.dat. 
 	
@@ -333,12 +345,12 @@ def get_ctrl_ao(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData'):
 	
 	INT16_MAX = _np.iinfo(_np.int16).max
 	if shotno==None:
-		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store.dat'%(LOCAL_FILE_DIR),numRows=TOTAL_SAMPLES,dataType=_np.int16)* 10. / INT16_MAX 
+		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store.dat'%(DATA_PATH),numRows=TOTAL_SAMPLES,dataType=_np.int16)* 10. / INT16_MAX 
 	else:
-		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numRows=TOTAL_SAMPLES,dataType=_np.int16)* 10. / INT16_MAX 
+		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store_%d.dat'%(DATA_PATH,shotno),numRows=TOTAL_SAMPLES,dataType=_np.int16)* 10. / INT16_MAX 
 		  
 
-def get_fb(shotno,numCols=14,LOCAL_FILE_DIR='/home/john/shotData',plot=False):
+def get_fb(shotno,numCols=14,DATA_PATH='/home/john/shotData',plot=False):
 	""" 
 	Read data tfrom fb_store_<shotno>.dat. 
 	
@@ -349,9 +361,9 @@ def get_fb(shotno,numCols=14,LOCAL_FILE_DIR='/home/john/shotData',plot=False):
 	"""
 	# for some reason, the data matrix isn't divisible by 14 (don't know why).  the code below coorects for that.
 	if shotno==None:
-		a=_hbt.readWrite.readBinaryFileInto2DMatrix('%s/fb_store.dat'%(LOCAL_FILE_DIR),numColumns=1,dataType=_np.float32)
+		a=_hbt.readWrite.readBinaryFileInto2DMatrix('%s/fb_store.dat'%(DATA_PATH),numColumns=1,dataType=_np.float32)
 	else:
-		a=_hbt.readWrite.readBinaryFileInto2DMatrix('%s/fb_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numColumns=1,dataType=_np.float32)
+		a=_hbt.readWrite.readBinaryFileInto2DMatrix('%s/fb_store_%d.dat'%(DATA_PATH,shotno),numColumns=1,dataType=_np.float32)
 	b=_np.remainder(len(a),numCols)
 	c= a[:-b].reshape((-1,numCols))
 	
@@ -374,7 +386,7 @@ def get_fb(shotno,numCols=14,LOCAL_FILE_DIR='/home/john/shotData',plot=False):
 	return fb
 	
 
-def get_ctrl_mamp(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData',plot=False):#numCols=8):
+def get_ctrl_mamp(shotno,TOTAL_SAMPLES=None,DATA_PATH='/home/john/shotData',plot=False):#numCols=8):
 	""" 
 	Read mode amplitude data from mamp_store_<shotno>.dat. 
 	
@@ -386,9 +398,9 @@ def get_ctrl_mamp(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData'
 	if type(TOTAL_SAMPLES)==type(None):
 		TOTAL_SAMPLES=get_total_samples(shotno)
 	if shotno==None:
-		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store.dat'%(LOCAL_FILE_DIR),numRows=TOTAL_SAMPLES,dataType=_np.float32)
+		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store.dat'%(DATA_PATH),numRows=TOTAL_SAMPLES,dataType=_np.float32)
 	else:
-		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
+		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store_%d.dat'%(DATA_PATH,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
 	
 	if plot==True:
 		fig,ax=_plt.subplots(2,sharex=True)
@@ -408,7 +420,7 @@ def get_ctrl_mamp(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData'
 	return data
 
 
-def get_ctrl_mfreq(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData'):
+def get_ctrl_mfreq(shotno,TOTAL_SAMPLES=None,DATA_PATH='/home/john/shotData'):
 	""" 
 	Read mode freq (Hz) data from mamp_store_<shotno>.dat. 
 	
@@ -421,12 +433,12 @@ def get_ctrl_mfreq(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData
 		TOTAL_SAMPLES=get_total_samples(shotno)
 		
 	if shotno==None:
-		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store.dat'%(LOCAL_FILE_DIR),numRows=TOTAL_SAMPLES,dataType=_np.float32)
+		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store.dat'%(DATA_PATH),numRows=TOTAL_SAMPLES,dataType=_np.float32)
 	else:
-		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
+		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store_%d.dat'%(DATA_PATH,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
 
 
-def get_ctrl_mphase(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotData'):
+def get_ctrl_mphase(shotno,TOTAL_SAMPLES=None,DATA_PATH='/home/john/shotData'):
 	""" 
 	Read mode phase (rad) data from mamp_store_<shotno>.dat. 
 	
@@ -439,12 +451,12 @@ def get_ctrl_mphase(shotno,TOTAL_SAMPLES=None,LOCAL_FILE_DIR='/home/john/shotDat
 		TOTAL_SAMPLES=get_total_samples(shotno)
 		
 	if shotno==None:
-		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store.dat'%(LOCAL_FILE_DIR),numRows=TOTAL_SAMPLES,dataType=_np.float32)
+		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store.dat'%(DATA_PATH),numRows=TOTAL_SAMPLES,dataType=_np.float32)
 	else:
-		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
+		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store_%d.dat'%(DATA_PATH,shotno),numRows=TOTAL_SAMPLES,dataType=_np.float32)
 
 
-def get_ctrl_times(shotno,time_offset=-166*6e-6,CYCLE_TIME=6e-6,LOCAL_FILE_DIR='/home/john/shotData'):
+def get_ctrl_times(shotno,time_offset=-166*6e-6,CYCLE_TIME=6e-6,DATA_PATH='/home/john/shotData'):
 	""" 
 	Get the GPU time data associated with each shot number
 	
@@ -457,7 +469,7 @@ def get_ctrl_times(shotno,time_offset=-166*6e-6,CYCLE_TIME=6e-6,LOCAL_FILE_DIR='
 	return _np.arange(0, TOTAL_SAMPLES) * CYCLE_TIME+time_offset
 
 
-def get_total_samples(shotno,LOCAL_FILE_DIR='/home/john/shotData'):
+def get_total_samples(shotno,DATA_PATH='/home/john/shotData'):
 	""" 
 	Get the total number of samples associated with all GPU data (with the 
 	exception of fb_data).
@@ -468,18 +480,18 @@ def get_total_samples(shotno,LOCAL_FILE_DIR='/home/john/shotData'):
 	_downloadCDFromCaliban() function.
 	"""
 	print(shotno)
-	if shotno==None:(TOTAL_SAMPLES,n)=_np.shape(_hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store.dat'%(LOCAL_FILE_DIR),numColumns=8,dataType=_np.float32))
+	if shotno==None:(TOTAL_SAMPLES,n)=_np.shape(_hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store.dat'%(DATA_PATH),numColumns=8,dataType=_np.float32))
 	else:
-		(TOTAL_SAMPLES,n)=_np.shape(_hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store_%d.dat'%(LOCAL_FILE_DIR,shotno),numColumns=8,dataType=_np.float32))
+		(TOTAL_SAMPLES,n)=_np.shape(_hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store_%d.dat'%(DATA_PATH,shotno),numColumns=8,dataType=_np.float32))
 	return TOTAL_SAMPLES
 
 		
 def _downloadCDFromCaliban(shotno,
 				   password='',
-				   REMOTE_CODE_PATH='/home/brooks/TokaMac/control',
-				   LOCAL_FILE_DIR='/home/john/shotData',
+				   LOCAL_CODE_PATH='/home/brooks/TokaMac/control',
+				   REMOTE_FILE_DIR='/home/john/shotData',
 				   _HBT_SERVER_USERNAME="brooks",
-				   _REMOTE_DATA_PATH='/opt/hbt/data/control'  ):
+				   _LOCAL_DATA_PATH='/opt/hbt/data/control'  ):
 	"""
 	Downloads control data files from control computer using ssh to local computer
 	"""
@@ -500,31 +512,31 @@ def _downloadCDFromCaliban(shotno,
 	# _copy data
 	if shotno=='' or shotno==None:
 		# copy the simulated feedback files
-		sshCon.downloadFile('%s/ao_store.dat' % (REMOTE_CODE_PATH), localFilePath=LOCAL_FILE_DIR+'/ao_store.dat' )
-		sshCon.downloadFile('%s/ai_store.dat' % (REMOTE_CODE_PATH), localFilePath=LOCAL_FILE_DIR+'/ai_store.dat' )
+		sshCon.downloadFile('%s/ao_store.dat' % (LOCAL_CODE_PATH), localFilePath=REMOTE_FILE_DIR+'/ao_store.dat' )
+		sshCon.downloadFile('%s/ai_store.dat' % (LOCAL_CODE_PATH), localFilePath=REMOTE_FILE_DIR+'/ai_store.dat' )
 		try:
-			sshCon.downloadFile('%s/airaw_store.dat' % (REMOTE_CODE_PATH))
+			sshCon.downloadFile('%s/airaw_store.dat' % (LOCAL_CODE_PATH))
 		except:
 			print("raw file not present.  skipping...")
 			pass
-		sshCon.downloadFile('%s/mamp_store.dat' % (REMOTE_CODE_PATH), localFilePath=LOCAL_FILE_DIR+'/mamp_store.dat' )
-		sshCon.downloadFile('%s/mphase_store.dat' % (REMOTE_CODE_PATH), localFilePath=LOCAL_FILE_DIR+'/mphase_store.dat' )
-		sshCon.downloadFile('%s/mfreq_store.dat' % (REMOTE_CODE_PATH), localFilePath=LOCAL_FILE_DIR+'/mfreq_store.dat' )
-		sshCon.downloadFile('%s/fb_store.dat' % (REMOTE_CODE_PATH), localFilePath=LOCAL_FILE_DIR+'/fb_store.dat' )
-		sshCon.downloadFile('%s/fbsettings.py' % (REMOTE_CODE_PATH), localFilePath=LOCAL_FILE_DIR+'/fbsettings.py' )
+		sshCon.downloadFile('%s/mamp_store.dat' % (LOCAL_CODE_PATH), localFilePath=REMOTE_FILE_DIR+'/mamp_store.dat' )
+		sshCon.downloadFile('%s/mphase_store.dat' % (LOCAL_CODE_PATH), localFilePath=REMOTE_FILE_DIR+'/mphase_store.dat' )
+		sshCon.downloadFile('%s/mfreq_store.dat' % (LOCAL_CODE_PATH), localFilePath=REMOTE_FILE_DIR+'/mfreq_store.dat' )
+		sshCon.downloadFile('%s/fb_store.dat' % (LOCAL_CODE_PATH), localFilePath=REMOTE_FILE_DIR+'/fb_store.dat' )
+		sshCon.downloadFile('%s/fbsettings.py' % (LOCAL_CODE_PATH), localFilePath=REMOTE_FILE_DIR+'/fbsettings.py' )
 	else:
 		# copy the feedback files associated with actual shot numbers
-		print(_REMOTE_DATA_PATH)
-		sshCon.downloadFile('%s/ao_store_%d.dat' % (_REMOTE_DATA_PATH, shotno), localFilePath='%s/ao_store_%d.dat' % (LOCAL_FILE_DIR, shotno))
-		sshCon.downloadFile('%s/ai_store_%d.dat' % (_REMOTE_DATA_PATH, shotno), localFilePath='%s/ai_store_%d.dat' % (LOCAL_FILE_DIR, shotno))
-		sshCon.downloadFile('%s/mamp_store_%d.dat' % (_REMOTE_DATA_PATH, shotno), localFilePath='%s/mamp_store_%d.dat' % (LOCAL_FILE_DIR, shotno))
-		sshCon.downloadFile('%s/mphase_store_%d.dat' % (_REMOTE_DATA_PATH, shotno), localFilePath='%s/mphase_store_%d.dat' % (LOCAL_FILE_DIR, shotno))
-		sshCon.downloadFile('%s/mfreq_store_%d.dat' % (_REMOTE_DATA_PATH, shotno), localFilePath='%s/mfreq_store_%d.dat' % (LOCAL_FILE_DIR, shotno))
-		sshCon.downloadFile('%s/fbsettings_%d.py' % (_REMOTE_DATA_PATH, shotno), localFilePath='%s/fbsettings_%d.py'  % (LOCAL_FILE_DIR, shotno))
+		print(_LOCAL_DATA_PATH)
+		sshCon.downloadFile('%s/ao_store_%d.dat' % (_LOCAL_DATA_PATH, shotno), localFilePath='%s/ao_store_%d.dat' % (REMOTE_FILE_DIR, shotno))
+		sshCon.downloadFile('%s/ai_store_%d.dat' % (_LOCAL_DATA_PATH, shotno), localFilePath='%s/ai_store_%d.dat' % (REMOTE_FILE_DIR, shotno))
+		sshCon.downloadFile('%s/mamp_store_%d.dat' % (_LOCAL_DATA_PATH, shotno), localFilePath='%s/mamp_store_%d.dat' % (REMOTE_FILE_DIR, shotno))
+		sshCon.downloadFile('%s/mphase_store_%d.dat' % (_LOCAL_DATA_PATH, shotno), localFilePath='%s/mphase_store_%d.dat' % (REMOTE_FILE_DIR, shotno))
+		sshCon.downloadFile('%s/mfreq_store_%d.dat' % (_LOCAL_DATA_PATH, shotno), localFilePath='%s/mfreq_store_%d.dat' % (REMOTE_FILE_DIR, shotno))
+		sshCon.downloadFile('%s/fbsettings_%d.py' % (_LOCAL_DATA_PATH, shotno), localFilePath='%s/fbsettings_%d.py'  % (REMOTE_FILE_DIR, shotno))
 		
 		try:
-			# print '%s/fb_store_%d.dat' % (_REMOTE_DATA_PATH, shotno)
-			sshCon.downloadFile('%s/fb_store_%d.dat' % (_REMOTE_DATA_PATH, shotno), localFilePath='%s/fb_store_%d.dat'  % (LOCAL_FILE_DIR, shotno))
+			# print '%s/fb_store_%d.dat' % (_LOCAL_DATA_PATH, shotno)
+			sshCon.downloadFile('%s/fb_store_%d.dat' % (_LOCAL_DATA_PATH, shotno), localFilePath='%s/fb_store_%d.dat'  % (REMOTE_FILE_DIR, shotno))
 		except Exception:
 			print("fb_store file not present.  skipping...")	 
 			pass
