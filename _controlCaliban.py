@@ -531,7 +531,7 @@ def getModePhase(shotno,numColumns=8,dataPath=_LOCAL_DATA_PATH,plot=False):
 #	totalNumSamples=get_totalNumSamples(shotno)
 #	return _np.arange(0, totalNumSamples) * CYCLE_TIME+time_offset
 
-def getTime(numSamples=1231,offsetSamples=-166,cycleTime=6e-6):
+def getTime(numSamples=1231,offsetSamples=-165,cycleTime=6e-6): # -165 sample offset appears correct for comparing input signals
 	return _np.arange(offsetSamples,numSamples+offsetSamples)*cycleTime
 
 
