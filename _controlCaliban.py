@@ -298,7 +298,6 @@ def getAI(shotno,numColumns=37,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,pl
 	This file must have been previously downloaded to your computer using the
 	_downloadCDFromCaliban() function.
 	
-	#TODO(John) I'm not sure if this function works correctly...
 	"""
 	
 	#INT16_MAX = _np.iinfo(_np.int16).max
@@ -326,6 +325,8 @@ def getAO(shotno,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,plot=False):#num
 	-----
 	This file must have been previously downloaded to your computer using the
 	_downloadCDFromCaliban() function.
+	
+	#TODO(John) I'm not sure if this function works correctly...
 	"""
 	if type(totalNumSamples)==type(None):
 		totalNumSamples=get_totalNumSamples(shotno)
