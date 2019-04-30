@@ -302,8 +302,8 @@ def getAI(shotno,numColumns=37,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,pl
 	"""
 	
 	#INT16_MAX = _np.iinfo(_np.int16).max
-	if type(totalNumSamples)==type(None):
-		totalNumSamples=get_totalNumSamples(shotno)
+#	if type(totalNumSamples)==type(None):
+#		totalNumSamples=get_totalNumSamples(shotno)
 	if shotno==None:  #
 		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store.dat'%(dataPath),numColumns=numColumns,dataType=_np.float32)
 	else:
