@@ -101,10 +101,10 @@ class calibanData:
 			
 		# load data and time from control files
 		print("data directory = %s"%dataDir)
-		time=get_ctrl_times(shotno,dataPath=dataDir)
-		self.time=time
 		self.totalNumSamples=get_totalNumSamples(shotno,dataPath=dataDir)
 		analogIn=getAI(shotno,self.totalNumSamples,dataPath=dataDir)
+		time=getTime(len(analogIn))
+		self.time=time
 		analogOut=getAO(shotno,self.totalNumSamples,dataPath=dataDir);
 		mAmp=getModeAmp(shotno,self.totalNumSamples,dataPath=dataDir);
 		mPhase=getModePhase(shotno,self.totalNumSamples,dataPath=dataDir);
@@ -289,57 +289,82 @@ def calcLeastSquaresMatrix(shotno):
     return invMtx,outText
 
 
-def getAI(shotno,numColumns=37,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,plot=False):#,numCols=37):
+def getAI(shotno,numColumns=37,dataPath=_LOCAL_DATA_PATH,plot=False):#,numCols=37):
 	""" 
 	Read data tfrom ai_store_<shotno>.dat. 
 	
-	Notes
-	-----
-	This file must have been previously downloaded to your computer using the
-	_downloadCDFromCaliban() function.
+	Parameters
+	----------
+	shotno : int
+		Shot number
+	numColumns : int
+		Number of columns of the data in ai_store
+	dataPath : str
+		File path where ai_store is located
+	plot : bool
+		Plots all data
+		
+	Returns
+	-------
+	data : 2D np.ndarray
+		2D array with dimension (numColumns x time).
+		Contains all of the analog input data as recorded in the GPU.
 	
 	"""
 	
-	#INT16_MAX = _np.iinfo(_np.int16).max
-#	if type(totalNumSamples)==type(None):
-#		totalNumSamples=get_totalNumSamples(shotno)
 	if shotno==None:  #
 		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store.dat'%(dataPath),numColumns=numColumns,dataType=_np.float32)
 	else:
-#		return _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store_%d.dat'%(dataPath,shotno),numRows=totalNumSamples,dataType=_np.float32)
 		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ai_store_%d.dat'%(dataPath,shotno),numColumns=numColumns,dataType=_np.float32)#* 10. / INT16_MAX 
 
 	if plot==True:
+		
+		time=getTime(len(data))
 		fig,ax=_plt.subplots()
-		ax.plot(data)
+		ax.plot(time,data)
+		ax.set_xlabel('time (ms)')
 		_plt.show()
 
 	return data
 
 
-def getAO(shotno,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,plot=False):#numCols=64):
+def getAO(shotno,numColumns=40,dataPath=_LOCAL_DATA_PATH,plot=False):#numCols=64):
 	""" 
 	Read data tfrom ao_store_<shotno>.dat. 
 	
+	Parameters
+	----------
+	shotno : int
+		Shot number
+	numColumns : int
+		Number of columns of the data in ao_store
+	dataPath : str
+		File path where ao_store is located
+	plot : bool
+		Plots all data
+		
+	Returns
+	-------
+	data : 2D np.ndarray
+		2D array with dimension (numColumns x time).
+		Contains all of the analog output data as recorded in the GPU.
+	
 	Notes
 	-----
-	This file must have been previously downloaded to your computer using the
-	_downloadCDFromCaliban() function.
 	
 	#TODO(John) I'm not sure if this function works correctly...
 	"""
-	if type(totalNumSamples)==type(None):
-		totalNumSamples=get_totalNumSamples(shotno)
-	
 	INT16_MAX = _np.iinfo(_np.int16).max
 	if shotno==None:
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store.dat'%(dataPath),numRows=totalNumSamples,dataType=_np.int16)* 10. / INT16_MAX 
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store.dat'%(dataPath),numColumns=numColumns,dataType=_np.int16)* 10. / INT16_MAX 
 	else:
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store_%d.dat'%(dataPath,shotno),numRows=totalNumSamples,dataType=_np.int16)* 10. / INT16_MAX 
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/ao_store_%d.dat'%(dataPath,shotno),numColumns=numColumns,dataType=_np.int16)* 10. / INT16_MAX 
 
 	if plot==True:
+		time=getTime(len(data))
 		fig,ax=_plt.subplots()
-		ax.plot(data)
+		ax.plot(time,data)
+		ax.set_xlabel('time (ms)')
 		_plt.show()
 				
 	return data
@@ -381,108 +406,133 @@ def getFeedback(shotno,numCols=14,dataPath=_LOCAL_DATA_PATH,plot=False):
 	return fb
 	
 
-def getModeAmp(shotno,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,plot=False):#numCols=8):
+def getModeAmp(shotno,numColumns=8,dataPath=_LOCAL_DATA_PATH,plot=False):#numCols=8):
 	""" 
 	Read mode amplitude data from mamp_store_<shotno>.dat. 
 	
-	Notes
-	-----
-	This file must have been previously downloaded to your computer using the
-	_downloadCDFromCaliban() function.
+	Parameters
+	----------
+	shotno : int
+		Shot number
+	numColumns : int
+		Number of columns of the data in mamp_store
+	dataPath : str
+		File path where mamp_store is located
+	plot : bool
+		Plots all data
+		
+	Returns
+	-------
+	data : 2D np.ndarray
+		2D array with dimension (numColumns x time).
+		Contains all of the mode amplitude data as recorded in the GPU.
+	
 	"""
-	if type(totalNumSamples)==type(None):
-		totalNumSamples=get_totalNumSamples(shotno)
 	if shotno==None:
-		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store.dat'%(dataPath),numRows=totalNumSamples,dataType=_np.float32)
+		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store.dat'%(dataPath),numColumns=numColumns,dataType=_np.float32)
 	else:
-		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store_%d.dat'%(dataPath,shotno),numRows=totalNumSamples,dataType=_np.float32)
+		data = _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mamp_store_%d.dat'%(dataPath,shotno),numColumns=numColumns,dataType=_np.float32)
 	
 	if plot==True:
+		time=getTime(len(data))
 		fig,ax=_plt.subplots(2,sharex=True)
-		b=_np.zeros((len(data),4))
-		b[:,0]=1e4*_np.sqrt(data[:,0]**2+data[:,1]**2)
-		b[:,1]=1e4*_np.sqrt(data[:,2]**2+data[:,3]**2)
-		b[:,2]=1e4*_np.sqrt(data[:,4]**2+data[:,5]**2)
-		b[:,3]=1e4*_np.sqrt(data[:,6]**2+data[:,7]**2)
-		for i in range(4):
-			ax[0].plot(data[:,2*i],label='FB_S%iP cos'%(i+1))
-			ax[0].plot(data[:,2*i+1],label='FB_S%iP sin'%(i+1))
-			ax[1].plot(b[:,i],label='FB_S%iP'%(i+1))
-#			plt.plot(b[:,i],label='%d'%i)
-		ax[0].legend()
-		ax[1].legend()
+		ax[0].plot(time*1e3,data)
+		ax[1].set_xlabel('time (ms)')
+		for i in range(numColumns/2):
+			ax[1].plot(time*1e3,_np.sqrt(data[:,i*2]**2+data[:,i*2+1]**2))
 		_plt.show()
 
 	return data
 
 
-def getModeFreq(shotno,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,plot=False):
+def getModeFreq(shotno,numColumns=8,dataPath=_LOCAL_DATA_PATH,plot=False):
 	""" 
-	Read mode freq (Hz) data from mamp_store_<shotno>.dat. 
+	Read mode freq (Hz) data from mfreq_store_<shotno>.dat. 
 	
-	Notes
-	-----
-	This file must have been previously downloaded to your computer using the
-	_downloadCDFromCaliban() function.
-	"""
-	if type(totalNumSamples)==type(None):
-		totalNumSamples=get_totalNumSamples(shotno)
+	Parameters
+	----------
+	shotno : int
+		Shot number
+	numColumns : int
+		Number of columns of the data in mfreq_store
+	dataPath : str
+		File path where mfreq_store is located
+	plot : bool
+		Plots all data
 		
+	Returns
+	-------
+	data : 2D np.ndarray
+		2D array with dimension (numColumns x time).
+		Contains all of the mode freq data as recorded in the GPU.
+	
+	"""
 	if shotno==None:
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store.dat'%(dataPath),numRows=totalNumSamples,dataType=_np.float32)
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store.dat'%(dataPath),numColumns=numColumns,dataType=_np.float32)
 	else:
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store_%d.dat'%(dataPath,shotno),numRows=totalNumSamples,dataType=_np.float32)
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mfreq_store_%d.dat'%(dataPath,shotno),numColumns=numColumns,dataType=_np.float32)
 		
 	if plot==True:
+		time=getTime(len(data))
 		fig,ax=_plt.subplots()	
-		ax.plot(data[:,0],label='Sec1')
-		ax.plot(data[:,2],label='Sec2')
-		ax.plot(data[:,4],label='Sec3')
-		ax.plot(data[:,6],label='Sec4')
+		ax.plot(time,data)
+		ax.set_xlabel('time (ms)')
 		_plt.show()
 		
 	return data
 
 
-def getModePhase(shotno,totalNumSamples=None,dataPath=_LOCAL_DATA_PATH,plot=False):
+def getModePhase(shotno,numColumns=8,dataPath=_LOCAL_DATA_PATH,plot=False):
 	""" 
-	Read mode phase (rad) data from mamp_store_<shotno>.dat. 
+	Read mode phase (rad) data from mphase_store_<shotno>.dat. 
 	
-	Notes
-	-----
-	This file must have been previously downloaded to your computer using the
-	_downloadCDFromCaliban() function.
-	"""
-	if type(totalNumSamples)==type(None):
-		totalNumSamples=get_totalNumSamples(shotno)
+	Parameters
+	----------
+	shotno : int
+		Shot number
+	numColumns : int
+		Number of columns of the data in mphase_store
+	dataPath : str
+		File path where mphase_store is located
+	plot : bool
+		Plots all data
 		
+	Returns
+	-------
+	data : 2D np.ndarray
+		2D array with dimension (numColumns x time).
+		Contains all of the mode phase data as recorded in the GPU.
+	"""
 	if shotno==None:
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store.dat'%(dataPath),numRows=totalNumSamples,dataType=_np.float32)
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store.dat'%(dataPath),numColumns=numColumns,dataType=_np.float32)
 	else:
-		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store_%d.dat'%(dataPath,shotno),numRows=totalNumSamples,dataType=_np.float32)
+		data= _hbt.readWrite.readBinaryFileInto2DMatrix('%s/mphase_store_%d.dat'%(dataPath,shotno),numColumns=numColumns,dataType=_np.float32)
 		
 	if plot==True:
+		
+		time=getTime(len(data))
 		fig,ax=_plt.subplots()	
-		ax.plot(data[:,0],label='Sec1')
-		ax.plot(data[:,2],label='Sec2')
-		ax.plot(data[:,4],label='Sec3')
-		ax.plot(data[:,6],label='Sec4')
+		ax.plot(time,data)
+		ax.set_xlabel('time (ms)')
 		_plt.show()
 		
 	return data
 
 
-def get_ctrl_times(shotno,time_offset=-166*6e-6,CYCLE_TIME=6e-6,dataPath=_LOCAL_DATA_PATH):
-	""" 
-	Get the GPU time data associated with each shot number
-	
-	Notes
-	-----
-	Files must have been previously downloaded to your computer using the
-	_downloadCDFromCaliban() function.
-	"""
-	totalNumSamples=get_totalNumSamples(shotno)
-	return _np.arange(0, totalNumSamples) * CYCLE_TIME+time_offset
+#def get_ctrl_times(shotno,time_offset=-166*6e-6,CYCLE_TIME=6e-6,dataPath=_LOCAL_DATA_PATH):
+#	""" 
+#	Get the GPU time data associated with each shot number
+#	
+#	Notes
+#	-----
+#	Files must have been previously downloaded to your computer using the
+#	_downloadCDFromCaliban() function.
+#	"""
+#	totalNumSamples=get_totalNumSamples(shotno)
+#	return _np.arange(0, totalNumSamples) * CYCLE_TIME+time_offset
+
+def getTime(numSamples=1231,offsetSamples=-166,cycleTime=6e-6):
+	return _np.arange(offsetSamples,numSamples+offsetSamples)*cycleTime
 
 
 def get_totalNumSamples(shotno,dataPath=_LOCAL_DATA_PATH):
@@ -548,7 +598,11 @@ def _downloadCDFromCaliban(shotno,
 		sshCon.downloadFile('%s/mamp_store_%d.dat' % (localDataPath, shotno), localFilePath='%s/mamp_store_%d.dat' % (remoteFileDir, shotno))
 		sshCon.downloadFile('%s/mphase_store_%d.dat' % (localDataPath, shotno), localFilePath='%s/mphase_store_%d.dat' % (remoteFileDir, shotno))
 		sshCon.downloadFile('%s/mfreq_store_%d.dat' % (localDataPath, shotno), localFilePath='%s/mfreq_store_%d.dat' % (remoteFileDir, shotno))
-		sshCon.downloadFile('%s/fbsettings_%d.py' % (localDataPath, shotno), localFilePath='%s/fbsettings_%d.py'  % (remoteFileDir, shotno))
+		try:
+			sshCon.downloadFile('%s/fbsettings_%d.py' % (localDataPath, shotno), localFilePath='%s/fbsettings_%d.py'  % (remoteFileDir, shotno))
+		except:
+			print("fb_settings.py file not present.  skipping...")
+			pass
 		
 		try:
 			# print '%s/fb_store_%d.dat' % (localDataPath, shotno)
