@@ -519,18 +519,6 @@ def getModePhase(shotno,numColumns=8,dataPath=_LOCAL_DATA_PATH,plot=False):
 	return data
 
 
-#def get_ctrl_times(shotno,time_offset=-166*6e-6,CYCLE_TIME=6e-6,dataPath=_LOCAL_DATA_PATH):
-#	""" 
-#	Get the GPU time data associated with each shot number
-#	
-#	Notes
-#	-----
-#	Files must have been previously downloaded to your computer using the
-#	_downloadCDFromCaliban() function.
-#	"""
-#	totalNumSamples=get_totalNumSamples(shotno)
-#	return _np.arange(0, totalNumSamples) * CYCLE_TIME+time_offset
-
 def getTime(numSamples=1231,offsetSamples=-165,cycleTime=6e-6): # -165 sample offset appears correct for comparing input signals
 	return _np.arange(offsetSamples,numSamples+offsetSamples)*cycleTime
 
