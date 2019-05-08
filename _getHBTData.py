@@ -57,10 +57,63 @@ _SENSORBLACKLIST = ['PA1_S29R', 'PA1_S16P', 'PA2_S13R', 'PA2_S14P', 'PA2_S27P', 
 #_FILEDIR='/home/john/shotData/'
 
 
+###############################################################################
+### decorators
+	
+def _prepShotno(func):
+	"""
+	If no shot number is None or -1, -2, -3, etc, this decorator grabs the 
+	latest shotnumber for whatever function is called
+	
+	References
+	----------
+	https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically/30253848#30253848
+	
+	Notes
+	-----
+	# TODO(John) Add a try/except error handling for bad shot numbers or 
+	# missing data
+	""" 
+	def inner1(*args, **kwargs):
+		
+		# if shotno == None
+		if type(args[0])==type(None):
+			args=(latestShotNumber(),)+args[1:]
+			return func(*args, **kwargs)
+		
+		# if shotno is a number
+		elif type(args[0])==int:
+			
+			# if less than 0
+			if args[0]<0:
+				args=(latestShotNumber()+args[0]+1,)+args[1:]
+				return func(*args, **kwargs)
+			
+			# if a standard shot number (default case)
+			else:
+				return func(*args, **kwargs)
+				
+		# if shotno is an array or list
+		elif type(args[0])==_np.ndarray or type(args[0])==list:
+			out=[]
+			for i in range(len(args[0])):
+				
+				# if less than 0
+				if args[0][i]<0:
+					arg=(latestShotNumber()+args[0][i]+1,)+args[1:]
+					out.append(func(*arg, **kwargs))
+					
+				# if a standard shot number
+				else:
+					arg=(args[0][i],)+args[1:]
+					out.append(func(*arg, **kwargs))
+			return out
+				
+	return inner1
+
 
 ###############################################################################
 ### MDSplus tree data collection and misc. related functions
-
 def _trimTime(time,data,tStart,tStop):
 	"""
 	Trims list of data arrays down to desired time
@@ -241,6 +294,7 @@ def mdsData(shotno=None,
 ###############################################################################
 ### get device specific data
 	
+@_prepShotno
 class ipData:
 	"""
 	Gets plasma current (I_p) data
@@ -350,6 +404,7 @@ class ipData:
 		self.plotOfIP().plot()
 		
 		
+@_prepShotno
 class egunData:
 	"""
 	Gets egun data
@@ -425,6 +480,7 @@ class egunData:
 		self.plotOfHeatingCurrent().plot()
 		
 		
+@_prepShotno
 class cos1RogowskiData:
 	"""
 	Gets cos 1 rogowski data
@@ -512,6 +568,7 @@ class cos1RogowskiData:
 		self.plotOfCos1().plot()
 		
   
+@_prepShotno
 class bpData:
 	"""
 	Downloads bias probe data from both probes.  
@@ -795,6 +852,7 @@ class bpData:
 		return sp1
 	
 	
+@_prepShotno
 class dpData:
 	"""
 	Downloads directional (double) probe data f
@@ -961,6 +1019,7 @@ class dpData:
 		return sp1
 		
 	
+@_prepShotno
 class tpData:
 	"""
 	Triple probe data
@@ -1272,6 +1331,7 @@ class tpData:
 						 self.plotOfISat()]);			  
   
 	
+@_prepShotno
 class paData:
 	"""
 	Downloads poloidal array sensor data.  Presently, only poloidal
@@ -1513,6 +1573,7 @@ class paData:
 		sp2.plot()
 		
 		
+@_prepShotno
 class sxrData:
 	"""
 	Downloads (and optionally plots) soft xray sensor data.   
@@ -1636,6 +1697,7 @@ class sxrData:
 		return sp1
 			
 	
+@_prepShotno
 class fbData:
 	"""
 	Downloads feedback (FB) array sensor data.   
@@ -1880,6 +1942,7 @@ class fbData:
 				newPlot.plot()
 
 	
+@_prepShotno
 class taData:
 	"""
 	Downloads toroidal array (TA) sensor data.  Presently, only poloidal
@@ -2060,6 +2123,7 @@ class taData:
 		sp1.plot()
   
 
+@_prepShotno
 class groundCurrentData:
 	"""
 	Ground current flowing through the west and north racks to the grounding bus.
@@ -2131,6 +2195,7 @@ class groundCurrentData:
 		return p1
 		
 
+@_prepShotno
 class quartzJumperData:
 	"""
 	External rogowski data
@@ -2256,6 +2321,7 @@ class quartzJumperData:
 		self.plotOfERogAll().plot()
 		
 		
+@_prepShotno
 class spectrometerData:
 	"""
 	Spectrometer data
@@ -2319,7 +2385,7 @@ class spectrometerData:
 		self.plotOfSpect().plot()
 		
 		
-		
+@_prepShotno	
 class usbSpectrometerData:
 	"""
 	USB spectrometer data
@@ -2434,7 +2500,8 @@ class usbSpectrometerData:
 		self.plotOfSpect().plot()
 		self.plotOfStripey().plot()
 		
-				
+	
+@_prepShotno			
 class solData:
 	"""
 	SOL tile sensor data
@@ -2586,8 +2653,7 @@ class solData:
 			return _plot.subPlot([p1,p2,p3],plot=True)
 		
 
-		
-	
+@_prepShotno
 class loopVoltageData:
 	"""
 	loo voltage data
@@ -2652,6 +2718,7 @@ class loopVoltageData:
 		self.plotOfLoopVoltage().plot()
 		
 		
+@_prepShotno
 class tfData:
 	"""
 	Toroidal field data  
@@ -2740,7 +2807,8 @@ class tfData:
 		""" Plot all relevant plots """
 		self.plotOfTF().plot()
 		
-		
+	
+@_prepShotno	
 class capBankData:
 	"""
 	Capacitor bank data.  Currents.  
@@ -2833,6 +2901,7 @@ class capBankData:
 		
 		tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
 		
+		_plt.figure()
 		ax1 = _plt.subplot2grid((3,2), (0,1), rowspan=3)  #tf
 		ax2 = _plt.subplot2grid((3,2), (0,0)) #vf
 		ax3 = _plt.subplot2grid((3,2), (1,0),sharex=ax2) #oh
@@ -2867,6 +2936,8 @@ class capBankData:
 		
 		
 #####################################################
+		
+@_prepShotno
 class plasmaRadiusData:
 	"""
 	Calculate the major and minor radius.
@@ -2998,6 +3069,7 @@ class plasmaRadiusData:
 							  self.plotOfMinorRadius()]);
 
 
+@_prepShotno
 class qStarData:
 	"""
 	Gets qstar data
@@ -3083,7 +3155,7 @@ class qStarData:
 ###############################################################################
 ### sensor black list data.  presently not used anywhere
 	
-def checkBlackList(inData,inName):
+def checkBlackList_depricated(inData,inName):
 	# TODO(John) this needs an overhaul
 	"""
 	Takes in data and sensor name.  Checks sensor name against blacklist.  
@@ -3103,6 +3175,8 @@ def checkBlackList(inData,inName):
   
 ###############################################################################
 ### Processed data from HBTEP
+	
+@_prepShotno
 class nModeData:
 	"""
 	This function performs n-mode (toroidal) mode analysis on the plasma.
@@ -3427,6 +3501,7 @@ class nModeData:
 		return p1
 		
 
+@_prepShotno
 class mModeData:
 	"""
 	This function performs a least squares fit to a poloidal array of sensors and analyzes m=2,3 and 4 modes.  Mode amplitude, phase, and phase velocity. 
@@ -3661,7 +3736,7 @@ class mModeData:
 		return p1
 		
 
-
+@_prepShotno
 def _hbtPlot(shotnos=_np.array([98147, 98148]),plot=True,bp=False,tZoom=[2e-3,4e-3],saveFig=True):
 	"""
 	This function acts similarly to hbtplot.py
@@ -3741,3 +3816,4 @@ def _debugPlotExamplesOfAll():
 	tpData(plot=True)
 	sxrData(plot=True)
 	
+
