@@ -1,5 +1,5 @@
 """
-_rwHBTData.py - load HBT data, both processed and unprocessed
+load HBT data, both processed and unprocessed
 
 NOTES
 -----
@@ -60,7 +60,7 @@ _SENSORBLACKLIST = ['PA1_S29R', 'PA1_S16P', 'PA2_S13R', 'PA2_S14P', 'PA2_S27P', 
 ###############################################################################
 ### decorators
 	
-def _prepShotno(func):
+def _prepShotno(func,debug=False):
 	"""
 	If no shot number is None or -1, -2, -3, etc, this decorator grabs the 
 	latest shotnumber for whatever function is called
@@ -74,16 +74,19 @@ def _prepShotno(func):
 	# TODO(John) Add a try/except error handling for bad shot numbers or 
 	# missing data
 	""" 
+	from functools import wraps
+	
+	@wraps(func) # allows doc-string to be visible through the decorator function
 	def inner1(*args, **kwargs):
-		
 		# if shotno == None
-		if type(args[0])==type(None):
-			args=(latestShotNumber(),)+args[1:]
-			return func(*args, **kwargs)
-		
-		# if shotno is a number
-		elif type(args[0])==int:
+		if debug==True:
+			print('args = ')
+			print(args[0])
 			
+		try:
+			# try if its a number
+			int(args[0])
+						
 			# if less than 0
 			if args[0]<0:
 				args=(latestShotNumber()+args[0]+1,)+args[1:]
@@ -93,21 +96,37 @@ def _prepShotno(func):
 			else:
 				return func(*args, **kwargs)
 				
-		# if shotno is an array or list
-		elif type(args[0])==_np.ndarray or type(args[0])==list:
-			out=[]
-			for i in range(len(args[0])):
+			
+		except ValueError:
+			# it must be a string
+			print("string... skipping...")
+			
+		except TypeError:
+			# it might be None, a list, or an array
+			
+			try:
+				# try if it has a length (ie, it's either an array or list)
+				n=len(args[0])
 				
-				# if less than 0
-				if args[0][i]<0:
-					arg=(latestShotNumber()+args[0][i]+1,)+args[1:]
-					out.append(func(*arg, **kwargs))
+				out=[]
+				for i in range(n):
 					
-				# if a standard shot number
-				else:
-					arg=(args[0][i],)+args[1:]
-					out.append(func(*arg, **kwargs))
-			return out
+					# if less than 0
+					if args[0][i]<0:
+						arg=(latestShotNumber()+args[0][i]+1,)+args[1:]
+						out.append(func(*arg, **kwargs))
+						
+					# if a standard shot number
+					else:
+						arg=(args[0][i],)+args[1:]
+						out.append(func(*arg, **kwargs))
+				return out
+			
+			except TypeError:
+				# it must be None
+				
+				args=(latestShotNumber(),)+args[1:]
+				return func(*args, **kwargs)
 				
 	return inner1
 
@@ -196,7 +215,8 @@ def _initRemoteMDSConnection(shotno):
 #	
 #	return True
 
-	
+
+
 	
 def latestShotNumber():
 	"""
@@ -213,7 +233,44 @@ def latestShotNumber():
 	conn = _mds.Connection(_pref._HBT_SERVER_ADDRESS+':8003');
 	shot_num = conn.get('current_shot("hbtep2")')
 	return int(shot_num)
-		
+
+
+#def waitUntilLatestShotNumber(lastShotno=latestShotNumber(),debug=False):
+#	"""
+#	under development.  still has an issue
+#	
+#	Pauses the code until the data from the latest shot number is available
+#	
+#	Example
+#	-------
+#	::
+#		
+#		lastno=hbt.get.latestShotNumber()-1
+#		while(True):
+#			waitUntilLatestShotNumber(lastno)
+#			data=tp.tpData(lastno,plot=True,tStart=0e-3,tStop=8e-3,debug=True,savefig=True)
+#			lastno+=1
+#			fig=plt.gcf()
+#			plt.close(fig)
+#	"""
+#	import time
+#	
+#	while(True):
+#	
+##		shotno=latestShotNumber()
+#		if debug==True:
+#			print("%d %d"%(lastShotno,latestShotNumber()))
+##		if shotno==lastShotno:
+##			time.sleep(10)
+##		else:
+#		try:
+#			mdsData(lastShotno,dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_94'])
+#			print("new shotno = %d"%lastShotno)
+#			time.sleep(1)
+#			return
+#		except:
+#			time.sleep(10)
+
 		
 def mdsData(shotno=None,
 			dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_94',
@@ -1418,10 +1475,10 @@ class paData:
 		self.namesPA2=_np.array([   'PA2_S01P', 'PA2_S02P', 'PA2_S03P', 'PA2_S04P', 'PA2_S05P', 'PA2_S06P', 'PA2_S07P', 'PA2_S08P', 'PA2_S09P', 'PA2_S10P', 'PA2_S11P', 'PA2_S12P', 'PA2_S13P', 'PA2_S14P', 'PA2_S15P', 'PA2_S16P', 'PA2_S17P', 'PA2_S18P', 'PA2_S19P', 'PA2_S20P', 'PA2_S21P', 'PA2_S22P', 'PA2_S23P', 'PA2_S24P', 'PA2_S25P', 'PA2_S26P', 'PA2_S27P', 'PA2_S28P', 'PA2_S29P', 'PA2_S30P', 'PA2_S31P', 'PA2_S32P'])
 
 
-		if removeBadSensors==True:
-			iBad=_np.where(self.namesPA2=='PA2_S14P')
-			self.namesPA2=_np.delete(self.namesPA2,iBad)
-			self.thetaPA2=_np.delete(self.thetaPA2,iBad)
+#		if removeBadSensors==True:
+#			iBad=_np.where(self.namesPA2=='PA2_S14P')
+#			self.namesPA2=_np.delete(self.namesPA2,iBad)
+#			self.thetaPA2=_np.delete(self.thetaPA2,iBad)
 
 		# compile full sensor addresses names
 		pa1SensorAddresses=[]
@@ -1469,7 +1526,7 @@ class paData:
 		data=self.pa1Data[0:len(self.namesPA1)]
 		for i in range(0,len(data)):
 			data[i]=data[i][iStart:iStop]*1e4
-		p1.addTrace(self.pa1Time[iStart:iStop]*1e3,self.theta,
+		p1.addTrace(self.pa1Time[iStart:iStop]*1e3,self.thetaPA1,
 					_np.array(data))
 		return p1
 		
@@ -1478,13 +1535,19 @@ class paData:
 		iStop=_process.findNearest(self.pa2Time,tStop)
 		p1=_plot.plot(title=self.title2,subtitle='PA2 Sensors',
 					  xLabel='Time [ms]', yLabel='theta [rad]',zLabel='Gauss',
-					  plotType='contour',
+					  plotType='contour',colorMap=_plot._red_green_colormap(),
 					  centerColorMapAroundZero=True)
 		data=self.pa2Data[0:len(self.namesPA2)]
+		data2=[]
+		theta=[]
 		for i in range(0,len(data)):
-			data[i]=data[i][iStart:iStop]*1e4
-		p1.addTrace(self.pa2Time[iStart:iStop]*1e3,self.theta,
-					data)
+			if self.namesPA2[i] in ['PA2_S14P', 'PA2_S27P']:
+				pass
+			else:
+				data2.append(data[i][iStart:iStop]*1e4)
+				theta.append(self.thetaPA2[i])
+		p1.addTrace(self.pa2Time[iStart:iStop]*1e3,theta,
+					data2)
 		return p1
 
 	def plotOfPA1(self, i=0, alsoPlotRawAndFit=True):
@@ -1872,7 +1935,10 @@ class fbData:
 					  xLabel='Time [ms]', yLabel='phi [rad]',zLabel='Gauss',
 					  plotType='contour',colorMap=_plot._red_green_colormap(),
 					  centerColorMapAroundZero=True)
-		p1.addTrace(self.fbPolTime[iStart:iStop]*1e3,self.phi[0],
+		phi=_np.array(self.phi[int(sensorArray[1])-1])
+		index=_np.where(phi==_np.min(phi))[0][0]
+		phi[0:index]-=2*_np.pi
+		p1.addTrace(self.fbPolTime[iStart:iStop]*1e3,phi,
 					zData=_np.array(data))
 		return p1
 
@@ -2069,10 +2135,17 @@ class taData:
 					  xLabel='Time [ms]', yLabel='phi [rad]',zLabel='Gauss',
 					  plotType='contour',colorMap=_plot._red_green_colormap(),
 					  centerColorMapAroundZero=True)
-		data=self.taPolData[0:30]
+		
+		# phi is not in order.  this corrects for that
+		maxValInd=_np.where(self.phi==self.phi.min())[0][0]
+#		print(type(self.taPolData[0:30]))
+		data=list(_np.concatenate((self.taPolData[maxValInd:30],self.taPolData[0:maxValInd]),axis=0))
+		phi=_np.concatenate((self.phi[maxValInd:30],self.phi[0:maxValInd]))
+
+		# truncate data with time
 		for i in range(0,len(data)):
 			data[i]=data[i][iStart:iStop]*1e4
-		p1.addTrace(self.taPolTime[iStart:iStop]*1e3,self.phi,
+		p1.addTrace(self.taPolTime[iStart:iStop]*1e3,phi,
 					_np.array(data))
 		return p1
 			
@@ -2718,7 +2791,7 @@ class loopVoltageData:
 		self.plotOfLoopVoltage().plot()
 		
 		
-@_prepShotno
+#@_prepShotno
 class tfData:
 	"""
 	Toroidal field data  
@@ -2808,7 +2881,7 @@ class tfData:
 		self.plotOfTF().plot()
 		
 	
-@_prepShotno	
+#@_prepShotno	
 class capBankData:
 	"""
 	Capacitor bank data.  Currents.  
