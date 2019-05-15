@@ -89,7 +89,7 @@ class calibanData:
 				filePath=remoteDataDir + "/fbsettings_" +str(int(shotno))+'.py';
 			else:
 				filePath=remoteDataDir + '/fbsettings.py';
-			print filePath
+			print(filePath)
 			if os.path.isfile(filePath)==False or forceDownload==True:
 #				print('Downloading %d data' % shotno)
 				_downloadCDFromCaliban(shotno,password=password)
