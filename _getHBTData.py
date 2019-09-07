@@ -24,12 +24,14 @@ import sys as _sys
 import _socket
 import os
 # Support for headless launch
-if os.environ.has_key('DISPLAY'): import matplotlib.pyplot as _plt
+if os.environ.has_key('DISPLAY'):
+	import matplotlib.pyplot as _plt
+	import _plotTools as _plot
 import time as _time
 
 # hbtepLib libraries
 import _processData as _process
-import _plotTools as _plot
+#import _plotTools as _plot
 try:
 	import _hbtPreferences as _pref
 except ImportError:

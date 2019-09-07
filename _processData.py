@@ -8,12 +8,16 @@ data processing functions.
             
 # common libraries
 import numpy as _np
-import matplotlib.pyplot as _plt
+import os
+# X11 protection
+if os.environ.has_key('DISPLAY'):
+	import matplotlib.pyplot as _plt
+	import _plotTools as _plot
 import copy as _copy
 import math as _math
 
 # hbtepLib libraries
-import _plotTools as _plot
+#import _plotTools as _plot
 
             
 ###############################################################################

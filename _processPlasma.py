@@ -8,11 +8,14 @@ data processing functions.
             
 # common libraries
 import numpy as _np
-import matplotlib.pyplot as _plt
+import os # X11 PRotection
+if os.environ.has_key('DISPLAY'): 
+	import matplotlib.pyplot as _plt
+	import _plotTools as _plot
 import scipy.sparse as sp
 
 # hbtepLib library
-import _plotTools as _plot
+#import _plotTools as _plot
             
 ###############################################################################
 ### misc functions
