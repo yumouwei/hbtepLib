@@ -9,7 +9,7 @@ plotted.
 A few of these functions are merely wrappers for other people's code
 
 In most of the functions below, I've specified default shotno's.  This is 
-largely to make bebugging easier as there is nothing special about the 
+largely to make debugging easier as there is nothing special about the 
 provided shotnos.  
 """
 
@@ -23,6 +23,7 @@ from copy import copy as _copy
 import sys as _sys
 import _socket
 import matplotlib.pyplot as _plt
+import time as _time
 
 # hbtepLib libraries
 import _processData as _process
@@ -78,56 +79,74 @@ def _prepShotno(func,debug=False):
 	
 	@wraps(func) # allows doc-string to be visible through the decorator function
 	def inner1(*args, **kwargs):
+		
+		# check to see if shotno is an arg or kwarg.  if kwarg, effectively
+		# move it to be an arg and delete the redundant kwarg key
+		if len(args)>0:
+			shotno=args[0]
+		else:
+			shotno=kwargs.get('shotno')
+			del(kwargs['shotno'])
+			
 		# if shotno == None
 		if debug==True:
 			print('args = ')
-			print(args[0])
+			print(shotno)
+			print(type(shotno))
 			
-		try:
-			# try if its a number
-			int(args[0])
+		# check to see if it is a number (float,int,etc)
+		if _np.issubdtype(type(shotno),_np.integer):
+			# shotno = number if int(args[0]) does not throw an error
+			int(shotno)
 						
-			# if less than 0
-			if args[0]<0:
-				args=(latestShotNumber()+args[0]+1,)+args[1:]
+			# if less than 0, use python reverse indexing notation to return the most recent shots
+			if shotno<0:
+				args=(latestShotNumber()+shotno+1,)+args[1:]
+				waitUntilLatestShotNumber(args[0]) 
 				return func(*args, **kwargs)
 			
 			# if a standard shot number (default case)
 			else:
+				# make sure the value is an integer
+				args=(int(shotno),)+args[1:]
+				waitUntilLatestShotNumber(int(shotno)) 
 				return func(*args, **kwargs)
 				
+#		except ValueError:
+#			# it must be a string
+#			print("string... skipping...")
 			
-		except ValueError:
-			# it must be a string
-			print("string... skipping...")
-			
-		except TypeError:
+		else:
 			# it might be None, a list, or an array
 			
-			try:
+#			try:
 				# try if it has a length (ie, it's either an array or list)
-				n=len(args[0])
-				
-				out=[]
-				for i in range(n):
-					
-					# if less than 0
-					if args[0][i]<0:
-						arg=(latestShotNumber()+args[0][i]+1,)+args[1:]
-						out.append(func(*arg, **kwargs))
-						
-					# if a standard shot number
-					else:
-						arg=(args[0][i],)+args[1:]
-						out.append(func(*arg, **kwargs))
-				return out
+			n=len(shotno)
 			
-			except TypeError:
-				# it must be None
+			out=[]
+			for i in range(n):
 				
-				args=(latestShotNumber(),)+args[1:]
-				return func(*args, **kwargs)
-				
+				# if less than 0
+				if shotno[i]<0:
+					arg=(latestShotNumber()+shotno[i]+1,)+args[1:]
+					waitUntilLatestShotNumber(int(arg[0])) 
+					out.append(func(*arg, **kwargs))
+					
+				# if a standard shot number
+				else:
+					arg=(shotno[i],)+args[1:]
+					waitUntilLatestShotNumber(int(arg[0])) 
+					out.append(func(*arg, **kwargs))
+			return out
+			
+#			except TypeError:
+#				# it must be None
+#				
+#				args=(latestShotNumber(),)+args[1:]
+#				waitUntilLatestShotNumber(int(shotno)) 
+#				return func(*args, **kwargs)
+		
+		
 	return inner1
 
 
@@ -198,26 +217,6 @@ def _initRemoteMDSConnection(shotno):
 	return conn
 	
 	
-# work in progress.  #TODO I want a function that I can call that will tell me when the latest shot number has finished recording.
-#def _shotComplete(shotno):
-#	"""
-#	
-#	"""
-##	lastShotNumber=latestShotNumber()
-##	print lastShotNumber
-#	lastShotNumber=shotno
-#	try:
-#		mdsData(shotno=lastShotNumber-1,
-#			dataAddress='\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_01',
-#			tStart=_TSTART,tStop=_TSTOP)
-#	except _mds.TreeFILE_NOT_FOUND:
-#		return False
-#	
-#	return True
-
-
-
-	
 def latestShotNumber():
 	"""
 	Gets the latest shot number from the tree
@@ -235,41 +234,70 @@ def latestShotNumber():
 	return int(shot_num)
 
 
-#def waitUntilLatestShotNumber(lastShotno=latestShotNumber(),debug=False):
-#	"""
-#	under development.  still has an issue
-#	
-#	Pauses the code until the data from the latest shot number is available
-#	
-#	Example
-#	-------
-#	::
-#		
-#		lastno=hbt.get.latestShotNumber()-1
-#		while(True):
-#			waitUntilLatestShotNumber(lastno)
-#			data=tp.tpData(lastno,plot=True,tStart=0e-3,tStop=8e-3,debug=True,savefig=True)
-#			lastno+=1
-#			fig=plt.gcf()
-#			plt.close(fig)
-#	"""
-#	import time
-#	
-#	while(True):
-#	
-##		shotno=latestShotNumber()
-#		if debug==True:
-#			print("%d %d"%(lastShotno,latestShotNumber()))
-##		if shotno==lastShotno:
-##			time.sleep(10)
-##		else:
-#		try:
-#			mdsData(lastShotno,dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_10:INPUT_94'])
-#			print("new shotno = %d"%lastShotno)
-#			time.sleep(1)
-#			return
-#		except:
-#			time.sleep(10)
+def waitUntilLatestShotNumber(shotno,debug=False):
+	"""
+	If the shotno that you are interested is the latest shotno,
+	this code checks to see if all of the data has finished recording.  
+	If not, the code pauses until it has.  Then it exits the code.
+	
+	This code is useful to include in anything where you want to make sure
+	you aren't trying to get data from a shot number that hasn't finished recording yet.
+	
+	
+	Parameters
+	----------
+	shotno : int
+		shot number
+	debug : bool
+		default False.  
+		prints text to screen to help with debugging.  
+	"""
+
+	latestShotno=latestShotNumber()
+	if debug==True:
+		print("latest shot number : %d"%latestShotno)
+		print("shot number in question : %d"%shotno)
+	
+	# if you haven't made it to the latest number yet
+	if shotno<latestShotno:
+		return
+	
+	# if you are trying to access a number that hasn't even been created yet
+	elif shotno>latestShotno:
+		print("This shot number hasn't even been created yet.  Waiting...")
+		stop=True
+		while(stop==True):
+			if shotno==latestShotNumber():
+				stop=False
+			else:
+				pass
+	
+			_time.sleep(2)
+		
+	# if you are trying to access a number that has been created but not finished		
+#	if shotno==latestShotno:
+#	print("shotno==latestShotno")
+	stop=False
+	try:
+		mdsData(shotno,dataAddress=['\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_96'],
+					tStart=[],tStop=[])
+	except _mds.TreeNODATA:
+		stop=True
+		print("Shot number has not finished.  Waiting...")
+		
+	while(stop==True):
+		
+		_time.sleep(2)
+		try:
+			mdsData(shotno,
+						dataAddress=['\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_96'],
+						tStart=[],tStop=[])
+			stop=False
+			_time.sleep(1)
+		except _mds.TreeNODATA:
+			pass
+				
+	return
 
 		
 def mdsData(shotno=None,
@@ -303,13 +331,13 @@ def mdsData(shotno=None,
 	if type(dataAddress) is not list:
 		dataAddress=[dataAddress];
 		
-	# if shotno == -1, use the latest shot number
-	if shotno==-1:
-		shotno=latestShotNumber()
+#	# if shotno == -1, use the latest shot number
+#	if shotno==-1:
+#		shotno=latestShotNumber()
 		
 	# init arrays
-	time =[]
-	data = [];
+	time = []
+	data = []
 		
 	# check if computer is located locally or remotely.  The way it connects to spitzer remotely can only use one method, but locally, either method can be used.  
 	if _ON_HBTEP_SERVER==True: # if operating local to the tree
@@ -391,6 +419,7 @@ class ipData:
 	"""
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 			  findDisruption=True,verbose=False):
+		
 		self.shotno = shotno
 		self.title = "%d, Ip Data" % shotno
 		
@@ -403,34 +432,39 @@ class ipData:
 		
 		if findDisruption==True:
 			
-			# only look at data after breakdown
-			iStart=_process.findNearest(time,1.5e-3)
-			ipTime=time[iStart:]
-			ip=data[0][iStart:]
-			
-			# filter data to remove low-frequency offset
-			ip2,temp=_process.gaussianHighPassFilter(ip,ipTime,
-											timeWidth=1./20e3,plot=verbose)
-			
-			# find time derivative of ip2
-			dip2dt=_np.gradient(ip2)				
-			
-			# find the first large rise in d(ip2)/dt
-			threshold=40.0
-			index=_np.where(dip2dt>threshold)[0][0]
-			
-			# debugging feature
-			if verbose==True:
-				_plt.figure()
-				_plt.plot(ipTime,dip2dt,label=r'$\frac{d(ip)}{dt}$')
-				_plt.plot([ipTime[0],ipTime[-1]],[threshold,threshold],
-						  label='threshold')
-				_plt.legend()
-			
-			# find the max value of ip immediately after the disrup. onset
-			while(ip[index]<ip[index+1]):
-				index+=1
-			self.timeDisruption=ipTime[index]
+			try:
+				# only look at data after breakdown
+				iStart=_process.findNearest(time,1.5e-3)
+				ipTime=time[iStart:]
+				ip=data[0][iStart:]
+				
+				# filter data to remove low-frequency offset
+				ip2,temp=_process.gaussianHighPassFilter(ip,ipTime,
+												timeWidth=1./20e3,plot=verbose)
+				
+				# find time derivative of ip2
+				dip2dt=_np.gradient(ip2)				
+				
+				# find the first large rise in d(ip2)/dt
+				threshold=40.0
+				index=_np.where(dip2dt>threshold)[0][0]
+				
+				# debugging feature
+				if verbose==True:
+					_plt.figure()
+					_plt.plot(ipTime,dip2dt,label=r'$\frac{d(ip)}{dt}$')
+					_plt.plot([ipTime[0],ipTime[-1]],[threshold,threshold],
+							  label='threshold')
+					_plt.legend()
+				
+				# find the max value of ip immediately after the disrup. onset
+				while(ip[index]<ip[index+1]):
+					index+=1
+				self.timeDisruption=ipTime[index]
+				
+			except:
+				print("time of disruption could not be found")
+				self.timeDisruption=None
 		
 		if plot == True or plot=='all':
 			self.plot()
@@ -440,16 +474,14 @@ class ipData:
 		"""
 		returns the plot of IP vs time
 		"""
-		p1=_plot.plot(title=self.title,
-					  xLabel='time [ms]',
-					  yLabel='kA',
-					  subtitle='Plasma Current',
-					  shotno=self.shotno)
-		p1.addTrace(xData=self.time*1000,yData=self.ip*1e-3)
+		fig,p1=_plt.subplots()
+		p1.plot(self.time*1e3,self.ip*1e-3)
 		try:
-			p1.addTrace(self.timeDisruption*1e3,self.ip[self.time==self.timeDisruption]*1e-3,yLegendLabel="disruption",marker='x',linestyle='')
+			p1.plot(self.timeDisruption*1e3,self.ip[self.time==self.timeDisruption]*1e-3,label='Disruption',marker='x',linestyle='')
 		except:
-			"Disruption info not requested"
+			"Time of disruption not available to plot"
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Plasma Current (kA)')
+		_plot.finalizeFigure(fig,title=self.title)
 		
 		return p1
 		
@@ -520,15 +552,12 @@ class egunData:
 		"""
 		returns the plot of heating current vs time
 		"""
-		p1=_plot.plot(title=self.title,
-					  xLabel='time [ms]',
-					  yLabel='A',
-					  subtitle='egun heating current',
-					  shotno=self.shotno)
-		p1.addTrace(xData=self.time*1000,yData=self.heatingCurrent)
+		fig,p1=_plt.subplots()
+		p1.plot(self.time*1e3,self.heatingCurrent)
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Current (A)')
+		_plot.finalizeFigure(fig,title=self.title)
 		
 		return p1
-		
 			
 	def plot(self):
 		""" 
@@ -584,7 +613,7 @@ class cos1RogowskiData:
 	"""
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
 		self.shotno = shotno
-		self.title = "shotno = %d, Cos1 Rog. Data" % shotno
+		self.title = "%d, Cos1 Rog. Data" % shotno
 		
 		# get data.  need early time data for offset subtraction
 		data, time=mdsData(shotno=shotno,
@@ -611,12 +640,17 @@ class cos1RogowskiData:
 		"""
 		returns the plot of cos1 rog vs time
 		"""
-		p1=_plot.plot(yLabel='',xLabel='time [ms]',title=self.title,
-					  subtitle='Cos1 Rogowski',shotno=[self.shotno])
-		p1.addTrace(xData=self.time*1000,yData=self.cos1)
+#		p1=_plot.plot(yLabel='',xLabel='time [ms]',title=self.title,
+#					  subtitle='Cos1 Rogowski',shotno=[self.shotno])
+#		p1.addTrace(xData=self.time*1000,yData=self.cos1)
+#		
+#		return p1
+		fig,p1=_plt.subplots()
+		p1.plot(self.time*1e3,self.cos1)
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='')
+		_plot.finalizeFigure(fig,title=self.title)
 		
 		return p1
-		
 			
 	def plot(self):
 		""" 
@@ -698,7 +732,7 @@ class bpData:
 	def __init__(self,shotno=98147,tStart=_TSTART,tStop=_TSTOP,plot=False):
 		self.shotno = shotno
 		self.title = "%s, BP Data." % shotno
-				
+        
 		if shotno > 99035 or shotno==-1:
 			# BPS5 was moved to section 2
 			
@@ -2238,7 +2272,7 @@ class groundCurrentData:
 	"""
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
 		self.shotno = shotno
-		self.title = "shotno = %d, Ext. Rogowski Data" % shotno
+		self.title = "%d, Ext. Rogowski Data" % shotno
 		
 		# get north rack data
 		data, time=mdsData(shotno=shotno,
@@ -2259,12 +2293,13 @@ class groundCurrentData:
 		
 	def plot(self):
 		""" Plot all relevant plots """
-		p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.nRackCurrent,xData=self.nRackTime*1000,
-					yLegendLabel='North Rack Ground Current') 
-		p1.addTrace(yData=self.wRackCurrent,xData=self.wRackTime*1000,
-					yLegendLabel='West Rack Ground Current') 
+	
+		fig,p1=_plt.subplots()
+		p1.plot(self.nRackTime*1e3,self.nRackCurrent,label='North Rack Ground Current')
+		p1.plot(self.wRackTime*1e3,self.wRackCurrent,label='West Rack Ground Current')
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Current (A)')
+		_plot.finalizeFigure(fig,title=self.title)
+		
 		return p1
 		
 
@@ -2327,7 +2362,7 @@ class quartzJumperData:
 	"""
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
 		self.shotno = shotno
-		self.title = "shotno = %d, Ext. Rogowski Data" % shotno
+		self.title = "%d, Ext. Rogowski Data" % shotno
 		
 		# get data
 		data, time=mdsData(shotno=shotno,
@@ -2349,50 +2384,18 @@ class quartzJumperData:
 		if plot == True:
 			self.plot()
 		
-	def plotOfERogA(self):
-		# generate rog A plot
-		p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.eRogA,xData=self.time*1000,
-					yLegendLabel=self.sensorLocations[0]) 
-		return p1
-	
-	def plotOfERogB(self):
-		# generate rog B plot
-		p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.eRogB,xData=self.time*1000,
-					yLegendLabel=self.sensorLocations[1]) 
-		return p1
-	
-	def plotOfERogC(self):
-		# generate rog C plot
-		p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.eRogC,xData=self.time*1000,
-					yLegendLabel=self.sensorLocations[2]) 
-		return p1
-		
-	def plotOfERogD(self):
-		# generate rog D plot
-		p1=_plot.plot(yLabel='A',xLabel='time [ms]',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.eRogD,xData=self.time*1000,
-					yLegendLabel=self.sensorLocations[3]) 
-		return p1
-		
-	def plotOfERogAll(self):		
-		# generate rog All plot
-		p1=self.plotOfERogA()
-		p1.mergePlots(self.plotOfERogB())
-		p1.mergePlots(self.plotOfERogC())
-		p1.mergePlots(self.plotOfERogD())
-		return p1
-		
 	def plot(self):
 		""" Plot all relevant plots """
-		self.plotOfERogAll().plot()
+			
+		fig,p1=_plt.subplots(4,sharex=True)
+		p1[0].plot(self.time*1e3,self.eRogA,label='Rogowski A')
+		p1[1].plot(self.time*1e3,self.eRogB,label='Rogowski B')
+		p1[2].plot(self.time*1e3,self.eRogC,label='Rogowski C')
+		p1[3].plot(self.time*1e3,self.eRogD,label='Rogowski D')
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Current (A)')
+		_plot.finalizeFigure(fig,title=self.title)
 		
+		return p1
 		
 @_prepShotno
 class spectrometerData:
@@ -2434,7 +2437,7 @@ class spectrometerData:
 	"""
 	def __init__(self,shotno=98030,tStart=_TSTART,tStop=_TSTOP,plot=False):
 		self.shotno = shotno
-		self.title = "shotno = %d, Spectrometer Data" % shotno
+		self.title = "%d, Spectrometer Data" % shotno
 		
 		# get data
 		data, self.time=mdsData(shotno=shotno,
@@ -2447,10 +2450,12 @@ class spectrometerData:
 		
 	def plotOfSpect(self):
 		# generate plot
-		p1=_plot.plot(yLabel='V',xLabel='time [ms]',
-					  subtitle='Spectrometer Intensity',title=self.title,
-					  shotno=self.shotno)
-		p1.addTrace(yData=self.spect,xData=self.time*1000) 
+		
+		fig,p1=_plt.subplots()
+		p1.plot(self.time*1e3,self.spect,label='Spectrometer Intensity')
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Voltage (V)')
+		_plot.finalizeFigure(fig,title=self.title)
+		
 		return p1
 	
 	def plot(self):
@@ -2527,39 +2532,22 @@ class usbSpectrometerData:
 			   
 		# plot if requested
 		if plot == True:
-			self.plotOfSpect().plot()
+			self.plotOfSpect()
 		if plot == 'all':
-			self.plotOfSpect().plot()
+			self.plotOfSpect()
 			self.plotOfStripey().plot()
 			
-	def plotOfSingleChannel(self,ch):
-		# generate plot of single channel
-		index=_np.where(self.spectrometerArrayNumber==ch)[0][0]
-		data=self.spectrometerData[index]
-		p1=_plot.plot(yLabel='Intensity',xLabel='Wavelength [nm]',
-					  subtitle='Spect. Ch. %d' % ch,
-					  shotno=self.shotno)
-		p1.addTrace(yData=data,xData=self.wavelength)
-		return p1
-		
 	def plotOfSpect(self):
 		# generate subplot of data
 		
-		figs=[]
+		fig,p1=_plt.subplots(len(self.spectrometerArrayNumber),sharex=True)
 		for i in range(0,len(self.spectrometerArrayNumber)):
-			p1=_plot.plot(yLabel='Intensity',xLabel='Wavelength [nm]',
-					  subtitle='Spect. Ch. %d' % self.spectrometerArrayNumber[i],
-					  shotno=self.shotno)
-					  
-			if i==0:
-				p1.title=self.title
-				
-			p1.addTrace(yData=self.spectrometerData[i],xData=self.wavelength)
-			figs.append(p1)
-			
-		sp = _plot.subPlot(figs,plot=False)
-		return sp
+			p1[i].plot(self.wavelength,self.spectrometerData[i],label='Time slice %d'%(self.spectrometerArrayNumber[i]))
+		_plot.finalizeSubplot(p1,xlabel='Wavelength [nm]',ylabel='Intensity')
+		_plot.finalizeFigure(fig,title=self.title)
 		
+		return fig
+
 	def plotOfStripey(self):
 		# generate stripey plot of data
 		p1=_plot.plot(yLabel='Channel',xLabel='Wavelength [nm]',zLabel='Intensity',
@@ -2570,8 +2558,7 @@ class usbSpectrometerData:
 		
 	def plot(self):
 		""" Plot all relevant plots """
-		self.plotOfSpect().plot()
-		self.plotOfStripey().plot()
+		self.plotOfSpect()
 		
 	
 @_prepShotno			
@@ -2629,7 +2616,7 @@ class solData:
 
 		# initialize
 		self.shotno = shotno
-		self.title = "shotno = %d, SOL Data" % shotno
+		self.title = "%d, SOL Data" % shotno
 		self.sensorNames = ['LFS01_S1', 'LFS01_S2', 'LFS01_S3', 'LFS01_S4', 'LFS01_S5', 'LFS01_S6', 'LFS01_S7', 'LFS01_S8', 'LFS04_S1', 'LFS04_S2', 'LFS04_S3', 'LFS04_S4', 'LFS08_S1', 'LFS08_S2', 'LFS08_S3', 'LFS08_S4', 'LFS08_S5', 'LFS08_S6', 'LFS08_S7', 'LFS08_S8']
 		self.phis=_np.array([234.8, 234.8, 234.8, 234.8, 234.8, 234.8, 234.8, 234.8, 342.8, 342.8, 342.8, 342.8, 126.8, 126.8, 126.8, 126.8, 126.8, 126.8, 126.8, 126.8])
 		self.thetas=_np.array([-70. , -50. , -30. , -10. ,  10. ,  30. ,  50. ,  70. , -83. ,	   -28.2,  28.2,  83. , -70. , -50. , -30. , -10. ,  10. ,  30. ,  50. ,  70. ])
@@ -2780,18 +2767,20 @@ class loopVoltageData:
 		
 	def plotOfLoopVoltage(self):
 		# generate plot
-		p1=_plot.plot(yLabel='V',xLabel='time [ms]',subtitle='Loop Voltage',
-					  title=self.title,shotno=self.shotno)
-		p1.addTrace(yData=self.loopVoltage,xData=self.time*1000) 
-		p1.yLim=[0,15]  # using same axis-limits as hbtplot.py
-		return p1
+		
+		fig,p1=_plt.subplots()
+		p1.plot(self.time*1e3,self.loopVoltage)
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Voltage (V)',ylim=[0,15])
+		_plot.finalizeFigure(fig,title=self.title)
+		
+		return fig
 			
 	def plot(self):
 		""" Plot all relevant plots """
-		self.plotOfLoopVoltage().plot()
+		self.plotOfLoopVoltage()
 		
 		
-#@_prepShotno
+@_prepShotno
 class tfData:
 	"""
 	Toroidal field data  
@@ -2842,7 +2831,7 @@ class tfData:
 	def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False,
 				 upSample=True):
 		self.shotno = shotno
-		self.title = "shotno = %d, TF Field Data" % shotno
+		self.title = "%d, TF Field Data" % shotno
 		
 		# get tf data
 		data, self.time=mdsData(shotno=shotno,
@@ -2881,7 +2870,7 @@ class tfData:
 		self.plotOfTF().plot()
 		
 	
-#@_prepShotno	
+@_prepShotno	
 class capBankData:
 	"""
 	Capacitor bank data.  Currents.  
@@ -2943,7 +2932,7 @@ class capBankData:
 	
 	def __init__(self,shotno=96530,tStart=None,tStop=None,plot=False):
 		self.shotno = shotno
-		self.title = "shotno = %d, Capacitor Bank Data" % shotno
+		self.title = "%d, Capacitor Bank Data" % shotno
 		
 		# get vf data
 		data, time=mdsData(shotno=shotno,
@@ -2972,7 +2961,7 @@ class capBankData:
 	def plot(self):
 		""" Plot all relevant plots """
 		
-		tf=tfData(shotno=self.shotno,tStart=None,tStop=None)
+		tf=tfData(self.shotno,tStart=None,tStop=None)
 		
 		_plt.figure()
 		ax1 = _plt.subplot2grid((3,2), (0,1), rowspan=3)  #tf
@@ -2981,29 +2970,25 @@ class capBankData:
 		ax4 = _plt.subplot2grid((3,2), (2, 0),sharex=ax2) #sh
 		fig=_plt.gcf()
 		fig.set_size_inches(10,5)
-		
+				
 		tStart=-2
 		tStop=20
 		
 		ax1.plot(tf.time*1e3,tf.tfBankField)
-		ax1.set_xlabel('Time (s)')
-		ax1.set_ylabel('TF Field (T)')
 		ax1.axvspan(tStart,tStop,color='r',alpha=0.3)
-		ax1.set_xlim(-150,450)
-		_plot.zeroAxisLines(ax1)
-		ax2.plot(self.vfTime*1e3,self.vfBankCurrent*1e-3) 
-		ax2.set_ylabel('VF Current\n(kA)')
-		_plot.zeroAxisLines(ax2)
+		_plot.finalizeSubplot(ax1,xlabel='Time (s)',xlim=[-150,450],ylabel='TF Field (T)')#,title=self.title
+		
+		ax2.plot(self.vfTime*1e3,self.vfBankCurrent*1e-3)
+		_plot.finalizeSubplot(ax2,ylabel='VF Current\n(kA)')
+		
 		ax3.plot(self.ohTime*1e3,self.ohBankCurrent*1e-3)
-		ax3.set_ylabel('OH Current\n(kA)')
-		ax3.set_ylim([-20,30])
-		_plot.zeroAxisLines(ax3)
+		_plot.finalizeSubplot(ax3,ylim=[-20,30],ylabel='OH Current\n(kA)')
+		
 		ax4.plot(self.shTime*1e3,self.shBankCurrent*1e-3)
-		ax4.set_ylabel('SH Current\n(kA)')
-		ax4.set_xlabel('Time (ms)')
-		_plot.zeroAxisLines(ax4)
-		ax4.set_xlim([tStart,tStop])
-		fig.set_tight_layout(True)
+		_plot.finalizeSubplot(ax4,ylim=[tStart,tStop],xlabel='Time (s)',ylabel='SH Current\n(kA)')
+		
+		_plot.finalizeFigure(fig,title=self.title)
+#		fig.set_tight_layout(True)
 		
 		return fig
 		
@@ -3073,17 +3058,17 @@ class plasmaRadiusData:
 		oh_pickup = 7.0723416e-08
 		
 		# get vf and oh data
-		capBank=capBankData(shotno=shotno,tStart=tStart,tStop=tStop)
+		capBank=capBankData(shotno,tStart=tStart,tStop=tStop)
 		vf=capBank.vfBankCurrent
 		oh=capBank.ohBankCurrent
 		self.time=capBank.vfTime
 		
 		# get plasma current
-		ip=ipData(shotno=shotno,tStart=tStart,tStop=tStop)
+		ip=ipData(shotno,tStart=tStart,tStop=tStop)
 		ip=ip.ip*1212.3*1e-9  # ip gain
 		
 		# get cos-1 raw data
-		cos1=cos1RogowskiData(shotno=shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
+		cos1=cos1RogowskiData(shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
 		# subtract offset
 		cos1Raw=cos1.cos1Raw-cos1.cos1RawOffset		
 		
@@ -3109,37 +3094,16 @@ class plasmaRadiusData:
 		
 		if plot==True:
 			self.plot();
-		elif plot=='all':
-			self.plot(True)
-		
-	def plotOfMajorRadius(self,plotAll=False):
-		p1=_plot.plot(subtitle='major radius',title=self.title,
-					  shotno=[self.shotno],xLabel='time [ms]',yLabel='cm',
-					  yLim=[89, 95])
-		p1.addTrace(yData=self.majorRadius*100,xData=self.time*1000,
-					yLegendLabel='major radius') 
-		if plotAll==True:
-			innerLimiter=_np.array([0.90296,0.90296])*100
-			innerLimiterTime=_np.array([self.time[0],self.time[-1]]);
-			outerLimiter=_np.array([0.92,0.92])*100		
-			outerLimiterTime=_np.array([self.time[0],self.time[-1]]);
-			p1.addTrace(yData=innerLimiter,xData=innerLimiterTime*1000,
-						yLegendLabel='HFS limited') 
-			p1.addTrace(yData=outerLimiter,xData=outerLimiterTime*1000,
-						yLegendLabel='LFS limited') 
-		return p1
-		
-	def plotOfMinorRadius(self):
-		p1=_plot.plot(subtitle='minor radius',title=self.title,
-					  shotno=[self.shotno],xLabel='time [ms]',yLabel='cm',
-					  yLim=[10, 16])
-		p1.addTrace(yData=self.minorRadius*100,xData=self.time*1000,
-					yLegendLabel='minor radius') 
-		return p1
 
 	def plot(self,plotAll=False):
-		self.p=_plot.subPlot([self.plotOfMajorRadius(plotAll),
-							  self.plotOfMinorRadius()]);
+		fig,p1=_plt.subplots(2,sharex=True)
+		p1[0].plot(self.time*1e3,self.majorRadius*1e2,label='Major Radius')
+		p1[1].plot(self.time*1e3,self.minorRadius*1e2,label='Minor Radius')
+		_plot.finalizeSubplot(p1[0],xlabel='Time (ms)',ylabel='Major Radius (cm)',ylim=[89,95])
+		_plot.finalizeSubplot(p1[1],ylabel='Minor Radius (cm)',ylim=[10,16])
+		_plot.finalizeFigure(fig,title=self.title)
+		
+		return p1
 
 
 @_prepShotno
@@ -3182,12 +3146,13 @@ class qStarData:
 	
 	def __init__(self,shotno=96496, tStart=_TSTART, tStop=_TSTOP, plot=False):
 		self.shotno = shotno
-		self.title = r"shotno = %d, q$^*$ Data" % shotno
+		self.title = r"%d, q$^*$ Data" % shotno
 		
 		# get data
-		ip=ipData(shotno=shotno,tStart=tStart,tStop=tStop)
-		plasmaRadius=plasmaRadiusData(shotno=shotno,tStart=tStart,tStop=tStop)
-		tfProbeData,tfProbeTime=mdsData(shotno=96496,
+		ip=ipData(shotno,tStart=tStart,tStop=tStop)
+		plasmaRadius=plasmaRadiusData(shotno,tStart=tStart,tStop=tStop)
+#		tfProbeData,tfProbeTime=mdsData(shotno=96496,
+		tfProbeData,tfProbeTime=mdsData(shotno,
 										dataAddress=['\HBTEP2::TOP.SENSORS.TF_PROBE'],
 										tStart=tStart,tStop=tStop)
 										
@@ -3204,25 +3169,17 @@ class qStarData:
 		
 		if plot == True:
 			self.plot()
-		
-		
-	def plotOfQStar(self):
-		"""
-		returns the plot of IP vs time
-		"""
-		p1=_plot.plot(yLabel='',xLabel='time [ms]',
-					  subtitle=r'q$^*$',title=self.title,
-					  shotno=self.shotno, yLim=[2,5])
-		p1.addTrace(yData=self.qStar,xData=self.time*1000) 
-		
-		return p1
-		
 			
 	def plot(self):
 		""" 
 		Plot all relevant plots 
 		"""
-		self.plotOfQStar().plot()
+		
+		fig,p1=_plt.subplots()
+		p1.plot(self.time*1e3,self.qStar,label=r'q$^*$')
+		p1.plot(self.time*1e3,self.qStarCorrected,label=r'q$^* * 1.15$')
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel=r'q$^*$',ylim=[1,5])
+		_plot.finalizeFigure(fig,title=self.title)
 	   
 	   
 ###############################################################################
@@ -3331,14 +3288,11 @@ class nModeData:
 		
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 				 nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
-				 frequencyFilter=''):
+				 phaseFilterTimeConstant=1.0/100e3):
 		
 		self.shotno=shotno
-		self.title = 'shotno = %d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
-		self.nModeSensor=nModeSensor
-#		self.frequencyFilter=frequencyFilter
-#		self._phaseFilter=phaseFilter
-		
+		self.title = '%d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
+		self.nModeSensor=nModeSensor		
 		
 		# load data from requested sensor array
 		if nModeSensor=='TA':
@@ -3355,7 +3309,7 @@ class nModeData:
 			data=temp.fbPolData[array]  ## top toroidal array = 0, bottom = 3
 			self.time=temp.fbPolTime
 			phi=_np.array(temp.phi[array])
-			theta=_np.array(temp.theta[array])
+			self._theta=_np.array(temp.theta[array])
 			[n,m]=_np.shape(data)
 		self._data=data
 		self._phi=phi
@@ -3365,9 +3319,7 @@ class nModeData:
 			A=_np.zeros((n,5))
 			A[:,0]=_np.ones(n);
 			A[:,1]=_np.sin(phi)
-			A[:,2]=_np.cos(phi) #_
-#			A[:,1]=_np.sin(3*_np.array(theta)-_np.array(phi))
-#			A[:,2]=_np.cos(3*_np.array(theta)-_np.array(phi))
+			A[:,2]=_np.cos(phi) 
 			A[:,3]=_np.sin(2*phi)
 			A[:,4]=_np.cos(2*phi)
 			Ainv=_np.linalg.pinv(A)
@@ -3393,47 +3345,19 @@ class nModeData:
 		else:
 			_sys.exit("Invalid mode analysis method requested.")
 			
-		# filter phase
+		# filter phase.  (this is necessary to get a clean frequency)
 		self.n1Phase=_np.zeros(len(self.n1PhaseRaw))   
 		if phaseFilter == 'gaussian':
 			self.n1Phase=_process.wrapPhase(
 					_process.gaussianLowPassFilter(
 							_process.unwrapPhase(self.n1PhaseRaw),
 							self.time,
-							timeWidth=1./50e3))
+							timeWidth=phaseFilterTimeConstant))
 		else:
 			_sys.exit("Invalid phase filter requested.")
 					
 		## Calculate frequency (in Hz) using second order deriv 
 		self.n1Freq=_np.gradient(_process.unwrapPhase(self.n1Phase))/_np.gradient(self.time)/(2*_np.pi)		
-		
-#		# filter frequency
-#		self.n1Freq=_np.zeros(len(self.n1FreqRaw)) 
-#		if 'Butterworth' in frequencyFilter or 'butterworth' in frequencyFilter:
-#			
-#			filterOrder=1
-#			cutoffFreq=1000
-#
-#			# implement filter
-#			self.n1Freq=_process.butterworthFilter(self.n1FreqRaw,
-#														   self.time,
-#														   filterOrder=filterOrder,
-#														   samplingRate=1./(2*1e-6),
-#														   cutoffFreq=cutoffFreq,
-#														   filterType='low')
-#														   
-#		elif frequencyFilter=='boxcar' or frequencyFilter=='boxCar':
-#			self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,81,'box')
-#			
-#		elif frequencyFilter=='gaussian':
-#			self.n1Freq=_process.convolutionSmoothing(self.n1FreqRaw,120,'gaussian')
-#			
-#		elif frequencyFilter=='' or frequencyFilter==None:
-#			self.n1Freq=_copy(self.n1FreqRaw)
-#			
-#		else:
-#			_sys.exit("Invalid frequency filter requested.")
-#			
 			
 		# trim off extra half millisecond (see Notes)
 		self.time, temp=_trimTime(self.time,
@@ -3448,15 +3372,14 @@ class nModeData:
 		
 		## plot data
 		if plot==True:
-			self.plot(includeRaw=True)
+			self.plot()
 			
 		elif plot == 'all':
 			self.plotOfSlice(index=int(m/4)).plot();
 			self.plotOfSlice(index=int(m/2)).plot();
-			self.plotOfAmps().plot()
-			self.plot(includeRaw=True)
+			self.plot(True)
 			
-	def plot(self,includeRaw=True):
+	def plot(self,plotAll=False):
 		"""
 		plots and returns a subplot of n=1 mode amplitude, phase, and frequency
 		
@@ -3465,86 +3388,45 @@ class nModeData:
 		includeRaw : bool
 			if True, also plots the raw (unfiltered) phase and frequency
 		"""
-		sp1=_plot.subPlot([self.plotOfN1Amp(),self.plotOfN1Phase(),
-						   self.plotOfN1Freq()],plot=False)
-		if includeRaw==True:
-			# add phase raw data
-			sp1.subPlots[1].addTrace(yData=self.n1PhaseRaw,
-									 xData=self.time*1000,
-									 linestyle='',
-									 marker='.',
-									 yLegendLabel='raw')
-#			
-#			# add frequency raw data
-#			sp1.subPlots[2].addTrace(yData=self.n1FreqRaw/1000.,
-#									 xData=self.time*1000,
-#									 yLegendLabel='raw')
-			
-		sp1.plot()
-		return sp1
+		fig,p1=_plt.subplots(3,sharex=True)
+		p1[0].plot(self.time*1e3,self.n1Amp,label=r'$\left| \delta B\right|_{n=1}$')
+		p1[1].plot(self.time*1e3,self.n1Phase,label=r'$\angle \delta B_{n=1}$',marker='.',markersize=2,linestyle='')
+		p1[2].plot(self.time*1e3,self.n1Freq*1e-3,label='Frequency (kHz)')
+		if plotAll==True:
+			p1[0].plot(self.time*1e3,self.n2Amp,label=r'$\left| \delta B\right|_{n=2}$')
+			p1[1].plot(self.time*1e3,self.n1PhaseRaw,label=r'$\angle \delta B_{n=1}$ unfiltered',marker='.',markersize=2,linestyle='')
+		_plot.finalizeSubplot(p1[0],ylabel='Mode amplitude (G)',ylim=[-0.5,12])#,title=self.title)#xlabel='Time (ms)',
+		_plot.finalizeSubplot(p1[1],ylabel='Mode phase (rad)',ylim=[-_np.pi,_np.pi]) #xlabel='Time (ms)',
+		_plot.finalizeSubplot(p1[2],ylabel='Frequency (kHz)',xlabel='Time (ms)')#,ylim=[-_np.pi,_np.pi]
+		_plot.finalizeFigure(fig,self.title)
 		
-	def plotOfAmps(self):
-		## mode amplitude plots  
-		p1=_plot.plot(self.title,shotno=[self.shotno],xLabel='ms',
-					  yLabel='G', subtitle='Mode amplitude')
-		p1.addTrace(yData=self.n1Amp,xData=self.time*1000,
-					yLegendLabel='n=1') 
-		p1.addTrace(yData=self.n2Amp,xData=self.time*1000,
-					yLegendLabel='n=2') 
-		return p1
-
-	def plotOfN1Amp(self):
-		# n=1 mode amplitude
-		p1=_plot.plot(subtitle='Mode amplitude, n=1',title=self.title,
-					  yLim=[0,10],shotno=self.shotno,xLabel='ms',yLabel='G')
-		p1.addTrace(yData=self.n1Amp,xData=self.time*1000) 
-		return p1
-
-	def  plotOfN1Phase(self):
-		# n=1 mode phase
-		p1=_plot.plot(subtitle='Mode phase, n=1',title=self.title,
-					  shotno=self.shotno,xLabel='Time [ms]',yLabel='Radians',
-					  yLim=[-_np.pi,_np.pi])
-		p1.addTrace(yData=self.n1Phase,xData=self.time*1000,
-					marker='.',linestyle='',yLegendLabel='filtered') 
-		
-		return p1
-		
-	def plotOfN1Freq(self):
-		# n=1 mode freq
-		p1=_plot.plot(subtitle='Mode frequency, n=1',title=self.title,
-					  shotno=self.shotno,xLabel='Time [ms]',yLabel='kHz')   #,   yLim=[-20,20]
-		p1.addTrace(yData=self.n1Freq/1000.,xData=self.time*1000,
-					yLegendLabel='filtered') 
-		
-		return p1
-		
-	def plotOfPhaseAmp(self):
-				   
-		# hybrid plot of phase AND amplitude
-		# TODO(John) implement in new plot function
-				   # TODO(john) subfunction needs overhaul
-		p1=_plot.plot() 
-		p1.yData=[self.n1Phase]
-		p1.xData=[self.time*1000]
-		p1.colorData=[self.n1Amp]#[self.n1Amp]
-		p1.linestyle=['']
-		p1.marker=['.']
-		p1.subtitle='n=1 Phase and Filtered Amplitude'
-		p1.title=self.title
-		p1.shotno=[self.shotno]
-		p1.xLabel='ms'
-		p1.yLabel=r'$\phi$'
-		p1.zLabel='Gauss'
-		p1.yLegendLabel=['TA sensors']
-		p1.plotType='scatter'
-		p1.yLim=[-_np.pi,_np.pi]
-		return p1	  
-#		mx=_np.max(self.n1AmpFiltered)
-#		lCutoff=2.5
-#		uCutoff=8.
-#		cm = _processt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
-#		self.plotOfPhaseAmp.cmap=cm
+#		
+#	def plotOfPhaseAmp(self):
+#				   
+#		# hybrid plot of phase AND amplitude
+#		# TODO(John) implement in new plot function
+#				   # TODO(john) subfunction needs overhaul
+#		p1=_plot.plot() 
+#		p1.yData=[self.n1Phase]
+#		p1.xData=[self.time*1000]
+#		p1.colorData=[self.n1Amp]#[self.n1Amp]
+#		p1.linestyle=['']
+#		p1.marker=['.']
+#		p1.subtitle='n=1 Phase and Filtered Amplitude'
+#		p1.title=self.title
+#		p1.shotno=[self.shotno]
+#		p1.xLabel='ms'
+#		p1.yLabel=r'$\phi$'
+#		p1.zLabel='Gauss'
+#		p1.yLegendLabel=['TA sensors']
+#		p1.plotType='scatter'
+#		p1.yLim=[-_np.pi,_np.pi]
+#		return p1	  
+##		mx=_np.max(self.n1AmpFiltered)
+##		lCutoff=2.5
+##		uCutoff=8.
+##		cm = _processt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
+##		self.plotOfPhaseAmp.cmap=cm
 						
 	def plotOfSlice(self,index=0):
 		"""
@@ -3601,7 +3483,7 @@ class mModeData:
 	"""  
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,theta0=0,sensor='PA1',phaseFilter = 'gaussian'):
 		self.shotno=shotno
-		self.title= 'shotno = %d.  sensor = %s.  m mode analysis' % (shotno, sensor)
+		self.title= '%d.  sensor = %s.  m mode analysis' % (shotno, sensor)
 		
 		if sensor=='PA1':
 			data=paData(self.shotno,tStart=tStart,tStop=tStop);
@@ -3809,58 +3691,256 @@ class mModeData:
 		return p1
 		
 
+
 @_prepShotno
-def _hbtPlot(shotnos=_np.array([98147, 98148]),plot=True,bp=False,tZoom=[2e-3,4e-3],saveFig=True):
-	"""
-	This function acts similarly to hbtplot.py
-	Still under development
-	"""
-	try:
-		len(shotnos)
-	except:
-		shotnos=_np.array([shotnos])
+class euvData:
+    """""
+    Pull EUV array data, similar to SXR format
+    
+    Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		default is False
+		True - plots far array of all 11 (of 16) channels
+		'all' - plots 
 		
-	for i in range(0,len(shotnos)):
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	title : str
+		title to put at the top of figures
+	data : list (of numpy.ndarray)
+		list of 11 (of 16) data arrays, one for each channel
 		
-		shotno=shotnos[i]
-		print(str(shotno))
+	Subfunctions
+	------------
+	plotAll :
+		plots all relevant plots	 
+	plotOfEUVStripey : 
+		returns a stripey plot of the sensors
+	plotOfOneChannel :
+		returns a plot of a single channel based on the provided index, i
 		
-		subplots=[]
+	Notes
+	-----
+    
+    """""
+    
+    def __init__(self,shotno=101393,tStart=_TSTART,tStop=_TSTOP,plot=False):
+        self.shotno=shotno
+        self.title = '%d, EUV Array' % shotno
+        
+        detectors = [0,25,90,270]
+        #".sensors.euv.pol.det000:channel_01:raw
+        mdsAddressRaw = []
+        mdsAddressR = []
+        mdsAddressZ = []
+        mdsAddressGain = []
+        for det in detectors:
+            for i in range(16):
+                address = '\HBTEP2::TOP.SENSORS.EUV.POL.DET%03d' %det + '.CHANNEL_%02d' %(i+1)                
+                mdsAddressRaw.append(address + ':RAW')
+                mdsAddressR.append(address+':R')
+                mdsAddressZ.append(address+':Z')
+                mdsAddressGain.append(address+':GAIN')
+        # Pull data
+        self.data, self.time = mdsData(shotno,mdsAddressRaw,tStart,tStop)
+        self.R = mdsData(shotno,mdsAddressR)
+        self.Z = mdsData(shotno,mdsAddressZ)
+        self.Gain = mdsData(shotno,mdsAddressGain)
+        # aperture location
+        self.det_ap_R = _np.array([1.160508, 1.090508, 0.907057, 0.929746]) 
+        self.det_ap_Z = _np.array([0.000000, 0.099975, 0.166773,-0.173440])
+        self.det_ap_Pol = _np.array([0.000635,.000635,.000635,.000635])
+        self.det_ap_Tor = _np.array([0.000635,.0254,.0254,.0244])
+        
+        # plot 
+        if plot==True:
+            self.plotOfEUVStripey(tStart,tStop).plot()
+        elif plot=='all':
+            self.plotAll()
+            self.plotOfEUVStripey(tStart,tStop).plot()
+        
+        
+    def plotOfEUVStripey(self,tStart=1e-3,tStop=10e-3):
+        iStart=_process.findNearest(self.time,tStart)
+        iStop=_process.findNearest(self.time,tStop)
+        p1=_plot.plot(title=self.title,subtitle='EUV Fan Array',
+                      xLabel='Time [ms]', yLabel='Sensor Number',zLabel='a.u.',
+                      plotType='contour',colorMap=_plot._red_green_colormap(),
+                      centerColorMapAroundZero=True)
+        #_plt.set_cmap('plasma')
+        data=self.data;
+        for i in range(0,len(data)):
+            data[i]=data[i][iStart:iStop]
+        p1.addTrace(self.time[iStart:iStop]*1e3,_np.arange(64),
+                    _np.array(data))
+        return p1
+    
+    
+    def plotOfOneChannel(self, i=0):
+        """ Plot one of the EUV chanenl.  based on index, i. """
+        p1=_plot.plot(xLabel='time [ms]',yLabel=r'a.u.',title=self.title,
+					  shotno=[self.shotno],subtitle='%d' %i);
 		
-		
-		ip=ipData(shotno)
-		subplots.append(ip.plotOfIP())
-		
-		q=qStarData(shotno)
-		subplots.append(q.plotOfQStar())
-		
-		rad=plasmaRadiusData(shotno)
-		subplots.append(rad.plotOfMajorRadius())
-		
-		pol=paData(shotno)
-		subplots.append(pol.plotOfPA1Stripey(tZoom[0],tZoom[1]))
-		
-		mode=nModeData(shotno)
-		subplots.append(mode.plotOfN1Amp())
-		n1freq=mode.plotOfN1Freq()
-		n1freq.yLim=[-10,20]
-		subplots.append(n1freq)
-		
-		if bp==True:
-			bpIn=bpData(shotno)
-			bpIn.bps9Current*=-1
-			bpIn.bps9Voltage*=-1
-			subplots.append(bpIn.plotOfBPS9Voltage())
-			subplots.append(bpIn.plotOfBPS9Current())
+		# smoothed data
+        p1.addTrace(yData=self.data[i],xData=self.time*1000,
+					yLegendLabel=str(i))   
 			
-		_plot.subPlot(subplots)
+        return p1
 	
-		if saveFig==True:
-			p=_plt.gcf()
-			p.savefig(str(shotno)+'.png')
-			_plt.close('all')
+    def plotAll(self):
+        sp1=[]
+        count=0
+        for i in range(0,len(self.data)):
+            newPlot=self.plotOfOneChannel(count)
+            newPlot.subtitle=str(count)
+            newPlot.yLegendLabel=[]
+            newPlot.plot()
+            sp1.append(newPlot)
+ 
+            count+=1;
+				
+        sp1[0].title=self.title
+        sp1=_plot.subPlot(sp1,plot=False)
+		# sp1.shareY=True;
+#		sp1.plot()
+		
+        return sp1
+#@_prepShotno
+#def _hbtPlot(shotnos=_np.array([98147, 98148]),plot=True,bp=False,tZoom=[2e-3,4e-3],saveFig=True):
+#	"""
+#	This function acts similarly to hbtplot.py
+#	Still under development
+#	"""
+#	try:
+#		len(shotnos)
+#	except:
+#		shotnos=_np.array([shotnos])
+#		
+#	for i in range(0,len(shotnos)):
+#		
+#		shotno=shotnos[i]
+#		print(str(shotno))
+#		
+#		subplots=[]
+#		
+#		
+#		ip=ipData(shotno)
+#		subplots.append(ip.plotOfIP())
+#		
+#		q=qStarData(shotno)
+#		subplots.append(q.plotOfQStar())
+#		
+#		rad=plasmaRadiusData(shotno)
+#		subplots.append(rad.plotOfMajorRadius())
+#		
+#		pol=paData(shotno)
+#		subplots.append(pol.plotOfPA1Stripey(tZoom[0],tZoom[1]))
+#		
+#		mode=nModeData(shotno)
+#		subplots.append(mode.plotOfN1Amp())
+#		n1freq=mode.plotOfN1Freq()
+#		n1freq.yLim=[-10,20]
+#		subplots.append(n1freq)
+#		
+#		if bp==True:
+#			bpIn=bpData(shotno)
+#			bpIn.bps9Current*=-1
+#			bpIn.bps9Voltage*=-1
+#			subplots.append(bpIn.plotOfBPS9Voltage())
+#			subplots.append(bpIn.plotOfBPS9Current())
+#			
+#		_plot.subPlot(subplots)
+#	
+#		if saveFig==True:
+#			p=_plt.gcf()
+#			p.savefig(str(shotno)+'.png')
+#			_plt.close('all')
+#			
+
+class xrayData:
+	"""
+	Gets x-ray sensor data
+    X-ray sensor is currently connected at: devices.north_rack:cpci:input_96 
+	
+	Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	title : str
+		title to go on all plots
+	xray : numpy.ndarray
+		plasma current data
+	time : numpy.ndarray
+		time data
+		
+	Subfunctions
+	------------
+	plotOfXray : 
+		returns the plot of x-ray intensity vs time
+	plot :
+		Plots all relevant plots
+	
+	"""
+	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,verbose=False):
+		
+		self.shotno = shotno
+		self.title = "%d, X-ray Data" % shotno
+		
+		# get data
+		data, time=mdsData(shotno=shotno,
+							  dataAddress=['\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_96 '],
+							  tStart=tStart, tStop=tStop)
+		self.xray=data[0];
+		self.time=time;
+		
+		if plot == True or plot=='all':
+			self.plot()
+		
+		
+	def plotOfXray(self):
+		"""
+		returns the plot of IP vs time
+		"""
+		fig,p1=_plt.subplots()
+		p1.plot(self.time*1e3,self.xray)
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Intensity')
+		_plot.finalizeFigure(fig,title=self.title)
+		
+		return p1
+		
 			
-	
+	def plot(self):
+		""" 
+		Plot all relevant plots 
+		"""
+		self.plotOfXray().plot()
+
+
 ###############################################################################
 ### debugging code
 
@@ -3869,6 +3949,9 @@ def _debugPlotExamplesOfAll():
 	This code executes each function above and plots an example of most every 
 	plot.  Effectively, this allows the testing of most every function all in 
 	one go.
+	
+	TODO(John):  This needs to be updated in light of _prepShotno().
+	TODO(John):  Also, provide default shot numbers here.
 	"""
 	bpData(plot=True)
 	capBankData(plot=True)
