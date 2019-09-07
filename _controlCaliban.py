@@ -3,12 +3,13 @@ Functions related to the caliban gpu feedback computer
 """
 
 import numpy as _np
+import hbtepLib as _hbt
+#_plot=_hbt.plot
 import os
 if os.environ.has_key('DISPLAY'):
 	import matplotlib.pyplot as _plt
 	_plot = _hbt.plot
-import hbtepLib as _hbt
-#_plot=_hbt.plot
+
 
 
 _LOCAL_DATA_PATH='/opt/hbt/data/control' 
