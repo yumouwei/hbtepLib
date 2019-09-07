@@ -22,7 +22,9 @@ import MDSplus as _mds
 from copy import copy as _copy
 import sys as _sys
 import _socket
-import matplotlib.pyplot as _plt
+import os
+# Support for headless launch
+if os.environ.has_key('DISPLAY'): import matplotlib.pyplot as _plt
 import time as _time
 
 # hbtepLib libraries
