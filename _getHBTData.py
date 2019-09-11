@@ -3872,6 +3872,8 @@ class euvData:
 #			_plt.close('all')
 #			
 
+
+@_prepShotno
 class xrayData:
 	"""
 	Gets x-ray sensor data
@@ -3916,7 +3918,13 @@ class xrayData:
 		self.title = "%d, X-ray Data" % shotno
 		
 		# get data
-		data, time=mdsData(shotno=shotno,
+		
+		if shotno>=103281:
+			data, time=mdsData(shotno=shotno,
+							  dataAddress=['\HBTEP2::TOP.DEVICES.SOUTH_RACK:CPCI_12:INPUT_05 '],
+							  tStart=tStart, tStop=tStop)
+		else:
+			data, time=mdsData(shotno=shotno,
 							  dataAddress=['\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_96 '],
 							  tStart=tStart, tStop=tStop)
 		self.xray=data[0];
@@ -3928,7 +3936,7 @@ class xrayData:
 		
 	def plotOfXray(self):
 		"""
-		returns the plot of IP vs time
+		returns the plot of xray data vs time
 		"""
 		fig,p1=_plt.subplots()
 		p1.plot(self.time*1e3,self.xray)
