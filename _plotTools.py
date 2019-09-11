@@ -942,3 +942,114 @@ def zeroAxisLines(ax,color='k',linestyle=':',alpha=0.3):
 	ax.set_ylim(ylim)
 	ax.set_xlim(xlim)
 	
+def finalizeFigure(fig,title='',h_pad=0.25,w_pad=0.25, fontSizeTitle=12,figSize=[]):
+	""" 
+	Performs many of the "same old" commands that need to be performed for
+	each figure but wraps it up into one function
+	
+	Parameters
+	----------
+	fig : matplotlib.figure.Figure
+		Figure to be modified
+	title : str
+		(Optional) Figure title
+	"""
+	
+	# fig.suptitle(title) # note: suptitle is not compatible with set_tight_layout
+	
+	if title!='':
+		fig.axes[0].set_title(title,fontsize=fontSizeTitle)
+		
+	if figSize!=[]:
+		fig.set_size_inches(figSize)
+		
+#	fig.set_tight_layout(True)
+	fig.tight_layout(h_pad=h_pad,w_pad=w_pad) # sets tight_layout and sets the padding between subplots
+			
+			
+	
+def finalizeSubplot(ax,xlabel='',ylabel='',title='',subtitle='',
+					xlim=[],ylim=[],
+					fontSizeStandard=10, fontSizeTitle=12,
+					legendLoc='best', color='k',linestyle=':',alpha=0.3):
+	"""
+	Performs many of the "same old" commands that need to be performed for
+	each subplot but wraps it up into one function
+	
+	Parameters
+	----------
+	ax : matplotlib.axes._subplots.AxesSubplot
+		figure axis to be modified
+	xlabel : str
+		x label
+	ylabel : str
+		y label
+	title : str
+		title
+	xlim : tuple or list of two floats
+		x limits of plot
+	ylim : tuple or list of two floats
+		y limits of plot
+	fontSizeStandard : int
+		font size of everything but the title
+	fontSizeTitle : int
+		font size of title
+	legendLoc : str
+		location of legend
+	color : str
+		color for axis markings
+	linestyle : str
+		linestyle for axis markings
+	alpha : float
+		value between 0 and 1 for axis markings
+	
+	# TODO(John) Add font sizes, axis ticks, and axis tick labels
+	"""
+	legend=False
+	
+	# check to see if ax is a list or array
+	if type(ax)==list or type(ax)==_np.ndarray:
+		pass
+	else:
+		ax=[ax]
+		
+	for i in range(0,len(ax)):
+		
+		# title and axis labels
+		ax[i].set_ylabel(ylabel,fontsize=fontSizeStandard)
+		if i==0:
+			ax[i].set_title(title,fontsize=fontSizeTitle)
+		if i==len(ax)-1:
+			ax[i].set_xlabel(xlabel,fontsize=fontSizeStandard)
+		
+		# subtitle
+		if subtitle!='':
+			subTitle(ax[i],subtitle,fontSize=fontSizeStandard)
+		
+		# add a legend only if "any" plot label has been defined # TODO(John) does not work for multiple columns of subplots.  Fix
+		for j in range(len(ax[i].lines)):
+			
+			label=ax[i].lines[j].get_label()
+			if label[0]!=u'_':
+				legend=True
+		if legend==True:
+			ax[i].legend(fontsize=fontSizeStandard,loc=legendLoc,numpoints=2) # numpoints is the number of markers in the legend
+			
+		# set x and y axis tick label fontsize
+		ax[i].tick_params(axis='both',labelsize=fontSizeStandard)
+			
+		# x and y limits
+		if len(xlim)>0:
+			ax[i].set_xlim(xlim)
+		if len(ylim)>0:
+			ax[i].set_ylim(ylim)
+			
+		# add dotted lines along the x=0 and y=0 lines
+		ylim=ax[i].get_ylim()
+		xlim=ax[i].get_xlim()
+		ax[i].plot(xlim,[0,0],color=color,linestyle=linestyle,alpha=alpha)
+		ax[i].plot([0,0],ylim,color=color,linestyle=linestyle,alpha=alpha)
+		ax[i].set_ylim(ylim)
+		ax[i].set_xlim(xlim)
+
+		
