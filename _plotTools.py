@@ -1052,4 +1052,56 @@ def finalizeSubplot(ax,xlabel='',ylabel='',title='',subtitle='',
 		ax[i].set_ylim(ylim)
 		ax[i].set_xlim(xlim)
 
-		
+
+def subTitle(ax,string,
+			xy=(0.5, .98),
+			box=True,
+			textColor='k',
+			xycoords='axes fraction',
+			fontSize=8,
+			horizontalalignment='center',
+			verticalalignment='top'):
+	"""
+	wrapper for the annotate axis function.  the default setting is for a
+	figure subtitle at the top of a particular axis
+	
+	Parameters
+	----------
+	ax : matplotlib.axes._subplots.AxesSubplot
+		Axis that will receive the text box
+	string : str
+		String to put in textbox
+	xy : tuple
+		(x,y) coordinates for the text box
+	box : bool
+		True - Creates a box around the text
+		False - No box
+	textColor : str
+		text color
+	xycoords : str
+		type of coordinates.  default = 'axes fraction'
+	fontSize : int
+		text font size
+	horizontalalignment : str
+		'center' - coordinates are cenetered at the center of the box
+		'left'
+		'right'
+	verticalalignment : str
+		'top' - coordinates are centered at the top of the box
+	
+	TODO(John) Expand functionality
+	"""
+	if box==True:
+		box=dict(boxstyle="square, pad=.25", fc="w",edgecolor='k')
+	else:
+		box=None
+
+#	print(string)
+	ax.annotate(string, 
+				xy=xy, 
+				color=textColor,
+				xycoords=xycoords, 
+				fontsize=fontSize,
+				horizontalalignment=horizontalalignment, 
+				verticalalignment=verticalalignment,
+				bbox=box)
