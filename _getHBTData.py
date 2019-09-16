@@ -1508,7 +1508,7 @@ class paData:
 		
 		# toroidal location
 		self.phiPA1=_np.ones(len(self.thetaPA1))*317.5*_np.pi/180.
-		self.phiPA2=_np.ones(len(self.thetaPA2))*317.5*_np.pi/180.
+		self.phiPA2=_np.ones(len(self.thetaPA2))*137.5*_np.pi/180.
 		
 		# sensor names
 		self.namesPA1=_np.array([   'PA1_S01P', 'PA1_S02P', 'PA1_S03P', 'PA1_S04P', 'PA1_S05P', 'PA1_S06P', 'PA1_S07P', 'PA1_S08P', 'PA1_S09P', 'PA1_S10P', 'PA1_S11P', 'PA1_S12P', 'PA1_S13P', 'PA1_S14P', 'PA1_S15P', 'PA1_S16P', 'PA1_S17P', 'PA1_S18P', 'PA1_S19P', 'PA1_S20P', 'PA1_S21P', 'PA1_S22P', 'PA1_S23P', 'PA1_S24P', 'PA1_S25P', 'PA1_S26P', 'PA1_S27P', 'PA1_S28P', 'PA1_S29P', 'PA1_S30P', 'PA1_S31P', 'PA1_S32P'])
