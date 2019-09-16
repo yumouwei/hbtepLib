@@ -1033,7 +1033,7 @@ def finalizeSubplot(ax,xlabel='',ylabel='',title='',subtitle='',
 			if label[0]!=u'_':
 				legend=True
 		if legend==True:
-			ax[i].legend(fontsize=fontSizeStandard,loc=legendLoc,numpoints=2) # numpoints is the number of markers in the legend
+			ax[i].legend(loc=legendLoc,numpoints=2) # fontsize=fontSizeStandard removed b/c not compatible with old version of matplotlib  #numpoints is the number of markers in the legend
 			
 		# set x and y axis tick label fontsize
 		ax[i].tick_params(axis='both',labelsize=fontSizeStandard)
