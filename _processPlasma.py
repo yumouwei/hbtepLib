@@ -692,4 +692,207 @@ class picCode:
             _plt.hist(self.vx[:,i],bins=30,range=self.vxBounds)
             print(self.time[i])
             _plt.title('t='+str(self.time[i]))
-        
+    
+    
+###############################################################################
+### Misc. plasma models	
+def currentDensityModel(iP,q_limiter,r,r_wall=0.16,r_limiter=0.15,q_offset=0.9,plot=False,verbose=False):
+	"""
+	Calculates a tokamak's current density using Wesson's model
+	
+	Parameters
+	----------
+	ip : float
+		plasma current
+	q_limiter : float
+		safety factor at r_limiter (minor radius at the limiter)
+	r : numpy.ndarray
+		radial coordinate in meters.  should range from 0 to r_wall
+	r_wall : float
+		minor radius at the wall in meters.  r_wall=0.16 in HBT-EP
+	r_limiter : float
+		minor radius at the limiter in meters.  r_wall=0.15 in HBT-EP
+	q_offset : float
+		safety factor at r=0
+	plot : bool
+		plot results
+	verbose : bool
+		print misc output
+		
+	Returns
+	-------
+	j : numpy.ndarray
+		current density as a function of minor radius in amps per meter squared
+	r : numpy.ndarray
+		radial coordinate in meters
+		
+	Example
+	-------
+	
+	::
+		
+		r_wall=0.16
+		r=np.linspace(0,r_wall,1001)
+		currentDensityModel(10e3,3,r_wall=r_wall)
+	
+	"""
+	import numpy as np
+	import matplotlib.pyplot as plt
+	
+	l=q_limiter/q_offset-1
+	
+	def firstOrderIntegration(x,y):
+		""" numerical intergration """
+		dx=x[1]-x[0]
+		return np.sum(dx*y)
+	
+	def wessonCurrentModel(r,params):
+		"""
+		Wesson's current model, page 114 in his 2004 book
+		"""
+		j0=params[0] # j(r=0)=j0
+		r0=params[1] # plasma edge (last closed flux surface)
+		l=params[2]
+		j=j0*(1-(r/r0)**2)**(l)
+		j[np.where(r>r0)]=0
+		return j
+	
+	def calcCurrentProfileFromIP(r,r_limiter,radialFunction,params,iP,j0GuessLeft=1e5,j0GuessRight=1e7,j0Guess=1e6,errorTol=1e-6,plot=True,verbose=True):
+		"""
+		The references only provide I_P and do not provide j(r=0).  This 
+		subfunction makes a guess at j(0) and calculates j(r) with the provided
+		q-profile function.  It then iterates until the integral is equal to IP.  
+		
+		Parameters
+		----------
+		r : numpy.array
+			radial coordinate array
+		r_limiter : float
+			radial location of the limiter
+		radialFunction : function(r,params)
+			returns radial density current distribution
+		params : list
+			list of parameters to pass to radialFunction
+		iP : float
+			plasma current [amps]
+		j0GuessLeft : float
+			lower bound of j0 guess value
+		j0GuessRight : float
+			upper bound of j0 guess value
+		errorTol : float
+			error tolerance to end iteration
+			
+		Return
+		------
+		j : np.array
+			radial current density where it's intergal = iP
+		
+		References
+		----------
+		http://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
+		"""
+		
+		j=radialFunction(r,[j0Guess,params[1],params[2]])
+		ITotal=firstOrderIntegration(r,j*r)*2*np.pi
+		error=(ITotal-iP)/iP
+		
+		count=0
+		if verbose==True:
+			print('Starting iterative solver to calculated current density given the plasma current')
+		while(np.abs(error)>errorTol):
+			count+=1
+		
+			if error<0:
+				j0GuessLeft=j0Guess
+			else:
+				j0GuessRight=j0Guess
+				
+			j0Guess=np.mean([j0GuessLeft,j0GuessRight])
+			
+			j=radialFunction(r,[j0Guess,params[1],params[2]])
+			
+			ITotal=firstOrderIntegration(r,j*r)*2*np.pi
+			error=(ITotal-iP)/iP
+			if verbose==True:
+				print('count: %d, \t error: %.6f \t guess: %.3f, \t I: %.1f' % (count,error,j0Guess,ITotal))
+	
+		if plot==True:
+			fig,ax=plt.subplots()
+			ax.plot(r*100.,j/10000.)
+			_plot.finalizeSubplot(ax,xlabel='minor radius (cm)',ylabel=r'current density ($A/cm^2$)')
+			plt.show()
+		return j
+	
+	j=calcCurrentProfileFromIP(r,r_limiter=r_limiter,iP=iP,
+						   radialFunction=wessonCurrentModel, 
+						   params=[1,r_limiter,l],j0Guess=2783578.873,plot=plot,verbose=verbose)
+	
+	return j
+
+def qProfile_cylindricalApproximation(r,j,iP,r_limiter=0.15,R=0.92,BT=0.35,q_limiter=3.0,q_offset=0.9,plot=False):
+	"""
+	Recommended q-profile model in Ivanov's 2014 paper. 
+	
+	Parameters
+	----------
+	r : numpy.ndarray
+		minor radial coordinate in meters.  should range from 0 to r_wall
+	j : numpy.ndarray
+		current density (amps per meter squared) as a function of radius
+	iP : float
+		plasma current (in amps)
+	r_limiter : float
+		radial location of the limiter
+	R : float
+		major radius (in meters)
+	BT : float
+		toroidal magnetic field strength (in Tesla)
+	q_limiter : float
+		safety factor at the limiter
+	q_offset : float
+		safety factor at r=0
+	
+	Example
+	-------
+		import numpy as np
+		r_wall=0.16
+		iP=14e3
+		r=np.linspace(0,r_wall,1001)
+		q_offset=0.9
+		r_limiter=0.15
+		q_limiter=3.0
+		j=currentDensityModel(iP=iP,r=r,r_wall=r_wall,q_offset=q_offset,r_limiter=r_limiter,q_limiter=q_limiter)
+		q=qProfile_cylindricalApproximation(r,j,iP=iP,r_limiter=r_limiter,q_offset=q_offset,q_limiter=q_limiter,plot=True)
+	
+	Notes
+	-----
+	The original source for q(r) is only valid for r<=a.  
+	To correct for this, I solved \int B_{\theta} dl = \mu I_p and 
+	q=\frac{rB_z}{RB_{\theta}} to provide q all the way out to r=b.
+	
+	References
+	----------
+	https://doi.org/10.1063/1.4897174
+	"""
+	import numpy as np
+	import matplotlib.pyplot as plt
+	
+	## physical constants
+	mu0=4*np.pi*1e-7
+	
+	l=q_limiter/q_offset-1
+	q=  2*(l+1)*BT/(mu0*j[0]*R)*(r/r_limiter)**2/(1-(1-(r/r_limiter)**2)**(l+1))
+	q[0]=q[1]
+	i=np.where(q>0)[0]
+	for k in range(i[-1]+1,len(q)):
+		q[k]=2*np.pi*r[k]**2*BT/(R*mu0*iP)
+		
+	if plot==True:
+		fig,ax=plt.subplots(2)
+		ax[0].plot(r*100.,j/10000.)
+		_plot.finalizeSubplot(ax[0],ylabel=r'current density ($A/cm^2$)',subtitle='Current density')
+		ax[1].plot(r*100,q)
+		_plot.finalizeSubplot(ax[1],xlabel='minor radius (cm)',ylabel=r'q-profile',subtitle='Safety factor')
+		
+	return q,j,r
+	
