@@ -36,6 +36,89 @@ def _findNearestForWeighting(array,value):
     
 ###############################################################################
 ### Langmuir probe calculation
+	
+
+def langmuirProbeSimulation(V,A_probe=0.00032258,V_plasma=50,T_elec=30,T_ion=30,density=1e18,ionMassNumber=2.014102,plot=True):
+	"""
+	Produces a langmuir probe I-V plot based on several known values
+	
+	Parameters
+	----------
+	V : numpy.ndarray
+		voltage array from some negative value to some positive value
+	A_probe : float
+		probe area in m^2
+	V_plasma : float
+		plasma voltage in volts
+	T_elec : float
+		electron temperature in eV
+	T_ion : float
+		ion temperature in eV
+	density : float
+		plasma density
+	ionMassNumber : float
+		atomic mass number of the ion.  deuterium = 2.014102
+		
+	Returns
+	-------
+	I : numpy.ndarray
+		probe current from both electrons and ions
+		
+	References
+	----------
+	https://doi.org/10.1119/1.2772282
+	
+	Example
+	-------
+	:
+		dV=1
+		V=np.arange(-150,150+dV,dV)
+		a=langmuirProbeSimulation(V)
+	"""
+	import numpy as np
+
+	# constants
+	eV=1.60218e-19;	# eV
+	q=1.6e-19;		# fundamental charge
+	amu=1.66054e-27; 	# 1 amu to kg
+	m_elec=9.109e-31; 	# mass of an electron
+	
+	# convert temperatures from eV to Joules
+	T_elec*=eV
+	T_ion*=eV
+	
+	# ions
+	if True:
+		m_ion=ionMassNumber*amu
+		v_ion_thermal=np.sqrt(8*T_ion/(np.pi*m_ion))
+		if T_elec > T_ion*5:
+			I_ion_sat=0.6*q*density*np.sqrt(T_elec/m_ion)*A_probe
+		else:
+			I_ion_sat=0.25*q*density*v_ion_thermal*A_probe
+		I_ion=np.zeros(len(V))
+		I_ion[V<V_plasma]=-I_ion_sat
+		I_ion[V>=V_plasma]=-I_ion_sat*np.exp(q*(V_plasma-V[V>=V_plasma])/(T_ion))
+		
+	# electrons
+	if True:
+		v_elec_thermal=np.sqrt(8*T_elec/(np.pi*m_elec))
+		I_elec_sat=0.25*q*density*v_elec_thermal*A_probe
+		I_elec=np.zeros(len(V))
+		I_elec[V<V_plasma]=I_elec_sat*np.exp(-q*(V_plasma-V[V<V_plasma])/(T_elec))
+		I_elec[V>=V_plasma]=I_elec_sat
+		
+	# total current
+	I=I_elec+I_ion
+		
+	if plot==True:
+		import matplotlib.pyplot as plt
+		fig,ax=plt.subplots()
+		ax.plot(V,I_ion,label="Ion current")
+		ax.plot(V,I_elec,label="Elec. current")
+		ax.plot(V,I,label="Total current")
+		_plot.finalizeSubplot(ax,xlabel='Bias voltage (V)',ylabel='Probe current (A)')
+		
+	return I
     
 
 class langmuirProbe:
@@ -863,7 +946,7 @@ def qProfile_cylindricalApproximation(r,j,iP,r_limiter=0.15,R=0.92,BT=0.35,q_lim
 		q_limiter=3.0
 		j=currentDensityModel(iP=iP,r=r,r_wall=r_wall,q_offset=q_offset,r_limiter=r_limiter,q_limiter=q_limiter)
 		q=qProfile_cylindricalApproximation(r,j,iP=iP,r_limiter=r_limiter,q_offset=q_offset,q_limiter=q_limiter,plot=True)
-	
+		
 	Notes
 	-----
 	The original source for q(r) is only valid for r<=a.  
@@ -890,9 +973,10 @@ def qProfile_cylindricalApproximation(r,j,iP,r_limiter=0.15,R=0.92,BT=0.35,q_lim
 	if plot==True:
 		fig,ax=plt.subplots(2)
 		ax[0].plot(r*100.,j/10000.)
-		_plot.finalizeSubplot(ax[0],ylabel=r'current density ($A/cm^2$)',subtitle='Current density')
+		_plot.finalizeSubplot(ax[0],ylabel=r'$A/cm^2$',subtitle='Current density')
 		ax[1].plot(r*100,q)
-		_plot.finalizeSubplot(ax[1],xlabel='minor radius (cm)',ylabel=r'q-profile',subtitle='Safety factor')
-		
+		_plot.finalizeSubplot(ax[1],xlabel='minor radius (cm)',ylabel=r'q',subtitle='Safety factor')
+		_plot.finalizeFigure(fig,figSize=[6,6/1.6])
+		plt.show()
 	return q,j,r
 	
