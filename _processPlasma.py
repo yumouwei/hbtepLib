@@ -38,7 +38,7 @@ def _findNearestForWeighting(array,value):
 ### Langmuir probe calculation
 	
 
-def langmuirProbeSimulation(V,A_probe=0.00032258,V_plasma=50,T_elec=30,T_ion=30,density=1e18,ionMassNumber=2.014102,plot=True):
+def langmuirProbeSimulation(V=_np.arange(-150,151,1),A_probe=0.00032258,V_plasma=50,T_elec=30,T_ion=30,density=1e18,ionMassNumber=2.014102,plot=True):
 	"""
 	Produces a langmuir probe I-V plot based on several known values
 	
