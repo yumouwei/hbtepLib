@@ -1966,7 +1966,8 @@ class fbData:
 									'Phi':flatten(self.phi),
 									'Theta':flatten(self.theta),
 #									'Address':dataAddress,
-#									'SectionNum':[9.5,3.5,0.5,5.5]
+#									'SectionNum':[ ],
+#									'RowNum':[1,1,1....2,2,2....,4,4,4,4],
 									},
 								columns=['SensorNames','Phi','Theta'])#,'Address','SectionNum'])
 		
@@ -2175,6 +2176,27 @@ class taData:
 			temp,temp2=_process.gaussianHighPassFilter(self.taPolRaw[i][:],self.taPolTime,timeWidth=1./20000)
 			self.taPolData.append(temp)
 			self.taPolRawFit.append(temp2)
+			
+		# pandas dataframes 
+		#TODO(John) rewrite entire class.  start with dataframes instead of lists
+		print(_np.shape(_np.array([self.taPolTime]).transpose()))
+		print(_np.shape(_np.array(self.taPolData).transpose()))
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.taPolTime]).transpose(),_np.array(self.taPolData).transpose(),axis=1),
+								columns=['Time']+self.namesTAPol)
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':self.namesTAPol,
+									'Phi':self.phi,
+									'Theta':self.theta,
+									'Address':taPolSensorAddresses,
+									'SectionNum':_np.array([ 1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,  5,  5,  6,  6,
+													       6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10]),
+									'CenterSensor':[False,  True, False, False,  True, False, False,  True, False,
+											       False,  True, False, False,  True, False, False,  True, False,
+											       False,  True, False, False,  True, False, False,  True, False,
+											       False,  True, False],
+									},
+								columns=['SensorNames','Phi','Theta','Address','SectionNum','CenterSensor'])#,'Address','SectionNum'])
+		
+
 
 		# plot
 		if plot=='sample':
