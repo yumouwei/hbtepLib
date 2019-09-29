@@ -2373,11 +2373,12 @@ class quartzJumperData:
 		self.title = "%d, Ext. Rogowski Data" % shotno
 		
 		# get data
-		data, time=mdsData(shotno=shotno,
-						   dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
+		dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_B',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_C',
-										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',],
+										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',]
+		data, time=mdsData(shotno=shotno,
+						   dataAddress=dataAddress,
 						   tStart=tStart, tStop=tStop)
 		self.eRogA=data[0];
 		self.eRogB=data[1];
@@ -2388,14 +2389,15 @@ class quartzJumperData:
 		self.phi=_np.array([198,342,234,54])*_np.pi/180.
 		self.theta=_np.array([0,0,0,0])
 		
-		# pandas dataframe
+		# pandas dataframes
 		self.dfData=_pd.DataFrame( 	data=_np.array((time,data[0],data[1],data[2],data[3])).transpose(),
 								columns=['Time','JumperA','JumperB','JumperC','JumperD'])
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':['JumperA','JumperB','JumperC','JumperD'],
 									'Phi':_np.array([198,342,234,54])*_np.pi/180.,
 									'Theta':_np.array([0,0,0,0]),
+									'Address':dataAddress,
 									'SectionNum':[9.5,3.5,0.5,5.5]},
-								columns=['SensorNames','Phi','Theta','SectionNum'])#.set_index('SensorNames')
+								columns=['SensorNames','Phi','Theta','Address','SectionNum'])
 		
 		if plot == True:
 			self.plot()
@@ -2655,7 +2657,16 @@ class solData:
 			temp,temp2=_process.gaussianHighPassFilter(self.solDataRaw[i],self.time,timeWidth=1./20000)
 			self.solData.append(temp)
 			self.solDataFit.append(temp2)
-						
+			
+		# pandas dataframes
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.time]).transpose(),_np.array(self.solData).transpose(),axis=1),
+								columns=['Time']+self.sensorNames)
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':self.sensorNames,
+									'Phi':self.phis*_np.pi/180,
+									'Theta':self.thetas*_np.pi/180,
+									'Address':sensorAddress},
+								columns=['SensorNames','Phi','Theta','Address'])
+		
 		# optional plotting	
 		if plot == True:
 			self.plot()
