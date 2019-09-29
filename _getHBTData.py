@@ -1956,6 +1956,20 @@ class fbData:
 				temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./20000)
 				self.fbPolRawFit[j].append(temp2)
 				self.fbPolData[j].append(temp)
+				
+		# pandas dataframes 
+		#TODO(John) rewrite entire class.  start with dataframes instead of lists
+		flatten = lambda l: [item for sublist in l for item in sublist]
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.fbPolTime]).transpose(),_np.array(flatten(self.fbPolData)).transpose(),axis=1),
+								columns=['Time']+flatten(self.fbPolNames))
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':flatten(self.fbPolNames),
+									'Phi':flatten(self.phi),
+									'Theta':flatten(self.theta),
+#									'Address':dataAddress,
+#									'SectionNum':[9.5,3.5,0.5,5.5]
+									},
+								columns=['SensorNames','Phi','Theta'])#,'Address','SectionNum'])
+		
 
 		# plot
 		if plot=='sample':
