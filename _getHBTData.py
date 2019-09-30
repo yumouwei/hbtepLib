@@ -1550,6 +1550,19 @@ class paData:
 			temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./20000)
 			self.pa2RawFit.append(temp2)
 			self.pa2Data.append(temp)
+			
+		# pandas dataframes 
+		#TODO(John) rewrite entire class.  start with dataframes instead of lists
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.pa1Time]).transpose(),_np.array(self.pa1Data+self.pa2Data).transpose(),axis=1),
+							columns=_np.append(_np.append(_np.array(['Time']),self.namesPA1),self.namesPA2)).set_index('Time')
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':_np.append(self.namesPA1,self.namesPA2),
+									'Phi':_np.append(self.phiPA1,self.phiPA2),
+									'Theta':_np.append(self.thetaPA1,self.thetaPA2),
+									'Address':pa1SensorAddresses+pa2SensorAddresses,
+									'SectionNum':_np.append([3]*32,[8]*32),
+									},
+								columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')#,'Address','SectionNum'])
+		
 
 		# plot 
 		if plot==True or plot=='all':
@@ -1961,7 +1974,7 @@ class fbData:
 		#TODO(John) rewrite entire class.  start with dataframes instead of lists
 		flatten = lambda l: [item for sublist in l for item in sublist]
 		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.fbPolTime]).transpose(),_np.array(flatten(self.fbPolData)).transpose(),axis=1),
-								columns=['Time']+flatten(self.fbPolNames))
+								columns=['Time']+flatten(self.fbPolNames)).set_index('Time')
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':flatten(self.fbPolNames),
 									'Phi':flatten(self.phi),
 									'Theta':flatten(self.theta),
@@ -1969,7 +1982,7 @@ class fbData:
 #									'SectionNum':[ ],
 #									'RowNum':[1,1,1....2,2,2....,4,4,4,4],
 									},
-								columns=['SensorNames','Phi','Theta'])#,'Address','SectionNum'])
+								columns=['SensorNames','Phi','Theta']).set_index('SensorNames')#,'Address','SectionNum'])
 		
 
 		# plot
@@ -2147,7 +2160,7 @@ class taData:
 		self.phi=_np.pi/180.*_np.array([241.5,250.5,259.5,277.5,286.5,295.5,313.5,322.5,331.5,349.5,358.5,7.5,25.5,34.5,43.5,61.5,70.5,79.5,97.5,106.5,115.5,133.5,142.5,151.5,169.5,178.5,187.5,205.5,214.5,223.5])	
 		
 		# poloidal locations of sensors
-		self.theta=_np.ones(len(self.phi))*189*_np.pi/180
+		self.theta=_np.ones(len(self.phi))*(189-360)*_np.pi/180
 		
 #		# toroidal locations for the radial measurements
 #		self.phiR=_np.pi/180.*_np.array([-108.,  -72.,  -36.,	0.,   36.,   72.,  108.,  144.,  180.,  216.])
@@ -2179,10 +2192,8 @@ class taData:
 			
 		# pandas dataframes 
 		#TODO(John) rewrite entire class.  start with dataframes instead of lists
-		print(_np.shape(_np.array([self.taPolTime]).transpose()))
-		print(_np.shape(_np.array(self.taPolData).transpose()))
 		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.taPolTime]).transpose(),_np.array(self.taPolData).transpose(),axis=1),
-								columns=['Time']+self.namesTAPol)
+								columns=['Time']+self.namesTAPol).set_index('Time')
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':self.namesTAPol,
 									'Phi':self.phi,
 									'Theta':self.theta,
@@ -2194,7 +2205,7 @@ class taData:
 											       False,  True, False, False,  True, False, False,  True, False,
 											       False,  True, False],
 									},
-								columns=['SensorNames','Phi','Theta','Address','SectionNum','CenterSensor'])#,'Address','SectionNum'])
+								columns=['SensorNames','Phi','Theta','Address','SectionNum','CenterSensor']).set_index('SensorNames')#,'Address','SectionNum'])
 		
 
 
@@ -2427,13 +2438,13 @@ class quartzJumperData:
 		
 		# pandas dataframes
 		self.dfData=_pd.DataFrame( 	data=_np.array((time,data[0],data[1],data[2],data[3])).transpose(),
-								columns=['Time','JumperA','JumperB','JumperC','JumperD'])
+								columns=['Time','JumperA','JumperB','JumperC','JumperD']).set_index('Time')
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':['JumperA','JumperB','JumperC','JumperD'],
 									'Phi':_np.array([198,342,234,54])*_np.pi/180.,
 									'Theta':_np.array([0,0,0,0]),
 									'Address':dataAddress,
 									'SectionNum':[9.5,3.5,0.5,5.5]},
-								columns=['SensorNames','Phi','Theta','Address','SectionNum'])
+								columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')
 		
 		if plot == True:
 			self.plot()
@@ -2696,12 +2707,12 @@ class solData:
 			
 		# pandas dataframes
 		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.time]).transpose(),_np.array(self.solData).transpose(),axis=1),
-								columns=['Time']+self.sensorNames)
+								columns=['Time']+self.sensorNames).set_index('Time')
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':self.sensorNames,
 									'Phi':self.phis*_np.pi/180,
 									'Theta':self.thetas*_np.pi/180,
 									'Address':sensorAddress},
-								columns=['SensorNames','Phi','Theta','Address'])
+								columns=['SensorNames','Phi','Theta','Address']).set_index('SensorNames')
 		
 		# optional plotting	
 		if plot == True:
