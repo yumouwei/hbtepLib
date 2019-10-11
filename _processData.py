@@ -672,7 +672,7 @@ def gaussianLowPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False):
 	from scipy.ndimage import gaussian_filter1d
 
 	dt=t[1]-t[0]
-	sigma=2.355*timeWidth/dt 
+	sigma=2.355*timeWidth/dt  #TODO(John)  This equation is wrong.  Should be dividing by 2.355, not multiplying.  Fix here and with all dependencies
 	yFiltered=gaussian_filter1d(y,sigma)
 	
 	if plot==True:
