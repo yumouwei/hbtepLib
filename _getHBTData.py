@@ -3389,7 +3389,7 @@ class nModeData:
 		self._phi=phi
 
 		if method=='leastSquares':
-			## Construct A matrix and its inversion
+			## Construct A matrix and its inversion.  Only interested in n=1 and n=2 mode fits at present
 			A=_np.zeros((n,5))
 			A[:,0]=_np.ones(n);
 			A[:,1]=_np.sin(phi)
@@ -3403,18 +3403,24 @@ class nModeData:
 			self.n1Amp=_np.zeros(m)
 			self.n1PhaseRaw=_np.zeros(m)
 			self.n2Amp=_np.zeros(m)
-			# TODO(John): remove for loop and convert into all matrix math 
-			#			 Should simplify code and make it run faster
-			for j in range(0,m):
-				y=_np.zeros(n);
-				for i in range(0,n):
-					y[i]=data[i][j]*1e4
-				x[:,j]=Ainv.dot(y)
-				self.n1Amp[j]=_np.sqrt(x[1,j]**2+x[2,j]**2)
-				self.n2Amp[j]=_np.sqrt(x[3,j]**2+x[4,j]**2)
-				self.n1PhaseRaw[j]=_np.arctan2(x[1,j],x[2,j])
+			
+			x=Ainv.dot(data)
+			self.n1Amp=_np.sqrt(x[1,:]**2+x[2,:]**2)*1e4
+			self.n2Amp=_np.sqrt(x[3,:]**2+x[4,:]**2)*1e4
+			self.n1PhaseRaw=_np.arctan2(x[1,:],x[2,:])
+			self.n2PhaseRaw=_np.arctan2(x[3,:],x[4,:])
+#			for j in range(0,m):
+#				y=_np.zeros(n);
+#				for i in range(0,n):
+#					y[i]=data[i][j]*1e4
+#				x[:,j]=Ainv.dot(y)
+#				self.n1Amp[j]=_np.sqrt(x[1,j]**2+x[2,j]**2)
+#				self.n2Amp[j]=_np.sqrt(x[3,j]**2+x[4,j]**2)
+#				self.n1PhaseRaw[j]=_np.arctan2(x[1,j],x[2,j])
 			self._x=x
 			self.n1PhaseRaw*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
+			self.n2PhaseRaw*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
+
 
 		else:
 			_sys.exit("Invalid mode analysis method requested.")
@@ -3443,6 +3449,15 @@ class nModeData:
 		self.n1Phase=temp[2]
 		self.n1PhaseRaw=temp[3]
 		self.n1Freq=temp[4]
+		
+		self.dfData=_pd.DataFrame( 	data=_np.concatenate((	[_np.array(self.time)],
+													[_np.array(self.n1Amp).transpose()],
+													[_np.array(self.n1Phase).transpose()],
+													[_np.array(self.n1PhaseRaw).transpose()],
+													[_np.array(self.n1Freq).transpose()])).transpose(),
+								columns=['Time','n1Amp','n1Phase','n1PhaseRaw','n1Freq']).set_index('Time')
+		self.dfMeta=_pd.DataFrame() # intentionally left empty
+
 		
 		## plot data
 		if plot==True:
