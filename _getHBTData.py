@@ -423,26 +423,53 @@ class ipData:
 		Plots all relevant plots
 	
 	"""
-	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
-			  findDisruption=True,verbose=False):
+	def __init__(	self,
+				shotno=96530,
+				tStart=_TSTART,
+				tStop=_TSTOP,
+				plot=False,
+				findDisruption=True,
+				verbose=False,
+				paIntegrate=False):
 		
 		self.shotno = shotno
 		self.title = "%d, Ip Data" % shotno
 		
 		# get data
+#		if method=='Rogowski':
+		# use the IP Rogowski coil to get IP
 		data, time=mdsData(shotno=shotno,
 							  dataAddress=['\HBTEP2::TOP.SENSORS.ROGOWSKIS:IP'],
 							  tStart=tStart, tStop=tStop)
+		
 		self.ip=data[0];
 		self.time=time;
+			
+		if paIntegrate==True:
+			# integrate PA1 sensor data to get IP
+			dfPA=paData(shotno,tStart,tStop).dfDataRaw
+			dfPA=dfPA.iloc[:,dfPA.columns.str.contains('PA1')]
+			
+			mu0=4*_np.pi*1e-7
+			minorRadius=0.16
+			self.ipPAIntegration=_np.array(dfPA.sum(axis=1)*1.0/dfPA.shape[1]*2*_np.pi*minorRadius/mu0)
+#			self.time=_np.array(dfPA.index)
+
+		else:
+			import sys
+			sys.exit('Method specified is not valid')
+
 		
 		if findDisruption==True:
 			
 			try:
+				time=self.time
+				data=self.ip
+				
 				# only look at data after breakdown
 				iStart=_process.findNearest(time,1.5e-3)
 				ipTime=time[iStart:]
-				ip=data[0][iStart:]
+				ip=data[iStart:]
 				
 				# filter data to remove low-frequency offset
 				ip2,temp=_process.gaussianHighPassFilter(ip,ipTime,
@@ -481,7 +508,11 @@ class ipData:
 		returns the plot of IP vs time
 		"""
 		fig,p1=_plt.subplots()
-		p1.plot(self.time*1e3,self.ip*1e-3)
+		p1.plot(self.time*1e3,self.ip*1e-3,label='IP Rogowski')
+		try:
+			p1.plot(self.time*1e3,self.ipPAIntegration*1e-3,label='PA')
+		except:
+			pass
 		try:
 			p1.plot(self.timeDisruption*1e3,self.ip[self.time==self.timeDisruption]*1e-3,label='Disruption',marker='x',linestyle='')
 		except:
@@ -1555,6 +1586,8 @@ class paData:
 		#TODO(John) rewrite entire class.  start with dataframes instead of lists
 		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.pa1Time]).transpose(),_np.array(self.pa1Data+self.pa2Data).transpose(),axis=1),
 							columns=_np.append(_np.append(_np.array(['Time']),self.namesPA1),self.namesPA2)).set_index('Time')
+		self.dfDataRaw=_pd.DataFrame( 	data=_np.append(_np.array([self.pa1Time]).transpose(),_np.array(self.pa1Raw+self.pa2Raw).transpose(),axis=1),
+							columns=_np.append(_np.append(_np.array(['Time']),self.namesPA1),self.namesPA2)).set_index('Time')
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':_np.append(self.namesPA1,self.namesPA2),
 									'Phi':_np.append(self.phiPA1,self.phiPA2),
 									'Theta':_np.append(self.thetaPA1,self.thetaPA2),
@@ -1563,6 +1596,10 @@ class paData:
 									},
 								columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')#,'Address','SectionNum'])
 		
+		
+		if removeBadSensors==True:
+			self.dfData=self.dfData.drop(columns=self.badSensors)
+			self.dfMeta=self.dfMeta.drop(index=self.badSensors)
 
 		# plot 
 		if plot==True or plot=='all':
@@ -2148,9 +2185,15 @@ class taData:
 
 	"""
 		
-	def __init__(self,shotno=98173,tStart=_TSTART,tStop=_TSTOP,plot=False):
+	def __init__(	self,
+				shotno=98173,
+				tStart=_TSTART,
+				tStop=_TSTOP,
+				plot=False,
+				removeBadSensors=False):
 		self.shotno = shotno
 		self.title = "%d, TA sensor data." % shotno
+		self.badSensors=[] # no bad sensors as of present
 		
 		# names of poloidal and radial sensors
 		self.namesTAPol=['TA01_S1P', 'TA01_S2P', 'TA01_S3P', 'TA02_S1P', 'TA02_S2P', 'TA02_S3P', 'TA03_S1P', 'TA03_S2P', 'TA03_S3P', 'TA04_S1P', 'TA04_S2P', 'TA04_S3P', 'TA05_S1P', 'TA05_S2P', 'TA05_S3P', 'TA06_S1P', 'TA06_S2P', 'TA06_S3P', 'TA07_S1P', 'TA07_S2P', 'TA07_S3P', 'TA08_S1P', 'TA08_S2P', 'TA08_S3P', 'TA09_S1P', 'TA09_S2P', 'TA09_S3P', 'TA10_S1P', 'TA10_S2P', 'TA10_S3P'];
@@ -2208,6 +2251,9 @@ class taData:
 								columns=['SensorNames','Phi','Theta','Address','SectionNum','CenterSensor']).set_index('SensorNames')#,'Address','SectionNum'])
 		
 
+		if removeBadSensors==True:
+			self.dfData=self.dfData.drop(columns=self.badSensors)
+			self.dfMeta=self.dfMeta.drop(index=self.badSensors)
 
 		# plot
 		if plot=='sample':
