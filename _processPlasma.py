@@ -1,6 +1,6 @@
 """
-this library contains a number of useful functions that are general purpose 
-data processing functions.
+this library contains a number of useful functions that are plasma physics 
+related functions, models, and analysis.
 """
             
 ###############################################################################
@@ -9,7 +9,7 @@ data processing functions.
 # common libraries
 import numpy as _np
 import os # X11 PRotection
-if os.environ.has_key('DISPLAY'): 
+if os.environ.has_key('DISPLAY'):  # for headless operation
 	import matplotlib.pyplot as _plt
 	import _plotTools as _plot
 import scipy.sparse as sp
@@ -278,10 +278,10 @@ class langmuirProbe:
         mi=1.6737236 * 10**(-27) * 2
         
         # thermal velocity
-        vth=np.sqrt(2*temperatureInEV*eV/mi)
+        vth=_np.sqrt(2*temperatureInEV*eV/mi)
         
         # density
-        return 4*np.abs(ionSatCurrent)/q/probeArea/vth
+        return 4*_np.abs(ionSatCurrent)/q/probeArea/vth
         
         
     def plot(self):
@@ -779,7 +779,122 @@ class picCode:
     
 ###############################################################################
 ### Misc. plasma models	
-def currentDensityModel(iP,q_limiter,r,r_wall=0.16,r_limiter=0.15,q_offset=0.9,plot=False,verbose=False):
+			
+def thetaCorrection(	shotno,
+					theta=_np.linspace(-_np.pi,_np.pi,100),
+					tStart=2e-3,
+					tStop=5e-3,
+					plot=False):
+	
+	"""
+	This function corrects the theta coordinate (theta) for the non-cylindrical
+	nature of the HFS and LFS magnetic fields.  This is based on equation 4.4 
+	in Jeff's thesis
+	
+	Work in progress
+	"""
+	
+	# constants
+	mu0=4e-7*_np.pi
+	
+	# libraries
+	from _getHBTData import ipData
+	from _getHBTData import capBankData
+	import _plotTools as _plot
+	import pandas as pd
+	
+	
+	def lambdaCalc(Bv, Ip):
+		# Jeff's thesis, equations 4.5 and 4.7
+		a=0.15
+		R0=0.92
+		term=4*_np.pi*R0*Bv/mu0/Ip-_np.log(8*R0/a)+1.5
+		L=(term+1)*a/R0
+		L[L>1.0]=1.0
+		L[L<-1.0]=-1.0
+		return L
+	
+	def thetaStarCalc(theta, L):
+		return theta-L*_np.sin(theta)
+		
+	# get plasma current
+	Ip=ipData(shotno,tStart=tStart,tStop=tStop).ip
+#	Ip=ipData.ip
+#	timeIp=ipData.time
+	
+	# get cap bank data
+	capData=capBankData(shotno,tStart=tStart,tStop=tStop)
+	vfCurrent=capData.vfBankCurrent
+	ohCurrent=capData.	ohBankCurrent
+	time=capData.vfTime
+	
+	# calculate B fields at R_0 = 0.92m.  (Using static values from Jeff's code)
+	Bv_vf=vfCurrent*(-2.6602839e-06)
+	Bv_oh=ohCurrent*(1.9580808e-08)*(-1) # -1 so that the field subtracts 
+	
+	# net field
+	Bv=Bv_vf+Bv_oh
+	
+	# calculate lambda
+	L=lambdaCalc(Bv,Ip)
+	
+	# theta correction
+	try:
+		m=len(theta)
+	except:
+		m=1
+	thetaStar=_np.zeros((len(L),m))
+	for i in range(len(L)):
+		thetaStar[i]=thetaStarCalc(theta,L[i]) #theta-L[i]*_np.sin(theta)
+		
+	# init dataframe
+	dfData=pd.DataFrame(	data=thetaStar,
+						index=time,
+						columns=theta)
+	
+	if plot==True:
+		
+		if m!=1:
+			fig,ax=_plt.subplots()
+			_plot.contourPlot(		ax,
+								x=dfData.index*1e3,
+								y=dfData.columns,
+								z=dfData.transpose(),
+								levels=_np.arange(-3,3+0.5,0.5),
+								xlabel='Time (ms)',
+								ylabel='Theta (rad)',
+								zlabel='Theta corrected (rad)',
+								zticklabels=_np.arange(-3,3+0.5,0.5),
+								ztickLabels=_np.arange(-3,3+0.5,0.5),
+								fill=False
+								)
+		if True:
+			fig,ax=_plt.subplots()
+			
+			ax.plot(time*1e3,L,label='L(t)')
+			_plot.finalizeSubplot(	ax,
+								xlabel=r'Time (ms)',
+								ylabel=r'L(t)',
+								)
+			
+			
+		if True:
+			fig,ax=_plt.subplots()
+			theta=_np.arange(-_np.pi,_np.pi,0.1)
+			
+			for L in _np.linspace(-1,1,11):
+				ts=thetaStarCalc(theta,L)
+				
+				ax.plot(theta,ts,label=r'$\lambda$=%0.2f'%L)
+			_plot.finalizeSubplot(	ax,
+								xlabel=r'$\theta$',
+								ylabel=r'$\theta^*$',
+								)
+					
+
+	
+			
+def currentDensityModel(iP,q_limiter,r,r_limiter=0.15,q_offset=0.9,plot=False,verbose=False):
 	"""
 	Calculates a tokamak's current density using Wesson's model
 	
