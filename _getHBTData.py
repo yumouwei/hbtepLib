@@ -435,8 +435,6 @@ class ipData:
 		self.shotno = shotno
 		self.title = "%d, Ip Data" % shotno
 		
-		# get data
-#		if method=='Rogowski':
 		# use the IP Rogowski coil to get IP
 		data, time=mdsData(shotno=shotno,
 							  dataAddress=['\HBTEP2::TOP.SENSORS.ROGOWSKIS:IP'],
@@ -453,11 +451,6 @@ class ipData:
 			mu0=4*_np.pi*1e-7
 			minorRadius=0.16
 			self.ipPAIntegration=_np.array(dfPA.sum(axis=1)*1.0/dfPA.shape[1]*2*_np.pi*minorRadius/mu0)
-#			self.time=_np.array(dfPA.index)
-
-		else:
-			import sys
-			sys.exit('Method specified is not valid')
 
 		
 		if findDisruption==True:
