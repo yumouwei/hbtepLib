@@ -9,9 +9,9 @@ related functions, models, and analysis.
 # common libraries
 import numpy as _np
 import os # X11 PRotection
-if os.environ.has_key('DISPLAY'):  # for headless operation
-	import matplotlib.pyplot as _plt
-	import _plotTools as _plot
+#if os.environ.has_key('DISPLAY'):  # for headless operation
+import matplotlib.pyplot as _plt
+import _plotTools as _plot
 import scipy.sparse as sp
 
 # hbtepLib library
