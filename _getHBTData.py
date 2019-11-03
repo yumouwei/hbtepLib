@@ -26,9 +26,9 @@ import os
 import pandas as _pd
 
 # Support for headless launch
-if os.environ.has_key('DISPLAY'):
-	import matplotlib.pyplot as _plt
-	import _plotTools as _plot
+#if os.environ.has_key('DISPLAY'): # TODO not compatible with python3.  please fix.  I'm (John) disabling it for now.
+import matplotlib.pyplot as _plt
+import _plotTools as _plot
 import time as _time
 
 # hbtepLib libraries
