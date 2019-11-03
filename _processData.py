@@ -10,9 +10,9 @@ data processing functions.
 import numpy as _np
 import os
 # X11 protection
-if os.environ.has_key('DISPLAY'):
-	import matplotlib.pyplot as _plt
-	import _plotTools as _plot
+#if os.environ.has_key('DISPLAY'): # TODO not compatible with python3.  please fix.  I'm (John) disabling it for now.
+import matplotlib.pyplot as _plt
+import _plotTools as _plot
 import copy as _copy
 import math as _math
 
