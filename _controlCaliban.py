@@ -6,9 +6,9 @@ import numpy as _np
 import hbtepLib as _hbt
 #_plot=_hbt.plot
 import os
-if os.environ.has_key('DISPLAY'):
-	import matplotlib.pyplot as _plt
-	_plot = _hbt.plot
+#if os.environ.has_key('DISPLAY'): # TODO not compatible with python3.  please fix.  I'm (John) disabling it for now.
+import matplotlib.pyplot as _plt
+_plot = _hbt.plot
 
 
 
