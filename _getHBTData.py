@@ -3784,6 +3784,10 @@ class euvData:
                       centerColorMapAroundZero=True)
         #_plt.set_cmap('plasma')
         data=self.data;
+        print(_np.shape(data))
+        print(iStart)
+        print(iStop)
+        print(_np.shape(self.time))
         for i in range(0,len(data)):
             data[i]=data[i][iStart:iStop]
         p1.addTrace(self.time[iStart:iStop]*1e3,_np.arange(64),

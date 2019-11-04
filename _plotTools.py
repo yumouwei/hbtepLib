@@ -1,6 +1,7 @@
 import numpy as _np
 import matplotlib.pyplot as _plt
 from matplotlib.colors import LinearSegmentedColormap as _lsc # for creating your own colormaps
+from matplotlib.cm import get_cmap
 #import sys as _sys
 #import _processData as _process
 #from matplotlib.colors import LinearSegmentedColormap as _lsc
@@ -9,7 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap as _lsc # for creating you
 # color sequence for plotting.  add more colors if you need more than 7.  
 #_cSequence=['b', 'r', 'g', 'k', 'm', 'c', 'y', 'brown']
 _cSequence=['red', 'black',"#1f77b4", "m","#ff7f0e", "#2ca02c",  "#9467bd", "#8c564b", "#d62728","#e377c2", "#7f7f7f", "#bcbd22", "#17becf"] #https://github.com/vega/vega/wiki/Scales#scale-range-literals
-
+#_cSequence = get_cmap('viridis').colors[0::10]
 
 class plot:
     """
