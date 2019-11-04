@@ -14,6 +14,8 @@ _cSequence=['red', 'black',"#1f77b4", "m","#ff7f0e", "#2ca02c",  "#9467bd", "#8c
 
 class plot:
     """
+	TODO(JOHN):  !!!THIS FUNCTION NEEDS TO BE DEPRICATED AS SOON AS POSSIBLE!!!
+	
     Class structure that contains a single plot window.  It can support 
     multiple "plots" (data arrays) on it.  
     
@@ -1034,7 +1036,7 @@ def finalizeSubplot(ax,xlabel='',ylabel='',title='',subtitle='',
 			if label[0]!=u'_':
 				legend=True
 		if legend==True:
-			ax[i].legend(fontsize=fontSizeStandard,loc=legendLoc,numpoints=2) # numpoints is the number of markers in the legend
+			ax[i].legend(loc=legendLoc,numpoints=2) # fontsize=fontSizeStandard removed b/c not compatible with old version of matplotlib  #numpoints is the number of markers in the legend
 			
 		# set x and y axis tick label fontsize
 		ax[i].tick_params(axis='both',labelsize=fontSizeStandard)
@@ -1053,4 +1055,105 @@ def finalizeSubplot(ax,xlabel='',ylabel='',title='',subtitle='',
 		ax[i].set_ylim(ylim)
 		ax[i].set_xlim(xlim)
 
-		
+
+def subTitle(ax,string,
+			xy=(0.5, .98),
+			box=True,
+			textColor='k',
+			xycoords='axes fraction',
+			fontSize=8,
+			horizontalalignment='center',
+			verticalalignment='top'):
+	"""
+	wrapper for the annotate axis function.  the default setting is for a
+	figure subtitle at the top of a particular axis
+	
+	Parameters
+	----------
+	ax : matplotlib.axes._subplots.AxesSubplot
+		Axis that will receive the text box
+	string : str
+		String to put in textbox
+	xy : tuple
+		(x,y) coordinates for the text box
+	box : bool
+		True - Creates a box around the text
+		False - No box
+	textColor : str
+		text color
+	xycoords : str
+		type of coordinates.  default = 'axes fraction'
+	fontSize : int
+		text font size
+	horizontalalignment : str
+		'center' - coordinates are cenetered at the center of the box
+		'left'
+		'right'
+	verticalalignment : str
+		'top' - coordinates are centered at the top of the box
+	
+	TODO(John) Expand functionality
+	"""
+	if box==True:
+		box=dict(boxstyle="square, pad=.25", fc="w",edgecolor='k')
+	else:
+		box=None
+
+#	print(string)
+	ax.annotate(string, 
+				xy=xy, 
+				color=textColor,
+				xycoords=xycoords, 
+				fontsize=fontSize,
+				horizontalalignment=horizontalalignment, 
+				verticalalignment=verticalalignment,
+				bbox=box)
+
+
+def contourPlot(	ax,
+				x,
+				y,
+				z,
+				levels,
+				ylabel='',
+				zlabel='',
+				yticklabels=None,
+				xlabel='',
+				title='',
+				zlim=[],
+				zticklabels='',
+				ztickLabels=[],
+				colorMap=_plt.cm.viridis,
+				fill=True,
+				fontsize=8):
+	"""
+	wrapper for contour plot.  very much under development
+	"""
+	X,Y=_np.meshgrid(x,y)
+	if len(zlim)>0:
+		vmin=zlim[0]
+		vmax=zlim[1]
+	else:
+		vmin=None
+		vmax=None
+#	if levels!=[]:
+	if fill==True:
+		CS=ax.contourf(X,Y,z,levels=levels,cmap=colorMap,vmin=vmin,vmax=vmax)#vmin=zlim[0],vmax=zlim[1],
+	else:
+		CS=ax.contour(X,Y,z,levels=levels,cmap=colorMap,vmin=vmin,vmax=vmax)#vmin=zlim[0],vmax=zlim[1],
+#		CS=ax.contourf(X,Y,z,100,cmap=colorMap,vmin=vmin,vmax=vmax)
+	ax.set_xlabel(xlabel,fontsize=fontsize)
+	ax.set_ylabel(ylabel,fontsize=fontsize)
+	ax.set_title(title,fontsize=fontsize)
+	if type(yticklabels) != type(None):
+		ax.set_yticks(y)
+		ax.set_yticklabels(yticklabels)
+	if zticklabels!='':
+		cbar = _plt.colorbar(CS,ax=ax,ticks=zticklabels,pad=0.01)
+		cbar.ax.set_yticklabels(ztickLabels,fontsize=fontsize)
+	else:
+		cbar = _plt.colorbar(CS,ax=ax,pad=0.01)
+	cbar.ax.set_ylabel(zlabel,fontsize=fontsize)
+	
+#	addZValueLabelToContour(ax,x,y,z)
+	

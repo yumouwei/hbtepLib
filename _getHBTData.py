@@ -23,10 +23,12 @@ from copy import copy as _copy
 import sys as _sys
 import _socket
 import os
+import pandas as _pd
+
 # Support for headless launch
-if os.environ.has_key('DISPLAY'):
-	import matplotlib.pyplot as _plt
-	import _plotTools as _plot
+#if os.environ.has_key('DISPLAY'): # TODO not compatible with python3.  please fix.  I'm (John) disabling it for now.
+import matplotlib.pyplot as _plt
+import _plotTools as _plot
 import time as _time
 
 # hbtepLib libraries
@@ -421,26 +423,46 @@ class ipData:
 		Plots all relevant plots
 	
 	"""
-	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
-			  findDisruption=True,verbose=False):
+	def __init__(	self,
+				shotno=96530,
+				tStart=_TSTART,
+				tStop=_TSTOP,
+				plot=False,
+				findDisruption=True,
+				verbose=False,
+				paIntegrate=False):
 		
 		self.shotno = shotno
 		self.title = "%d, Ip Data" % shotno
 		
-		# get data
+		# use the IP Rogowski coil to get IP
 		data, time=mdsData(shotno=shotno,
 							  dataAddress=['\HBTEP2::TOP.SENSORS.ROGOWSKIS:IP'],
 							  tStart=tStart, tStop=tStop)
+		
 		self.ip=data[0];
 		self.time=time;
+			
+		if paIntegrate==True:
+			# integrate PA1 sensor data to get IP
+			dfPA=paData(shotno,tStart,tStop).dfDataRaw
+			dfPA=dfPA.iloc[:,dfPA.columns.str.contains('PA1')]
+			
+			mu0=4*_np.pi*1e-7
+			minorRadius=0.16
+			self.ipPAIntegration=_np.array(dfPA.sum(axis=1)*1.0/dfPA.shape[1]*2*_np.pi*minorRadius/mu0)
+
 		
 		if findDisruption==True:
 			
 			try:
+				time=self.time
+				data=self.ip
+				
 				# only look at data after breakdown
 				iStart=_process.findNearest(time,1.5e-3)
 				ipTime=time[iStart:]
-				ip=data[0][iStart:]
+				ip=data[iStart:]
 				
 				# filter data to remove low-frequency offset
 				ip2,temp=_process.gaussianHighPassFilter(ip,ipTime,
@@ -479,7 +501,11 @@ class ipData:
 		returns the plot of IP vs time
 		"""
 		fig,p1=_plt.subplots()
-		p1.plot(self.time*1e3,self.ip*1e-3)
+		p1.plot(self.time*1e3,self.ip*1e-3,label='IP Rogowski')
+		try:
+			p1.plot(self.time*1e3,self.ipPAIntegration*1e-3,label='PA')
+		except:
+			pass
 		try:
 			p1.plot(self.timeDisruption*1e3,self.ip[self.time==self.timeDisruption]*1e-3,label='Disruption',marker='x',linestyle='')
 		except:
@@ -1502,11 +1528,13 @@ class paData:
 		self.title2 = '%d, PA2 sensors' % shotno
 		self.badSensors=['PA2_S14P','PA2_S27P']
 		
-		# poloidal location (in degrees)
-#		self.thetaPA1 = _np.array([	5.625,	  16.875,	 28.125,	 39.375,	 50.625,	 61.875,	 73.125,	 84.375,	 95.625,	 106.875,	118.125,	129.375,	140.625,	151.875,	163.125,	174.375,	185.625,	196.875,	208.125,	219.375,	230.625,	241.875,	253.125,	264.375,	275.625,	286.875,	298.125,	309.375,	320.625,	331.875,	343.125,	354.375])*_np.pi/180.
-#		self.thetaPA2 = _np.array([	5.625,	  16.875,	 28.125,	 39.375,	 50.625,	 61.875,	 73.125,	 84.375,	 95.625,	 106.875,	118.125,	129.375,	140.625,	151.875,	163.125,	174.375,	185.625,	196.875,	208.125,	219.375,	230.625,	241.875,	253.125,	264.375,	275.625,	286.875,	298.125,	309.375,	320.625,	331.875,	343.125,	354.375])*_np.pi/180.
+		# poloidal location
 		self.thetaPA1 =_np.array([-174.74778518, -164.23392461, -153.66901098, -143.01895411,	   -132.24974382, -121.3277924 , -110.22067715,  -98.93591492,		-87.23999699,  -75.60839722,  -63.97679673,  -52.34519359,		-40.71359604,  -29.08199717,  -17.45039318,   -5.81879416,		  5.81280487,   17.44440438,   29.07600466,   40.70760263,		 52.33920936,   63.97080017,   75.60240749,   87.23400093,		 98.93591492,  110.22067715,  121.3277924 ,  132.24974382,		143.01895411,  153.66901098,  164.23392461,  174.74778518])*_np.pi/180.
 		self.thetaPA2 =_np.array([-174.74778518, -164.23392461, -153.66901098, -143.01895411,	   -132.24974382, -121.3277924 , -110.22067715,  -98.93591492,		-87.23999699,  -75.60839722,  -63.97679673,  -52.34519359,		-40.71359604,  -29.08199717,  -17.45039318,   -5.81879416,		  5.81280487,   17.44440438,   29.07600466,   40.70760263,		 52.33920936,   63.97080017,   75.60240749,   87.23400093,		 98.93591492,  110.22067715,  121.3277924 ,  132.24974382,		143.01895411,  153.66901098,  164.23392461,  174.74778518])*_np.pi/180.
+		
+		# toroidal location
+		self.phiPA1=_np.ones(len(self.thetaPA1))*317.5*_np.pi/180.
+		self.phiPA2=_np.ones(len(self.thetaPA2))*137.5*_np.pi/180.
 		
 		# sensor names
 		self.namesPA1=_np.array([   'PA1_S01P', 'PA1_S02P', 'PA1_S03P', 'PA1_S04P', 'PA1_S05P', 'PA1_S06P', 'PA1_S07P', 'PA1_S08P', 'PA1_S09P', 'PA1_S10P', 'PA1_S11P', 'PA1_S12P', 'PA1_S13P', 'PA1_S14P', 'PA1_S15P', 'PA1_S16P', 'PA1_S17P', 'PA1_S18P', 'PA1_S19P', 'PA1_S20P', 'PA1_S21P', 'PA1_S22P', 'PA1_S23P', 'PA1_S24P', 'PA1_S25P', 'PA1_S26P', 'PA1_S27P', 'PA1_S28P', 'PA1_S29P', 'PA1_S30P', 'PA1_S31P', 'PA1_S32P'])
@@ -1546,6 +1574,25 @@ class paData:
 			temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./20000)
 			self.pa2RawFit.append(temp2)
 			self.pa2Data.append(temp)
+			
+		# pandas dataframes 
+		#TODO(John) rewrite entire class.  start with dataframes instead of lists
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.pa1Time]).transpose(),_np.array(self.pa1Data+self.pa2Data).transpose(),axis=1),
+							columns=_np.append(_np.append(_np.array(['Time']),self.namesPA1),self.namesPA2)).set_index('Time')
+		self.dfDataRaw=_pd.DataFrame( 	data=_np.append(_np.array([self.pa1Time]).transpose(),_np.array(self.pa1Raw+self.pa2Raw).transpose(),axis=1),
+							columns=_np.append(_np.append(_np.array(['Time']),self.namesPA1),self.namesPA2)).set_index('Time')
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':_np.append(self.namesPA1,self.namesPA2),
+									'Phi':_np.append(self.phiPA1,self.phiPA2),
+									'Theta':_np.append(self.thetaPA1,self.thetaPA2),
+									'Address':pa1SensorAddresses+pa2SensorAddresses,
+									'SectionNum':_np.append([3]*32,[8]*32),
+									},
+								columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')#,'Address','SectionNum'])
+		
+		
+		if removeBadSensors==True:
+			self.dfData=self.dfData.drop(columns=self.badSensors)
+			self.dfMeta=self.dfMeta.drop(index=self.badSensors)
 
 		# plot 
 		if plot==True or plot=='all':
@@ -1952,6 +1999,21 @@ class fbData:
 				temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./20000)
 				self.fbPolRawFit[j].append(temp2)
 				self.fbPolData[j].append(temp)
+				
+		# pandas dataframes 
+		#TODO(John) rewrite entire class.  start with dataframes instead of lists
+		flatten = lambda l: [item for sublist in l for item in sublist]
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.fbPolTime]).transpose(),_np.array(flatten(self.fbPolData)).transpose(),axis=1),
+								columns=['Time']+flatten(self.fbPolNames)).set_index('Time')
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':flatten(self.fbPolNames),
+									'Phi':flatten(self.phi),
+									'Theta':flatten(self.theta),
+#									'Address':dataAddress,
+#									'SectionNum':[ ],
+#									'RowNum':[1,1,1....2,2,2....,4,4,4,4],
+									},
+								columns=['SensorNames','Phi','Theta']).set_index('SensorNames')#,'Address','SectionNum'])
+		
 
 		# plot
 		if plot=='sample':
@@ -2116,9 +2178,15 @@ class taData:
 
 	"""
 		
-	def __init__(self,shotno=98173,tStart=_TSTART,tStop=_TSTOP,plot=False):
+	def __init__(	self,
+				shotno=98173,
+				tStart=_TSTART,
+				tStop=_TSTOP,
+				plot=False,
+				removeBadSensors=False):
 		self.shotno = shotno
 		self.title = "%d, TA sensor data." % shotno
+		self.badSensors=[] # no bad sensors as of present
 		
 		# names of poloidal and radial sensors
 		self.namesTAPol=['TA01_S1P', 'TA01_S2P', 'TA01_S3P', 'TA02_S1P', 'TA02_S2P', 'TA02_S3P', 'TA03_S1P', 'TA03_S2P', 'TA03_S3P', 'TA04_S1P', 'TA04_S2P', 'TA04_S3P', 'TA05_S1P', 'TA05_S2P', 'TA05_S3P', 'TA06_S1P', 'TA06_S2P', 'TA06_S3P', 'TA07_S1P', 'TA07_S2P', 'TA07_S3P', 'TA08_S1P', 'TA08_S2P', 'TA08_S3P', 'TA09_S1P', 'TA09_S2P', 'TA09_S3P', 'TA10_S1P', 'TA10_S2P', 'TA10_S3P'];
@@ -2128,7 +2196,7 @@ class taData:
 		self.phi=_np.pi/180.*_np.array([241.5,250.5,259.5,277.5,286.5,295.5,313.5,322.5,331.5,349.5,358.5,7.5,25.5,34.5,43.5,61.5,70.5,79.5,97.5,106.5,115.5,133.5,142.5,151.5,169.5,178.5,187.5,205.5,214.5,223.5])	
 		
 		# poloidal locations of sensors
-		self.theta=_np.ones(len(self.phi))*189*_np.pi/180
+		self.theta=_np.ones(len(self.phi))*(189-360)*_np.pi/180
 		
 #		# toroidal locations for the radial measurements
 #		self.phiR=_np.pi/180.*_np.array([-108.,  -72.,  -36.,	0.,   36.,   72.,  108.,  144.,  180.,  216.])
@@ -2157,6 +2225,28 @@ class taData:
 			temp,temp2=_process.gaussianHighPassFilter(self.taPolRaw[i][:],self.taPolTime,timeWidth=1./20000)
 			self.taPolData.append(temp)
 			self.taPolRawFit.append(temp2)
+			
+		# pandas dataframes 
+		#TODO(John) rewrite entire class.  start with dataframes instead of lists
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.taPolTime]).transpose(),_np.array(self.taPolData).transpose(),axis=1),
+								columns=['Time']+self.namesTAPol).set_index('Time')
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':self.namesTAPol,
+									'Phi':self.phi,
+									'Theta':self.theta,
+									'Address':taPolSensorAddresses,
+									'SectionNum':_np.array([ 1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,  5,  5,  6,  6,
+													       6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10]),
+									'CenterSensor':[False,  True, False, False,  True, False, False,  True, False,
+											       False,  True, False, False,  True, False, False,  True, False,
+											       False,  True, False, False,  True, False, False,  True, False,
+											       False,  True, False],
+									},
+								columns=['SensorNames','Phi','Theta','Address','SectionNum','CenterSensor']).set_index('SensorNames')#,'Address','SectionNum'])
+		
+
+		if removeBadSensors==True:
+			self.dfData=self.dfData.drop(columns=self.badSensors)
+			self.dfMeta=self.dfMeta.drop(index=self.badSensors)
 
 		# plot
 		if plot=='sample':
@@ -2369,21 +2459,31 @@ class quartzJumperData:
 		self.title = "%d, Ext. Rogowski Data" % shotno
 		
 		# get data
-		data, time=mdsData(shotno=shotno,
-						   dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
+		dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_B',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_C',
-										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',],
+										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',]
+		data, time=mdsData(shotno=shotno,
+						   dataAddress=dataAddress,
 						   tStart=tStart, tStop=tStop)
 		self.eRogA=data[0];
 		self.eRogB=data[1];
 		self.eRogC=data[2];
 		self.eRogD=data[3];
 		self.time=time;
-#		self.sensorLocations=['A. Section 9-10','B. Section 3-4','C. Section 10-1','D. Section 5-6']
 		self.sensorNames=['A. Section 9-10','B. Section 3-4','C. Section 10-1','D. Section 5-6']
 		self.phi=_np.array([198,342,234,54])*_np.pi/180.
 		self.theta=_np.array([0,0,0,0])
+		
+		# pandas dataframes
+		self.dfData=_pd.DataFrame( 	data=_np.array((time,data[0],data[1],data[2],data[3])).transpose(),
+								columns=['Time','JumperA','JumperB','JumperC','JumperD']).set_index('Time')
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':['JumperA','JumperB','JumperC','JumperD'],
+									'Phi':_np.array([198,342,234,54])*_np.pi/180.,
+									'Theta':_np.array([0,0,0,0]),
+									'Address':dataAddress,
+									'SectionNum':[9.5,3.5,0.5,5.5]},
+								columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')
 		
 		if plot == True:
 			self.plot()
@@ -2643,7 +2743,16 @@ class solData:
 			temp,temp2=_process.gaussianHighPassFilter(self.solDataRaw[i],self.time,timeWidth=1./20000)
 			self.solData.append(temp)
 			self.solDataFit.append(temp2)
-						
+			
+		# pandas dataframes
+		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.time]).transpose(),_np.array(self.solData).transpose(),axis=1),
+								columns=['Time']+self.sensorNames).set_index('Time')
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':self.sensorNames,
+									'Phi':self.phis*_np.pi/180,
+									'Theta':self.thetas*_np.pi/180,
+									'Address':sensorAddress},
+								columns=['SensorNames','Phi','Theta','Address']).set_index('SensorNames')
+		
 		# optional plotting	
 		if plot == True:
 			self.plot()
@@ -3319,7 +3428,7 @@ class nModeData:
 		self._phi=phi
 
 		if method=='leastSquares':
-			## Construct A matrix and its inversion
+			## Construct A matrix and its inversion.  Only interested in n=1 and n=2 mode fits at present
 			A=_np.zeros((n,5))
 			A[:,0]=_np.ones(n);
 			A[:,1]=_np.sin(phi)
@@ -3333,18 +3442,24 @@ class nModeData:
 			self.n1Amp=_np.zeros(m)
 			self.n1PhaseRaw=_np.zeros(m)
 			self.n2Amp=_np.zeros(m)
-			# TODO(John): remove for loop and convert into all matrix math 
-			#			 Should simplify code and make it run faster
-			for j in range(0,m):
-				y=_np.zeros(n);
-				for i in range(0,n):
-					y[i]=data[i][j]*1e4
-				x[:,j]=Ainv.dot(y)
-				self.n1Amp[j]=_np.sqrt(x[1,j]**2+x[2,j]**2)
-				self.n2Amp[j]=_np.sqrt(x[3,j]**2+x[4,j]**2)
-				self.n1PhaseRaw[j]=_np.arctan2(x[1,j],x[2,j])
+			
+			x=Ainv.dot(data)
+			self.n1Amp=_np.sqrt(x[1,:]**2+x[2,:]**2)*1e4
+			self.n2Amp=_np.sqrt(x[3,:]**2+x[4,:]**2)*1e4
+			self.n1PhaseRaw=_np.arctan2(x[1,:],x[2,:])
+			self.n2PhaseRaw=_np.arctan2(x[3,:],x[4,:])
+#			for j in range(0,m):
+#				y=_np.zeros(n);
+#				for i in range(0,n):
+#					y[i]=data[i][j]*1e4
+#				x[:,j]=Ainv.dot(y)
+#				self.n1Amp[j]=_np.sqrt(x[1,j]**2+x[2,j]**2)
+#				self.n2Amp[j]=_np.sqrt(x[3,j]**2+x[4,j]**2)
+#				self.n1PhaseRaw[j]=_np.arctan2(x[1,j],x[2,j])
 			self._x=x
 			self.n1PhaseRaw*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
+			self.n2PhaseRaw*=-1  # for some reason, the slope of phase had the wrong sign.  this corrects that.
+
 
 		else:
 			_sys.exit("Invalid mode analysis method requested.")
@@ -3373,6 +3488,15 @@ class nModeData:
 		self.n1Phase=temp[2]
 		self.n1PhaseRaw=temp[3]
 		self.n1Freq=temp[4]
+		
+		self.dfData=_pd.DataFrame( 	data=_np.concatenate((	[_np.array(self.time)],
+													[_np.array(self.n1Amp).transpose()],
+													[_np.array(self.n1Phase).transpose()],
+													[_np.array(self.n1PhaseRaw).transpose()],
+													[_np.array(self.n1Freq).transpose()])).transpose(),
+								columns=['Time','n1Amp','n1Phase','n1PhaseRaw','n1Freq']).set_index('Time')
+		self.dfMeta=_pd.DataFrame() # intentionally left empty
+
 		
 		## plot data
 		if plot==True:

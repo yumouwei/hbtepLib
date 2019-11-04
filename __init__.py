@@ -27,12 +27,12 @@ else:
 
 # plotting toolkit, second generation
 import os # with X11 Protection
-if os.environ.has_key('DISPLAY'):
-	import _plotTools as plot
-	if osVer==2:
-		reload(plot)
-	else:
-		importlib.reload(plot)
+#if os.environ.has_key('DISPLAY'): # TODO not compatible with python3.  please fix.  I'm (John) disabling it for now.
+import _plotTools as plot
+if osVer==2:
+	reload(plot)
+else:
+	importlib.reload(plot)
 
 # misc plasma related code
 import _processPlasma as processPlasma
