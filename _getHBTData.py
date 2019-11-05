@@ -3618,27 +3618,29 @@ class mModeData:
 			self._data=data.pa1Data
 			self.time=data.pa1Time
 			self._theta=data.thetaPA1
+            self._phi=data.phiPA1 # Account for torroidal location, implicitly assume n = 1 dominant structure
 			[n,m]=_np.shape(self._data)
 		if sensor=='PA2':
 			data=paData(self.shotno,tStart=tStart,tStop=tStop);
 			self._data=data.pa2Data
 			self.time=data.pa2Time
 			self._theta=data.thetaPA2
+            self._phi=data.phiPA2
 			[n,m]=_np.shape(self._data)
 
 		## Construct A matrix and its inversion
 		A=_np.zeros((n,11))
 		A[:,0]=_np.ones(n);
-		A[:,1]=_np.sin(self._theta)
-		A[:,2]=_np.cos(self._theta)
-		A[:,3]=_np.sin(2*self._theta)
-		A[:,4]=_np.cos(2*self._theta)
-		A[:,5]=_np.sin(3*self._theta)
-		A[:,6]=_np.cos(3*self._theta)
-		A[:,7]=_np.sin(4*self._theta)
-		A[:,8]=_np.cos(4*self._theta)
-		A[:,9]=_np.sin(5*self._theta)
-		A[:,10]=_np.cos(5*self._theta)
+		A[:,1]=_np.sin(self._theta - self._phi)
+		A[:,2]=_np.cos(self._theta - self._phi)
+		A[:,3]=_np.sin(2*self._theta - self._phi)
+		A[:,4]=_np.cos(2*self._theta - self._phi)
+		A[:,5]=_np.sin(3*self._theta - self._phi)
+		A[:,6]=_np.cos(3*self._theta - self._phi)
+		A[:,7]=_np.sin(4*self._theta - self._phi)
+		A[:,8]=_np.cos(4*self._theta - self._phi)
+		A[:,9]=_np.sin(5*self._theta - self._phi)
+		A[:,10]=_np.cos(5*self._theta - self._phi)
 		Ainv=_np.linalg.pinv(A)
 		
 		## Solve for coefficients, x, for every time step and assign values to appropriate arrays 
