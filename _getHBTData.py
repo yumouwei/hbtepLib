@@ -371,6 +371,8 @@ def mdsData(shotno=None,
 		if type(data[0]) is _np.ndarray:
 	
 			time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
+			
+		mdsConn.disconnect()
  
 	if time != [] and type(tStop)!=list:
 		# trim time and data
@@ -3618,14 +3620,14 @@ class mModeData:
 			self._data=data.pa1Data
 			self.time=data.pa1Time
 			self._theta=data.thetaPA1
-            self._phi=data.phiPA1 # Account for torroidal location, implicitly assume n = 1 dominant structure
+			self._phi=data.phiPA1 # Account for torroidal location, implicitly assume n = 1 dominant structure
 			[n,m]=_np.shape(self._data)
 		if sensor=='PA2':
 			data=paData(self.shotno,tStart=tStart,tStop=tStop);
 			self._data=data.pa2Data
 			self.time=data.pa2Time
 			self._theta=data.thetaPA2
-            self._phi=data.phiPA2
+			self._phi=data.phiPA2
 			[n,m]=_np.shape(self._data)
 
 		## Construct A matrix and its inversion
