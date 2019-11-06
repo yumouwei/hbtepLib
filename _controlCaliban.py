@@ -20,6 +20,8 @@ if gethostname()=='spitzer':
     _LOCAL_DATA_PATH='/opt/hbt/data/control' 
 elif os.environ['USER'] == 'rian':
     _LOCAL_DATA_PATH='/home/rian/Documents/control_data'
+else:
+	_LOCAL_DATA_PATH=''
 
 class calibanData:
     """
