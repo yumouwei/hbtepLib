@@ -3,7 +3,7 @@ Functions related to the caliban gpu feedback computer
 """
 
 # Library import 
-from __init__ import (_np,_mds,_copy,_sys,_socket,os,_pd,_plt,_plot,_time,_process,_pref,gethostname)
+from __init__ import (_np,_mds,_pd,os,_plt,_plot,_process,_pref,gethostname)
 
 import hbtepLib as _hbt # May be necessary
 
