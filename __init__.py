@@ -3,7 +3,43 @@
 import entire module and all sub-modules
 also reloads modules and submodules
 """
+# Generic Library Load
+import numpy as _np
+import MDSplus as _mds
+from copy import copy as _copy
+import sys as _sys
+import _socket
+from socket import gethostname
+import os
+import pandas as _pd
+import time as _time
+import pickle as _pk
+import scipy.sparse as sp
+import math as _math
 
+
+# Support for headless launch
+try: # Try due to non-existance of 'DISPLAY' env. Var on John's laptop;
+    if os.environ.has_key('DISPLAY'): 
+        import matplotlib.pyplot as _plt
+        import _plotTools as _plot
+except:
+    import matplotlib.pyplot as _plt
+    import _plotTools as _plot
+
+
+
+# hbtepLib libraries
+import _processData as _process
+#import _plotTools as _plot
+try:
+	import _hbtPreferences as _pref
+except ImportError:
+	_sys.exit("Code hault: _hbtPreferences.py file not found.  See readme.md" +
+	" concerning the creation of _hbtPreferences.py")
+    
+
+# Package Specific Stuff
 import sys
 if sys.version_info.major==3:
 	osVer=3

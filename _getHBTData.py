@@ -16,30 +16,7 @@ provided shotnos.
 ###############################################################################
 ### import libraries
 
-# common libraries 
-import numpy as _np
-import MDSplus as _mds
-from copy import copy as _copy
-import sys as _sys
-import _socket
-import os
-import pandas as _pd
-
-# Support for headless launch
-#if os.environ.has_key('DISPLAY'): # TODO not compatible with python3.  please fix.  I'm (John) disabling it for now.
-import matplotlib.pyplot as _plt
-import _plotTools as _plot
-import time as _time
-
-# hbtepLib libraries
-import _processData as _process
-#import _plotTools as _plot
-try:
-	import _hbtPreferences as _pref
-except ImportError:
-	_sys.exit("Code hault: _hbtPreferences.py file not found.  See readme.md" +
-	" concerning the creation of _hbtPreferences.py")
-		
+from __init__ import (_np,_mds,_copy,_sys,_socket,os,_pd,_plt,_plot,_time,_process,_pref)
 		
 ###############################################################################
 ### constants
