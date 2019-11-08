@@ -5,17 +5,7 @@ related functions, models, and analysis.
             
 ###############################################################################
 ### import libraries
-            
-# common libraries
-import numpy as _np
-import os # X11 PRotection
-#if os.environ.has_key('DISPLAY'):  # for headless operation
-import matplotlib.pyplot as _plt
-import _plotTools as _plot
-import scipy.sparse as sp
-
-# hbtepLib library
-#import _plotTools as _plot
+from __init__ import (_np,_pd,_plt,_plot,sp)
             
 ###############################################################################
 ### misc functions

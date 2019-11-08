@@ -2,18 +2,11 @@
 Functions related to the caliban gpu feedback computer
 """
 
-import numpy as _np
-import hbtepLib as _hbt
-#_plot=_hbt.plot
-from socket import gethostname
-import os
-import sys
+# Library import 
+from __init__ import (_np,_mds,_copy,_sys,_socket,os,_pd,_plt,_plot,_time,_process,_pref,gethostname)
 
-# Important for headless runn
-#if 'DISPLAY' in os.environ and sys.version_info <= (3,0): #python3 check
-if 'DISPLAY' in os.environ: # should be python3 compatable
-    import matplotlib.pyplot as _plt
-    _plot = _hbt.plot
+import hbtepLib as _hbt # May be necessary
+
 
 
 if gethostname()=='spitzer':
