@@ -146,7 +146,22 @@ def rejectOutliers(data, sigma=2):
 	indicesToKeep=abs(data - _np.mean(data)) < sigma* _np.std(data)
 	return data[indicesToKeep],indicesToKeep
 				    
-            
+def rmPhaseJumps(time,data,cut=_np.pi):
+    """
+    Removed phase jumps of greater than "cut", defaults to pi
+    Assumes phase is wrapped.
+    Inserts NaN at jump points in data and time vector 
+    """
+    indx=_np.argwhere(_np.abs(_np.diff(data))>=cut)+1
+    if indx[-1]==len(data):indx[-1]-=1# in case last point jumps
+    data=list(data)
+    time=list(time)
+    # Iterate over jump points, insert NaNs
+    for i in indx:
+        data.insert(i,_np.NaN)
+        time.insert(i,_np.NaN)
+        indx += 1
+    return _np.array(time),_np.array(data)
 def wrapPhase(data): 
     """
     Wraps phase data so that it repeats every 2pi.
@@ -164,7 +179,7 @@ def wrapPhase(data):
         wrapped data array
         
     """
-    inData=_copy.copy(data);
+    inData=_copy(data);
     outData=_np.zeros(inData.size);
     inData-=_np.pi;
     for i in range(0,_np.size(inData)-1):

@@ -3,7 +3,7 @@ Functions related to the caliban gpu feedback computer
 """
 
 # Library import 
-from __init__ import (_np,_mds,_pd,os,_plt,_plot,_process,_pref,gethostname)
+from __init__ import (_np,_mds,_pd,os,_plt,_plot,_process,_pref,gethostname,_copy)
 
 import hbtepLib as _hbt # May be necessary
 
@@ -46,6 +46,17 @@ class calibanData:
     cpciShotno : int
         If a cpci shotnumber if supplied, it will plot the CPCI mode data
         alongside the gpu data
+    numColumns : int
+        Number of modes/basis functions used by GPU, necessary for unpacking
+        .dat output matricies
+    comparisonDiagnostic : str
+        Determines which diagnostic to compare with.
+        Options: 
+            mModeData - Poloidal modes
+            nModeData - Toroidal modes
+            bpData    - Bias probe
+    GPUmode : int
+        which mode of the GPU inversion matrix to compare with
     
     Attributes
     ----------
@@ -57,22 +68,36 @@ class calibanData:
     """
     def __init__(self,shotno=99591, tStart=0*1e-3, tStop=10*1e-3, plot=False, #shotno=96496
               password='', forceDownload=True, 
-              plotEVERYTHING=False, remoteDataDir='',cpciShotno=None):
+              plotEVERYTHING=False, remoteDataDir='',cpciShotno=None,numColumns=8,\
+              comparisonDiagnostic='mModeData',GPUmode=0):
 
-        import os     
         
         self.shotno=shotno;
         self.cpciShotno=cpciShotno
+        self.comparisonDiagnostic=comparisonDiagnostic
+        self.GPUmode=GPUmode
         
         # handles cases where shotno and cpciShotno are different or not defined
         if self.shotno!=None and self.cpciShotno==None:
             self.cpciShotno=self.shotno
-            self.nModeData=_hbt.get.nModeData(shotno)
-            #self.bpData=_hbt.get.bpData(shotno)
+            # Loac the correct diagnostic dataset
+            if self.comparisonDiagnostic == 'nModeData':
+                self.nModeData=_hbt.get.nModeData(shotno)
+            elif self.comparisonDiagnostic == 'bpData':
+                self.bpData=_hbt.get.bpData(shotno)
+            elif self.comparisonDiagnostic == 'mModeData':
+                self.mModeData=_hbt.get.mModeData(shotno)
+                self.mModeData.time *= 1e3 #convert to ms
+                
             self._cpci=True
         elif self.cpciShotno!=None:
-            self.nModeData=_hbt.get.nModeData(cpciShotno)
-            #self.bpData=_hbt.get.bpData(cpciShotno)
+            if self.comparisonDiagnostic == 'nModeData':
+                self.nModeData=_hbt.get.nModeData(shotno)
+            elif self.comparisonDiagnostic == 'bpData':
+                self.bpData=_hbt.get.bpData(shotno)
+            elif self.comparisonDiagnostic == 'mModeData':
+                self.mModeData=_hbt.get.mModeData(shotno)
+                self.mModeData.time *= 1e3 #convert to ms
             self._cpci=True
         else:
             self._cpci=False
@@ -112,28 +137,32 @@ class calibanData:
         time=getTime(self.totalNumSamples)
         self.time=time
         analogOut=getAO(shotno,self.totalNumSamples,dataPath=dataDir);
-        mAmp=getModeAmp(shotno,self.totalNumSamples,dataPath=dataDir);
+        #self.numColumns=self.totalNumSamples
+        self.numColumns = numColumns # Number of columns in GPU stored matricies 
+        mAmp=getModeAmp(shotno,self.numColumns,dataPath=dataDir);
         #mPhase=getModePhase(shotno,self.totalNumSamples,dataPath=dataDir);
-        mPhase=getModePhase(shotno,dataPath=dataDir);
-        mFreq=getModeFreq(shotno,self.totalNumSamples,dataPath=dataDir);
+        mPhase=getModePhase(shotno,self.numColumns,dataPath=dataDir);
+        mFreq=getModeFreq(shotno,self.numColumns,dataPath=dataDir);
         
         #necessary step if running with EUV data
+        '''
         analogIn = _np.transpose(analogIn)
         analogOut = _np.transpose(analogOut)
         mAmp = _np.transpose(mAmp)
         mPhase = _np.transpose(mPhase)
         mFreq = _np.transpose(mFreq)
+        '''
         
         # trim time and data to specified time range
         temp,self.analogOut=_hbt.get._trimTime(time,list(_np.transpose(analogOut)),tStart,tStop)
         temp,self.analogIn=_hbt.get._trimTime(time,list(_np.transpose(analogIn)),tStart,tStop)
         temp,mAmp=_hbt.get._trimTime(time,list(_np.transpose(mAmp)),tStart,tStop)
-        self.modeAmp=mAmp
+        #self.modeAmp=mAmp
         temp,mPhase=_hbt.get._trimTime(time,list(_np.transpose(mPhase)),tStart,tStop)
         self.modePhase=mPhase
         time,mFreq=_hbt.get._trimTime(time,list(_np.transpose(mFreq)),tStart,tStop)
         self.modeFreq=mFreq
-        self.time=time
+        self.time=time*1e3 # Scale timebase
     
         # distribute trimmed data to class variables
         mAmpCosSec1=mAmp[0];
@@ -148,6 +177,8 @@ class calibanData:
         mAmpCosSec4=mAmp[6];
         mAmpSinSec4=mAmp[7];
         self.n1ModeAmpSec4=_np.sqrt(mAmpCosSec4**2 + mAmpSinSec4**2)
+        
+        # Distribute Mode Phase/Freq
         self.n1ModePhaseSec1=mPhase[0];
         self.n1ModePhaseSec2=mPhase[2];
         self.n1ModePhaseSec3=mPhase[4];
@@ -156,6 +187,14 @@ class calibanData:
         self.n1ModeFreqSec2=mFreq[2];
         self.n1ModeFreqSec3=mFreq[4];
         self.n1ModeFreqSec4=mFreq[6];
+        
+        # Calculate GPU modes amplitude from mode pairs
+        # Presumes even number of modes, no offset/etc modes
+        self.modeAmp=[]
+        for m in range(self.numColumns/2):
+            self.modeAmp.append( _np.sqrt(mAmp[2*m]**2 + mAmp[1+2*m]**2) )
+        
+
         
         if plot == True:
             self.plot()
@@ -171,17 +210,13 @@ class calibanData:
         p1=_hbt.plot.plot(title=str(self.shotno),
                     xLabel='Time (ms)',
                     yLabel='G',
-                    yLim=[0,20],
-                    subtitle='Mode amplitude, n=1')
-        p1.addTrace(self.time*1000,self.n1ModeAmpSec4*1e4,yLegendLabel='GPU-FB_S4P')
+                    yLim=[0,20])
+        p1.addTrace(self.time,self.modeAmp[self.GPUmode]*1e4,yLegendLabel='GPU-FB')
+        if self.comparisonDiagnostic == 'nModeData': p1.subtitle='Mode amplitude, n=1'
+        if self.comparisonDiagnostic == 'mModeData': p1.subtitle='Poloidal Mode amplitude'
+        
         if self._cpci==True:
-            p1.addTrace(self.nModeData.time*1e3,self.nModeData.n1Amp,yLegendLabel='CPCI-FB_S4P')
-        if self._plotEVERYTHING==True:
-            
-            p1.addTrace(self.time*1000,self.n1ModeAmpSec1*1e4,yLegendLabel='GPU-Sec1')
-            p1.addTrace(self.time*1000,self.n1ModeAmpSec2*1e4,yLegendLabel='GPU-Sec2')
-            p1.addTrace(self.time*1000,self.n1ModeAmpSec3*1e4,yLegendLabel='GPU-Sec3')
-            # p1.addTrace(self.time*1000,self.n1ModeAmpSec4*1e4,yLegendLabel='GPU-Sec4')
+            self.plotCPCI(p1,which='Amp')
         return p1
          
     def plotOfPhase(self):
@@ -191,36 +226,85 @@ class calibanData:
                     yLabel='Radias',
                     yLim=[-_np.pi, _np.pi]  ,
                     subtitle='Mode phase, n=1')
-        p1.addTrace(self.time*1000,_hbt.process.wrapPhase(self.n1ModePhaseSec4),
-              yLegendLabel='GPU-FB_S4P',marker='.',linestyle='')
+        
+        p1.addTrace(self.time,_hbt.process.wrapPhase(self.modePhase[self.GPUmode]),
+              yLegendLabel='GPU-FB',marker='.',linestyle='')
+        if self.comparisonDiagnostic == 'nModeData': p1.subtitle='Mode Phase, n=1'
+        if self.comparisonDiagnostic == 'mModeData': p1.subtitle='Poloidal Mode Phase'
+        
         if self._cpci==True:
-            p1.addTrace(self.nModeData.time*1e3,self.nModeData.n1Phase,yLegendLabel='CPCI-FB_S4P',
-                  marker='.',linestyle='',alpha=.4,markerSize=.1)#,markerSize=.1
+            self.plotCPCI(p1,which='Phase')
         if self._plotEVERYTHING==True:
-            p1.addTrace(self.time*1000,_hbt.process.wrapPhase(self.n1ModePhaseSec1),
-                  yLegendLabel='GPU-Sec1',marker='.',linestyle='')
-            p1.addTrace(self.time*1000,_hbt.process.wrapPhase(self.n1ModePhaseSec2),
-                  yLegendLabel='GPU-Sec2',marker='.',linestyle='')
-            p1.addTrace(self.time*1000,_hbt.process.wrapPhase(self.n1ModePhaseSec3),
-                  yLegendLabel='GPU-Sec3',marker='.',linestyle='')
+            pass
         return p1
 
     def plotOfFreq(self):
         # init mode frequency plot
         p1=_hbt.plot.plot(title=str(self.shotno),
                     xLabel='Time (ms)',
-                    yLabel='kHz',
-                    #yLim=[-_np.pi, _np.pi]  ,
-                    subtitle='Mode frequency, n=1')
-#        p1.addTrace(self.time*1000,self.n1ModeFreqSec4*1e-3, yLegendLabel='GPU-FB_S4P')
+                    yLabel='kHz')
+        if self.comparisonDiagnostic == 'nModeData': p1.subtitle='Mode Phase, n=1'
+        if self.comparisonDiagnostic == 'mModeData': p1.subtitle='Poloidal Mode Freq'
+        p1.addTrace(self.time,self.modeFreq[self.GPUmode]*1e3, yLegendLabel='GPU-FB')
         if self._cpci==True:
-            p1.addTrace(self.nModeData.time*1e3,self.nModeData.n1Freq*1e-3,yLegendLabel='CPCI-FB_S4P')
-        if self._plotEVERYTHING==True:
-            p1.addTrace(self.time*1000,self.n1ModeFreqSec1*1e-3, yLegendLabel='GPU-Sec1')
-            p1.addTrace(self.time*1000,self.n1ModeFreqSec2*1e-3, yLegendLabel='GPU-Sec2')
-            p1.addTrace(self.time*1000,self.n1ModeFreqSec3*1e-3, yLegendLabel='GPU-Sec3')
+            self.plotCPCI(p1,which='Freq')
         return p1
-  
+    
+    def plotCPCI(self,p,which='Amp'):
+        # Select which plot we're on
+        if which == 'Amp':
+            if self.comparisonDiagnostic == 'mModeData': # poloidal modes
+                if not self._plotEVERYTHING:
+                    p.addTrace(self.mModeData.time,self.mModeData.m3Amp,yLegendLabel='CPCI M=3')
+                else:
+                    p.addTrace(self.mModeData.time,self.mModeData.m1Amp,yLegendLabel='CPCI M=1')
+                    p.addTrace(self.mModeData.time,self.mModeData.m2Amp,yLegendLabel='CPCI M=2')
+                    p.addTrace(self.mModeData.time,self.mModeData.m3Amp,yLegendLabel='CPCI M=3')
+                    p.addTrace(self.mModeData.time,self.mModeData.m4Amp,yLegendLabel='CPCI M=4')
+                    p.addTrace(self.mModeData.time,self.mModeData.m5Amp,yLegendLabel='CPCI M=5')
+            elif self.comparisonDiagnostic == 'nModeData': # Toroidal modes
+                p.addTrace(self.nModeData.time*1e3,self.nModeData.n1Amp,yLegendLabel='CPCI-FB_S4P')
+        #######################################################################        
+        elif which == 'Phase':
+            if self.comparisonDiagnostic == 'mModeData':
+                if not self._plotEVERYTHING:
+                    time,self.mModeData.m3PhaseRaw = _hbt.process.rmPhaseJumps(\
+                                self.mModeData.time,self.mModeData.m3PhaseRaw)
+                    p.addTrace(time,self.mModeData.m3PhaseRaw,yLegendLabel='CPCI M=3')
+                else:
+                    p.addTrace(self.mModeData.time,self.mModeData.m1Phase,yLegendLabel='CPCI M=1')
+                    p.addTrace(self.mModeData.time,self.mModeData.m2Phase,yLegendLabel='CPCI M=2')
+                    p.addTrace(self.mModeData.time,self.mModeData.m3Phase,yLegendLabel='CPCI M=3')
+                    p.addTrace(self.mModeData.time,self.mModeData.m4Phase,yLegendLabel='CPCI M=4')
+                    p.addTrace(self.mModeData.time,self.mModeData.m5Phase,yLegendLabel='CPCI M=5')
+            elif self.comparisonDiagnostic == 'nModeData': # Toroidal modes
+                if not self._plotEVERYTHING:
+                    p.addTrace(self.nModeData.time*1e3,self.nModeData.n1Phase,yLegendLabel='CPCI-FB_S4P',
+                               marker='.',linestyle='',alpha=.4,markerSize=.1)#,markerSize=.1
+                else:
+                    p.addTrace(self.time*1000,_hbt.process.wrapPhase(self.n1ModePhaseSec1),
+                               yLegendLabel='GPU-Sec1',marker='.',linestyle='')
+                    p.addTrace(self.time*1000,_hbt.process.wrapPhase(self.n1ModePhaseSec2),
+                                yLegendLabel='GPU-Sec2',marker='.',linestyle='')
+                    p.addTrace(self.time*1000,_hbt.process.wrapPhase(self.n1ModePhaseSec3),
+                                yLegendLabel='GPU-Sec3',marker='.',linestyle='')
+        #######################################################################
+        elif which == 'Freq':
+            if self.comparisonDiagnostic == 'mModeData':
+                if not self._plotEVERYTHING:
+                    p.addTrace(self.mModeData.time,self.mModeData.m3Freq*1e-3,yLegendLabel='CPCI M=3')
+                else:
+                    p.addTrace(self.mModeData.time,self.mModeData.m1Freq*1e-3,yLegendLabel='CPCI M=1')
+                    p.addTrace(self.mModeData.time,self.mModeData.m2Freq*1e-3,yLegendLabel='CPCI M=2')
+                    p.addTrace(self.mModeData.time,self.mModeData.m3Freq*1e-3,yLegendLabel='CPCI M=3')
+                    p.addTrace(self.mModeData.time,self.mModeData.m4Freq*1e-3,yLegendLabel='CPCI M=4')
+                    p.addTrace(self.mModeData.time,self.mModeData.m5Freq*1e-3,yLegendLabel='CPCI M=5')
+            elif self.comparisonDiagnostic == 'nModeData':
+                p.addTrace(self.nModeData.time*1e3,self.nModeData.n1Freq*1e-3,yLegendLabel='CPCI-FB_S4P')
+                if self._plotEVERYTHING==True:
+                    p.addTrace(self.time*1000,self.n1ModeFreqSec1*1e-3, yLegendLabel='GPU-Sec1')
+                    p.addTrace(self.time*1000,self.n1ModeFreqSec2*1e-3, yLegendLabel='GPU-Sec2')
+                    p.addTrace(self.time*1000,self.n1ModeFreqSec3*1e-3, yLegendLabel='GPU-Sec3')
 
 def calcLeastSquaresMatrix(shotno):
     """
