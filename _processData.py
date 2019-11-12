@@ -632,6 +632,80 @@ def convolutionSmoothing(data,numPoints,method='gaussian',plot=False):
         
     return smoothedData
     
+
+def gaussianFilter(t,y,timeFWHM,filterType='high',plot=False,plotGaussian=False):
+	"""
+	Low and pass filters using scipy's gaussian convolution filter
+	
+	Parameters
+	----------
+	t : numpy.array
+		time
+	y : numpy.array
+		time dependent data
+	timeFWHM : float
+		full width at half maximum of the gaussian with units in time.  this
+		effectively sets the corner frequency of the filter
+	filterType : str
+		'high' - high-pass filter
+		'low' - low-pass filter
+	plot : bool
+		plots the results
+	plotGaussian : bool
+		plots the gaussian distribution used for the filter
+		
+	Returns
+	-------
+	yFiltered : numpy.array
+		filtered time dependent data
+		
+	References
+	----------
+	https://en.wikipedia.org/wiki/Full_width_at_half_maximum
+	https://docs.scipy.org/doc/scipy-0.19.0/reference/generated/scipy.signal.gaussian.html
+	https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter1d.html
+	"""
+	
+	dt=t[1]-t[0]
+	
+#	from scipy import signal
+	
+	from scipy.ndimage import gaussian_filter1d
+	
+	def fwhmToGaussFilterStd(fwhm,dt):
+		
+		std=1.0/_np.sqrt(8*_np.log(2))*fwhm/dt
+		return std
+	
+	
+	std=fwhmToGaussFilterStd(timeFWHM,dt)
+#	yFiltered=signal.gaussian(len(t), std=std)
+	
+#	if filterType=='low':
+	yFiltered=gaussian_filter1d(y*1.0,std,mode='nearest')
+#	elif filterType=='high':
+#		yFiltered=y-gaussian_filter1d(y*1.0,std)
+	
+	if plot==True:
+		
+		_plt.figure()
+		_plt.plot(t,y,label='Raw')
+		_plt.plot(t,yFiltered,label='Low-pass')
+		_plt.plot(t,y-yFiltered,label='High-pass')
+		_plt.legend()
+
+	if plotGaussian==True:
+		
+		from scipy import signal
+		_plt.figure()
+		_plt.plot(t,signal.gaussian(len(t), std=std),label='gaussian')
+		_plt.legend()
+		
+	if filterType=='low':
+		return yFiltered
+	else:
+		return y-yFiltered
+
 def gaussianLowPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False):
 	"""
 	Low pass filter using scipy's gaussian filters

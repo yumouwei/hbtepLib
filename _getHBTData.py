@@ -1984,6 +1984,8 @@ class fbData:
 		flatten = lambda l: [item for sublist in l for item in sublist]
 		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.fbPolTime]).transpose(),_np.array(flatten(self.fbPolData)).transpose(),axis=1),
 								columns=['Time']+flatten(self.fbPolNames)).set_index('Time')
+		self.dfDataRaw=_pd.DataFrame( 	data=_np.append(_np.array([self.fbPolTime]).transpose(),_np.array(flatten(self.fbPolRaw)).transpose(),axis=1),
+								columns=['Time']+flatten(self.fbPolNames)).set_index('Time')
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':flatten(self.fbPolNames),
 									'Phi':flatten(self.phi),
 									'Theta':flatten(self.theta),
@@ -2209,6 +2211,8 @@ class taData:
 		#TODO(John) rewrite entire class.  start with dataframes instead of lists
 		self.dfData=_pd.DataFrame( 	data=_np.append(_np.array([self.taPolTime]).transpose(),_np.array(self.taPolData).transpose(),axis=1),
 								columns=['Time']+self.namesTAPol).set_index('Time')
+		self.dfDataRaw=_pd.DataFrame( 	data=_np.append(_np.array([self.taPolTime]).transpose(),_np.array(self.taPolRaw).transpose(),axis=1),
+								columns=['Time']+self.namesTAPol).set_index('Time')
 		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':self.namesTAPol,
 									'Phi':self.phi,
 									'Theta':self.theta,
@@ -2225,6 +2229,7 @@ class taData:
 
 		if removeBadSensors==True:
 			self.dfData=self.dfData.drop(columns=self.badSensors)
+			self.dfDataRaw=self.dfDataRaw.drop(columns=self.badSensors)
 			self.dfMeta=self.dfMeta.drop(index=self.badSensors)
 
 		# plot
@@ -2441,7 +2446,8 @@ class quartzJumperData:
 		dataAddress=['\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_A',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_B',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_C',
-										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',]
+										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',
+										'\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_96 ']
 		data, time=mdsData(shotno=shotno,
 						   dataAddress=dataAddress,
 						   tStart=tStart, tStop=tStop)
@@ -2449,19 +2455,21 @@ class quartzJumperData:
 		self.eRogB=data[1];
 		self.eRogC=data[2];
 		self.eRogD=data[3];
+		data[4]*=100
+		self.westRackGround=data[4]
 		self.time=time;
 		self.sensorNames=['A. Section 9-10','B. Section 3-4','C. Section 10-1','D. Section 5-6']
 		self.phi=_np.array([198,342,234,54])*_np.pi/180.
 		self.theta=_np.array([0,0,0,0])
 		
 		# pandas dataframes
-		self.dfData=_pd.DataFrame( 	data=_np.array((time,data[0],data[1],data[2],data[3])).transpose(),
-								columns=['Time','JumperA','JumperB','JumperC','JumperD']).set_index('Time')
-		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':['JumperA','JumperB','JumperC','JumperD'],
-									'Phi':_np.array([198,342,234,54])*_np.pi/180.,
-									'Theta':_np.array([0,0,0,0]),
+		self.dfData=_pd.DataFrame( 	data=_np.array((time,data[0],data[1],data[2],data[3],data[4])).transpose(),
+								columns=['Time','JumperA','JumperB','JumperC','JumperD','WestRackGround']).set_index('Time')
+		self.dfMeta=_pd.DataFrame( 	data={'SensorNames':['JumperA','JumperB','JumperC','JumperD','WestRackGround'],
+									'Phi':_np.array([198,342,234,54,0])*_np.pi/180.,
+									'Theta':_np.array([0,0,0,0,0]),
 									'Address':dataAddress,
-									'SectionNum':[9.5,3.5,0.5,5.5]},
+									'SectionNum':[9.5,3.5,0.5,5.5,0]},
 								columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')
 		
 		if plot == True:
@@ -2470,11 +2478,12 @@ class quartzJumperData:
 	def plot(self):
 		""" Plot all relevant plots """
 			
-		fig,p1=_plt.subplots(4,sharex=True)
+		fig,p1=_plt.subplots(2,sharex=True)
 		p1[0].plot(self.time*1e3,self.eRogA,label='Rogowski A')
-		p1[1].plot(self.time*1e3,self.eRogB,label='Rogowski B')
-		p1[2].plot(self.time*1e3,self.eRogC,label='Rogowski C')
-		p1[3].plot(self.time*1e3,self.eRogD,label='Rogowski D')
+		p1[0].plot(self.time*1e3,self.eRogB,label='Rogowski B')
+		p1[0].plot(self.time*1e3,self.eRogC,label='Rogowski C')
+		p1[0].plot(self.time*1e3,self.eRogD,label='Rogowski D')
+		p1[1].plot(self.time*1e3,self.westRackGround,label='West rack ground')
 		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Current (A)')
 		_plot.finalizeFigure(fig,title=self.title)
 		
@@ -2731,6 +2740,10 @@ class solData:
 									'Theta':self.thetas*_np.pi/180,
 									'Address':sensorAddress},
 								columns=['SensorNames','Phi','Theta','Address']).set_index('SensorNames')
+		self.dfData['AllTotal']=self.dfData.sum(axis=1)
+		self.dfData['S01Total']=self.dfData.iloc[:,self.dfData.columns.str.contains('S01')].sum(axis=1)
+		self.dfData['S04Total']=self.dfData.iloc[:,self.dfData.columns.str.contains('S04')].sum(axis=1)
+		self.dfData['S08Total']=self.dfData.iloc[:,self.dfData.columns.str.contains('S08')].sum(axis=1)
 		
 		# optional plotting	
 		if plot == True:
@@ -2783,26 +2796,56 @@ class solData:
 	def plot(self,plot='smoothedOnly',includeBP=True):
 		""" plots all 20 sol sensor currents on three plots """
 
-		if plot=='all':
-			for j in range(0,20):
-					p1=self.plotOfSingleSensor(j,'all').plot()
+#		if plot=='all':
+#			for j in range(0,20):
+#					p1=self.plotOfSingleSensor(j,'all').plot()
  
-		else:
-			for j in range(0,8):
-				if j==0:
-					p1=self.plotOfSingleSensor(j,plot) 
-					p3=self.plotOfSingleSensor(12+j,plot) 
-					if j<4:
-						p2=self.plotOfSingleSensor(8+j,plot) 
-				else:
-					p1.mergePlots(self.plotOfSingleSensor(j,plot))
-					p3.mergePlots(self.plotOfSingleSensor(12+j,plot))
-					if j<4:
-						p2.mergePlots(self.plotOfSingleSensor(8+j,plot)) 	
-			p1.subtitle='Section 1 SOL Sensors'	
-			p2.subtitle='Section 4 SOL Sensors'	
-			p3.subtitle='Section 8 SOL Sensors'			
-			return _plot.subPlot([p1,p2,p3],plot=True)
+		if True:
+			fig,ax=_plt.subplots(4,sharex=True)
+			
+			time=self.dfData.index.to_numpy()*1e3
+			dfS01=self.dfData.iloc[:,self.dfData.columns.str.contains('S01')]
+			for key,values in dfS01.iteritems():
+				ax[0].plot(time,dfS01[key],label=key)
+			_plot.finalizeSubplot( ax[0],
+									 ylabel='A',
+									 subtitle='S01')
+			
+			dfS04=self.dfData.iloc[:,self.dfData.columns.str.contains('S04')]
+			for key,values in dfS04.iteritems():
+				ax[1].plot(time,dfS04[key],label=key)
+			_plot.finalizeSubplot( ax[1],
+									 ylabel='A',
+									 subtitle='S04')
+			
+			dfS08=self.dfData.iloc[:,self.dfData.columns.str.contains('S08')]
+			for key,values in dfS08.iteritems():
+				ax[2].plot(time,dfS08[key],label=key)
+			_plot.finalizeSubplot( ax[2],
+									 ylabel='A',
+									 subtitle='S08')
+			
+			dfTotal=self.dfData.iloc[:,self.dfData.columns.str.contains('Total')]
+			for key,values in dfTotal.iteritems():
+				ax[3].plot(time,dfTotal[key],label=key)
+			_plot.finalizeSubplot( ax[3],
+									 ylabel='A',
+									 subtitle='Total')
+#			for j in range(0,8):
+#				if j==0:
+#					p1=self.plotOfSingleSensor(j,plot) 
+#					p3=self.plotOfSingleSensor(12+j,plot) 
+#					if j<4:
+#						p2=self.plotOfSingleSensor(8+j,plot) 
+#				else:
+#					p1.mergePlots(self.plotOfSingleSensor(j,plot))
+#					p3.mergePlots(self.plotOfSingleSensor(12+j,plot))
+#					if j<4:
+#						p2.mergePlots(self.plotOfSingleSensor(8+j,plot)) 	
+#			p1.subtitle='Section 1 SOL Sensors'	
+#			p2.subtitle='Section 4 SOL Sensors'	
+#			p3.subtitle='Section 8 SOL Sensors'			
+#			return _plot.subPlot([p1,p2,p3],plot=True)
 		
 
 @_prepShotno
@@ -3535,6 +3578,252 @@ class nModeData:
 ##		cm = _processt.singleColorMapWithLowerAndUpperCutoffs(lowerCutoff=lCutoff/mx,upperCutoff=uCutoff/mx)
 ##		self.plotOfPhaseAmp.cmap=cm
 						
+	def plotOfSlice(self,index=0):
+		"""
+		Plots fit data for a single time value
+		"""
+		j=index;
+		[n,m]=_np.shape(self._data)
+		y=_np.zeros(n);
+		for i in range(0,n):
+				y[i]=self._data[i][j]*1e4
+		p1=_plot.plot(shotno=[self.shotno],
+					  title=self.title+', t='+str(self.time[j]*1000)+'ms.')
+		phi=_np.linspace(0,_np.pi*2,100)
+		n1Fit=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)
+		n2Fit=self._x[0,j]+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
+		fitTotal=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
+
+		# plot
+		p1.addTrace(yData=y,xData=self._phi,
+					marker='x',linestyle='',yLegendLabel='raw') 
+		p1.addTrace(yData=n1Fit,xData=phi,
+					yLegendLabel='n=1') 
+		p1.addTrace(yData=n2Fit,xData=phi,
+					yLegendLabel='n=2') 
+		p1.addTrace(yData=fitTotal,xData=phi,
+					yLegendLabel='Superposition') 
+		return p1
+	
+	
+
+@_prepShotno
+class nModeData_df:
+	"""
+	This function performs n-mode (toroidal) mode analysis on the plasma.
+	Provides mode amplitude, phase, and frequency
+	
+	Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		True - plots relevant data
+		'all' - plots all data
+	nModeSensor : str
+		sensors to be used to calculate the modes
+		'FB' - feedback sensors
+		'TA' - toroidal array sensors
+	method : str
+		method to calculate mode analysis
+		'leastSquares' - performs a matrix least squares analysis
+		
+	Attributes
+	----------
+	shotno : int
+		data shot number
+	title : str
+		title to be placed on each plot
+	nModeSensor : str
+		sensors to be used to calculate the modes
+	n1Amp : numpy.ndarray
+		n=1 mode amplitude data
+	n2Amp : numpy.ndarray
+		n=2 mode amplitude data
+	n1Phase : numpy.ndarray
+		filtered n=1 mode phase data
+	n1PhaseRaw : numpy.ndarray
+		raw n=1 mode phase data
+	n1Freq : numpy.ndarray
+		filtered n=1 mode frequency data
+	n1FreqRaw : numpy.ndarray
+		raw n=1 mode frequency data
+		
+	Subfunctions
+	------------
+	plot :
+		plots relevant plots
+	Bn1 : 
+		Generates a pretend B_{n=1} signal at the toroidal location, phi0
+		Not presently in use
+	plotOfAmps : 
+		returns a plot of n=1 and n=2 mode amplitudes
+	plotOfN1Phase
+		returns a plot of the n=1 mode phase
+	self.plotOfN1Freq
+		returns a plot of the n=1 mode frequency
+	self.plotOfN1Amp
+		returns a plot of the n=1 mode amplitude
+		
+	Notes
+	-----
+	The convolution filters used with the phase and frequency "mess up" the 
+	last tenth of a millisecond of data
+	
+	"""	
+
+	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
+				 nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
+				 phaseFilterTimeConstant=1.0/100e3):
+		
+		self.shotno=shotno
+		self.title = '%d.  %s_4 sensor array.  n mode analysis' % (shotno,nModeSensor)
+		self.nModeSensor=nModeSensor		
+		
+		# load data from requested sensor array
+		if nModeSensor=='TA':
+			## load TA data
+			temp=taData(self.shotno,tStart,tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
+			b=temp.taPolData
+			time=temp.taPolTime
+			phi=temp.phi
+#			[n,m]=_np.shape(data)
+		elif nModeSensor=='FB' or nModeSensor=='FB_S4':
+			fb=fbData(shotno,tStart,tStop)
+			time=fb.dfData.index.to_numpy()
+			b=fb.dfData.iloc[:,fb.dfData.columns.str.contains('S4P')].to_numpy()
+			phi=fb.dfMeta[fb.dfMeta.index.str.contains('S4P')].Phi.to_numpy()
+		
+		if method=='leastSquares':
+			n=len(phi)
+			A=_np.zeros((n,5))
+			A[:,0]=_np.ones(n);
+			A[:,1]=_np.sin(-phi)
+			A[:,2]=_np.cos(-phi) 
+			A[:,3]=_np.sin(-2*phi)
+			A[:,4]=_np.cos(-2*phi)
+			Ainv=_np.linalg.pinv(A)
+			x=Ainv.dot(b.transpose())
+			dfResults=_pd.DataFrame(data=x.transpose(),index=time,columns=['n0','n1Sin','n1Cos','n2Sin','n2Cos'])
+			dfResults['n1Amp']=_np.sqrt(dfResults['n1Sin']**2+dfResults['n1Cos']**2)
+			dfResults['n1Phase']=_np.arctan2(dfResults['n1Sin'],dfResults['n1Cos'])
+			dfResults['n2Amp']=_np.sqrt(dfResults['n2Sin']**2+dfResults['n2Cos']**2)
+			dfResults['n2Phase']=_np.arctan2(dfResults['n2Sin'],dfResults['n2Cos'])
+			dfResults['n1PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
+																_process.unwrapPhase(dfResults['n1Phase'].to_numpy()),
+																timeFWHM=0.5e-4,
+																plot=False,
+																filterType='low')
+			dfResults['n2PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
+																_process.unwrapPhase(dfResults['n2Phase'].to_numpy()),
+																timeFWHM=0.5e-4,
+																plot=False,
+																filterType='low')
+			dfResults['n1Freq']=_np.gradient(dfResults['n1PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
+			dfResults['n2Freq']=_np.gradient(dfResults['n2PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
+			dfResults['n1PhaseFilt']=_process.wrapPhase(dfResults['n1PhaseFilt'].to_numpy())
+			dfResults['n2PhaseFilt']=_process.wrapPhase(dfResults['n2PhaseFilt'].to_numpy())
+			
+		self.dfResults=dfResults
+		
+		## plot data
+		if plot==True:
+			self.plot()
+			
+		elif plot == 'all':
+			self.plotOfSlice(index=int(m/4)).plot();
+			self.plotOfSlice(index=int(m/2)).plot();
+			self.plot(True)
+			
+	def plot(self,plotAll=False):
+		"""
+		plots
+		"""
+		fig,p1=_plt.subplots(4,sharex=True,figsize=[6,4])
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['n1Cos']*1e4,
+					label=r'n=1 Cos.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['n1Sin']*1e4,
+					label=r'n=1 Sin.',
+					linewidth=0.8)
+		p1[1].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['n1Amp']*1e4,
+					label=r'$\left| \delta B\right|_{n=1}$')
+		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['n1Phase'],
+					label=r'$\angle \delta B_{n=1}$',
+					marker='.',
+					markersize=2,
+					linestyle='')
+#		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+#					self.dfResults['n1PhaseFilt'],
+#					label=r'$\angle \delta B_{n=1}$',
+#					marker='.',
+#					markersize=2,
+#					linestyle='')
+		p1[3].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['n1Freq']*1e-3,
+					label='Frequency (kHz)')
+		if plotAll==True:
+			p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+						self.dfResults['n2Cos']*1e4,
+						label=r'n=2 Cos.')
+			p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+						self.dfResults['n2Sin']*1e4,
+						label=r'n=2 Sin.')
+			p1[1].plot(	self.dfResults.index.to_numpy()*1e3,
+						self.dfResults['n2Amp']*1e4,
+						label=r'$\left| \delta B\right|_{n=2}$')
+			p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+						self.dfResults['n2Phase'],
+						label=r'$\angle \delta B_{n=2}$',
+						marker='.',
+						markersize=2,
+						linestyle='')
+			p1[3].plot(	self.dfResults.index.to_numpy()*1e3,
+						self.dfResults['n2Freq']*1e-3,
+						label='Frequency (kHz)')
+		_plot.finalizeSubplot(	p1[0],
+								ylabel='G',
+								ylim=[-12,12],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8,
+								title=self.title)
+		_plot.finalizeSubplot(	p1[1],
+								ylabel='G',
+								ylim=[-0.5,12],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8)
+		_plot.finalizeSubplot(	p1[2],
+								ylabel='rad.',
+								ylim=[-_np.pi,_np.pi],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8,
+#								yticks=_np.array([-_np.pi,-_np.pi/2,0,_np.pi/2,_np.pi]),
+								)
+		_plot.finalizeSubplot(	p1[3],
+								ylabel='kHz',
+								xlabel='Time (ms)',
+								ylim=[-5,25],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8)
+		_plot.finalizeFigure(fig)
+		
+		
 	def plotOfSlice(self,index=0):
 		"""
 		Plots fit data for a single time value
