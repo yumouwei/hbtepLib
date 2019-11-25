@@ -26,89 +26,89 @@ def _findNearestForWeighting(array,value):
     
 ###############################################################################
 ### Langmuir probe calculation
-	
+    
 
 def langmuirProbeSimulation(V=_np.arange(-150,151,1),A_probe=0.00032258,V_plasma=50,T_elec=30,T_ion=30,density=1e18,ionMassNumber=2.014102,plot=True):
-	"""
-	Produces a langmuir probe I-V plot based on several known values
-	
-	Parameters
-	----------
-	V : numpy.ndarray
-		voltage array from some negative value to some positive value
-	A_probe : float
-		probe area in m^2
-	V_plasma : float
-		plasma voltage in volts
-	T_elec : float
-		electron temperature in eV
-	T_ion : float
-		ion temperature in eV
-	density : float
-		plasma density
-	ionMassNumber : float
-		atomic mass number of the ion.  deuterium = 2.014102
-		
-	Returns
-	-------
-	I : numpy.ndarray
-		probe current from both electrons and ions
-		
-	References
-	----------
-	https://doi.org/10.1119/1.2772282
-	
-	Example
-	-------
-	:
-		dV=1
-		V=np.arange(-150,150+dV,dV)
-		a=langmuirProbeSimulation(V)
-	"""
-	import numpy as np
+    """
+    Produces a langmuir probe I-V plot based on several known values
+    
+    Parameters
+    ----------
+    V : numpy.ndarray
+        voltage array from some negative value to some positive value
+    A_probe : float
+        probe area in m^2
+    V_plasma : float
+        plasma voltage in volts
+    T_elec : float
+        electron temperature in eV
+    T_ion : float
+        ion temperature in eV
+    density : float
+        plasma density
+    ionMassNumber : float
+        atomic mass number of the ion.  deuterium = 2.014102
+        
+    Returns
+    -------
+    I : numpy.ndarray
+        probe current from both electrons and ions
+        
+    References
+    ----------
+    https://doi.org/10.1119/1.2772282
+    
+    Example
+    -------
+    :
+        dV=1
+        V=np.arange(-150,150+dV,dV)
+        a=langmuirProbeSimulation(V)
+    """
+    import numpy as np
 
-	# constants
-	eV=1.60218e-19;	# eV
-	q=1.6e-19;		# fundamental charge
-	amu=1.66054e-27; 	# 1 amu to kg
-	m_elec=9.109e-31; 	# mass of an electron
-	
-	# convert temperatures from eV to Joules
-	T_elec*=eV
-	T_ion*=eV
-	
-	# ions
-	if True:
-		m_ion=ionMassNumber*amu
-		v_ion_thermal=np.sqrt(8*T_ion/(np.pi*m_ion))
-		if T_elec > T_ion*5:
-			I_ion_sat=0.6*q*density*np.sqrt(T_elec/m_ion)*A_probe
-		else:
-			I_ion_sat=0.25*q*density*v_ion_thermal*A_probe
-		I_ion=np.zeros(len(V))
-		I_ion[V<V_plasma]=-I_ion_sat
-		I_ion[V>=V_plasma]=-I_ion_sat*np.exp(q*(V_plasma-V[V>=V_plasma])/(T_ion))
-		
-	# electrons
-	if True:
-		v_elec_thermal=np.sqrt(8*T_elec/(np.pi*m_elec))
-		I_elec_sat=0.25*q*density*v_elec_thermal*A_probe
-		I_elec=np.zeros(len(V))
-		I_elec[V<V_plasma]=I_elec_sat*np.exp(-q*(V_plasma-V[V<V_plasma])/(T_elec))
-		I_elec[V>=V_plasma]=I_elec_sat
-		
-	# total current
-	I=I_elec+I_ion
-		
-	if plot==True:
-		import matplotlib.pyplot as plt
-		fig,ax=plt.subplots()
-		ax.plot(V,I_ion,label="Ion current")
-		ax.plot(V,I_elec,label="Elec. current")
-		ax.plot(V,I,label="Total current")
-		_plot.finalizeSubplot(ax,xlabel='Bias voltage (V)',ylabel='Probe current (A)')
-		
-	return I
+    # constants
+    eV=1.60218e-19;    # eV
+    q=1.6e-19;        # fundamental charge
+    amu=1.66054e-27;     # 1 amu to kg
+    m_elec=9.109e-31;     # mass of an electron
+    
+    # convert temperatures from eV to Joules
+    T_elec*=eV
+    T_ion*=eV
+    
+    # ions
+    if True:
+        m_ion=ionMassNumber*amu
+        v_ion_thermal=np.sqrt(8*T_ion/(np.pi*m_ion))
+        if T_elec > T_ion*5:
+            I_ion_sat=0.6*q*density*np.sqrt(T_elec/m_ion)*A_probe
+        else:
+            I_ion_sat=0.25*q*density*v_ion_thermal*A_probe
+        I_ion=np.zeros(len(V))
+        I_ion[V<V_plasma]=-I_ion_sat
+        I_ion[V>=V_plasma]=-I_ion_sat*np.exp(q*(V_plasma-V[V>=V_plasma])/(T_ion))
+        
+    # electrons
+    if True:
+        v_elec_thermal=np.sqrt(8*T_elec/(np.pi*m_elec))
+        I_elec_sat=0.25*q*density*v_elec_thermal*A_probe
+        I_elec=np.zeros(len(V))
+        I_elec[V<V_plasma]=I_elec_sat*np.exp(-q*(V_plasma-V[V<V_plasma])/(T_elec))
+        I_elec[V>=V_plasma]=I_elec_sat
+        
+    # total current
+    I=I_elec+I_ion
+        
+    if plot==True:
+        import matplotlib.pyplot as plt
+        fig,ax=plt.subplots()
+        ax.plot(V,I_ion,label="Ion current")
+        ax.plot(V,I_elec,label="Elec. current")
+        ax.plot(V,I,label="Total current")
+        _plot.finalizeSubplot(ax,xlabel='Bias voltage (V)',ylabel='Probe current (A)')
+        
+    return I
     
 
 class langmuirProbe:
@@ -768,320 +768,324 @@ class picCode:
     
     
 ###############################################################################
-### Misc. plasma models	
-			
-def thetaCorrection(	shotno,
-					theta=_np.linspace(-_np.pi,_np.pi,100),
-					tStart=2e-3,
-					tStop=5e-3,
-					plot=False):
-	
-	"""
-	This function corrects the theta coordinate (theta) for the non-cylindrical
-	nature of the HFS and LFS magnetic fields.  This is based on equation 4.4 
-	in Jeff's thesis
-	
-	Work in progress
-	"""
-	
-	# constants
-	mu0=4e-7*_np.pi
-	
-	# libraries
-	from _getHBTData import ipData
-	from _getHBTData import capBankData
-	import _plotTools as _plot
-	import pandas as pd
-	
-	
-	def lambdaCalc(Bv, Ip):
-		# Jeff's thesis, equations 4.5 and 4.7
-		a=0.15
-		R0=0.92
-		term=4*_np.pi*R0*Bv/mu0/Ip-_np.log(8*R0/a)+1.5
-		L=(term+1)*a/R0
-		L[L>1.0]=1.0
-		L[L<-1.0]=-1.0
-		return L
-	
-	def thetaStarCalc(theta, L):
-		return theta-L*_np.sin(theta)
-		
-	# get plasma current
-	Ip=ipData(shotno,tStart=tStart,tStop=tStop).ip
-#	Ip=ipData.ip
-#	timeIp=ipData.time
-	
-	# get cap bank data
-	capData=capBankData(shotno,tStart=tStart,tStop=tStop)
-	vfCurrent=capData.vfBankCurrent
-	ohCurrent=capData.	ohBankCurrent
-	time=capData.vfTime
-	
-	# calculate B fields at R_0 = 0.92m.  (Using static values from Jeff's code)
-	Bv_vf=vfCurrent*(-2.6602839e-06)
-	Bv_oh=ohCurrent*(1.9580808e-08)*(-1) # -1 so that the field subtracts 
-	
-	# net field
-	Bv=Bv_vf+Bv_oh
-	
-	# calculate lambda
-	L=lambdaCalc(Bv,Ip)
-	
-	# theta correction
-	try:
-		m=len(theta)
-	except:
-		m=1
-	thetaStar=_np.zeros((len(L),m))
-	for i in range(len(L)):
-		thetaStar[i]=thetaStarCalc(theta,L[i]) #theta-L[i]*_np.sin(theta)
-		
-	# init dataframe
-	dfData=pd.DataFrame(	data=thetaStar,
-						index=time,
-						columns=theta)
-	
-	if plot==True:
-		
-		if m!=1:
-			fig,ax=_plt.subplots()
-			_plot.contourPlot(		ax,
-								x=dfData.index*1e3,
-								y=dfData.columns,
-								z=dfData.transpose(),
-								levels=_np.arange(-3,3+0.5,0.5),
-								xlabel='Time (ms)',
-								ylabel='Theta (rad)',
-								zlabel='Theta corrected (rad)',
-								zticklabels=_np.arange(-3,3+0.5,0.5),
-								ztickLabels=_np.arange(-3,3+0.5,0.5),
-								fill=False
-								)
-		if True:
-			fig,ax=_plt.subplots()
-			
-			ax.plot(time*1e3,L,label='L(t)')
-			_plot.finalizeSubplot(	ax,
-								xlabel=r'Time (ms)',
-								ylabel=r'L(t)',
-								)
-			
-			
-		if True:
-			fig,ax=_plt.subplots()
-			theta=_np.arange(-_np.pi,_np.pi,0.1)
-			
-			for L in _np.linspace(-1,1,11):
-				ts=thetaStarCalc(theta,L)
-				
-				ax.plot(theta,ts,label=r'$\lambda$=%0.2f'%L)
-			_plot.finalizeSubplot(	ax,
-								xlabel=r'$\theta$',
-								ylabel=r'$\theta^*$',
-								)
-					
-
-	
-			
+### Misc. plasma models    
+            
+def thetaCorrection(    shotno,
+                    theta=_np.linspace(-_np.pi,_np.pi,100),
+                    tStart=2e-3,
+                    tStop=5e-3,
+                    plot=False):
+    
+    """
+    This function corrects the theta coordinate (theta) for the non-cylindrical
+    nature of the HFS and LFS magnetic fields.  This is based on equation 4.4 
+    in Jeff's thesis
+    
+    Work in progress
+    """
+    
+    # constants
+    mu0=4e-7*_np.pi
+    
+    # libraries
+    from _getHBTData import ipData
+    from _getHBTData import capBankData
+    import _plotTools as _plot
+    import pandas as pd
+    
+    
+    def lambdaCalc(Bv, Ip):
+        # Jeff's thesis, equations 4.5 and 4.7
+        a=0.15
+        R0=0.92
+        term=4*_np.pi*R0*Bv/mu0/Ip-_np.log(8*R0/a)+1.5
+        L=(term+1)*a/R0
+        L[L>1.0]=1.0
+        L[L<-1.0]=-1.0
+        return L
+    
+    def thetaStarCalc(theta, L):
+        return theta+L*_np.sin(theta) # Note: "True" Theta is theta-lambda*sin, but we want the correction
+        
+    # get plasma current
+    Ip=ipData(shotno,tStart=tStart,tStop=tStop).ip
+#    Ip=ipData.ip
+#    timeIp=ipData.time
+    
+    # get cap bank data
+    capData=capBankData(shotno,tStart=tStart,tStop=tStop)
+    vfCurrent=capData.vfBankCurrent
+    ohCurrent=capData.    ohBankCurrent
+    time=capData.vfTime
+    
+    # calculate B fields at R_0 = 0.92m.  (Using static values from Jeff's code)
+    Bv_vf=vfCurrent*(-2.6602839e-06)
+    Bv_oh=ohCurrent*(1.9580808e-08)*(-1) # -1 so that the field subtracts 
+    
+    # net field
+    Bv=Bv_vf+Bv_oh
+    #print(Bv)
+    #print(Ip)
+    # calculate lambda
+    L=lambdaCalc(Bv,Ip)
+    L=L*0-0.2
+    
+    # theta correction
+    try:
+        m=len(theta)
+    except:
+        m=1
+    thetaStar=_np.zeros((len(L),m))
+    for i in range(len(L)):
+        thetaStar[i]=thetaStarCalc(theta,L[i]) #theta-L[i]*_np.sin(theta)
+        
+    # init dataframe
+    dfData=pd.DataFrame(    data=thetaStar,
+                        index=time,
+                        columns=theta)
+    
+    if plot==True:
+        
+        if m!=1:
+            fig,ax=_plt.subplots()
+            _plot.contourPlot(        ax,
+                                x=dfData.index*1e3,
+                                y=dfData.columns,
+                                z=dfData.transpose(),
+                                levels=_np.arange(-3,3+0.5,0.5),
+                                xlabel='Time (ms)',
+                                ylabel='Theta (rad)',
+                                zlabel='Theta corrected (rad)',
+                                zticklabels=_np.arange(-3,3+0.5,0.5),
+                                ztickLabels=_np.arange(-3,3+0.5,0.5),
+                                fill=False
+                                )
+        if True:
+            fig,ax=_plt.subplots()
+            
+            ax.plot(time*1e3,L,label='L(t)')
+            _plot.finalizeSubplot(    ax,
+                                xlabel=r'Time (ms)',
+                                ylabel=r'L(t)',
+                                )
+            
+            
+        if True:
+            fig,ax=_plt.subplots()
+            theta=_np.arange(-_np.pi,_np.pi,0.1)
+            
+            for L in _np.linspace(-1,1,11):
+                ts=thetaStarCalc(theta,L)
+                
+                ax.plot(theta,ts,'-*',label=r'$\lambda$=%0.2f'%L)
+            _plot.finalizeSubplot(    ax,
+                                xlabel=r'$\theta$',
+                                ylabel=r'$\theta^*$')
+    # Return to list form
+    thetaStarAvg = _np.mean(thetaStar,axis=0)
+    thetaStarAvg = list(thetaStarAvg.transpose())
+    thetaStar = list(thetaStar.transpose())
+    return thetaStar,thetaStarAvg,dfData,L
+    
+              
 def currentDensityModel(iP,q_limiter,r,r_limiter=0.15,q_offset=0.9,plot=False,verbose=False):
-	"""
-	Calculates a tokamak's current density using Wesson's model
-	
-	Parameters
-	----------
-	ip : float
-		plasma current
-	q_limiter : float
-		safety factor at r_limiter (minor radius at the limiter)
-	r : numpy.ndarray
-		radial coordinate in meters.  should range from 0 to r_wall
-	r_wall : float
-		minor radius at the wall in meters.  r_wall=0.16 in HBT-EP
-	r_limiter : float
-		minor radius at the limiter in meters.  r_wall=0.15 in HBT-EP
-	q_offset : float
-		safety factor at r=0
-	plot : bool
-		plot results
-	verbose : bool
-		print misc output
-		
-	Returns
-	-------
-	j : numpy.ndarray
-		current density as a function of minor radius in amps per meter squared
-	r : numpy.ndarray
-		radial coordinate in meters
-		
-	Example
-	-------
-	
-	::
-		
-		r_wall=0.16
-		r=np.linspace(0,r_wall,1001)
-		currentDensityModel(10e3,3,r_wall=r_wall)
-	
-	"""
-	import numpy as np
-	import matplotlib.pyplot as plt
-	
-	l=q_limiter/q_offset-1
-	
-	def firstOrderIntegration(x,y):
-		""" numerical intergration """
-		dx=x[1]-x[0]
-		return np.sum(dx*y)
-	
-	def wessonCurrentModel(r,params):
-		"""
-		Wesson's current model, page 114 in his 2004 book
-		"""
-		j0=params[0] # j(r=0)=j0
-		r0=params[1] # plasma edge (last closed flux surface)
-		l=params[2]
-		j=j0*(1-(r/r0)**2)**(l)
-		j[np.where(r>r0)]=0
-		return j
-	
-	def calcCurrentProfileFromIP(r,r_limiter,radialFunction,params,iP,j0GuessLeft=1e5,j0GuessRight=1e7,j0Guess=1e6,errorTol=1e-6,plot=True,verbose=True):
-		"""
-		The references only provide I_P and do not provide j(r=0).  This 
-		subfunction makes a guess at j(0) and calculates j(r) with the provided
-		q-profile function.  It then iterates until the integral is equal to IP.  
-		
-		Parameters
-		----------
-		r : numpy.array
-			radial coordinate array
-		r_limiter : float
-			radial location of the limiter
-		radialFunction : function(r,params)
-			returns radial density current distribution
-		params : list
-			list of parameters to pass to radialFunction
-		iP : float
-			plasma current [amps]
-		j0GuessLeft : float
-			lower bound of j0 guess value
-		j0GuessRight : float
-			upper bound of j0 guess value
-		errorTol : float
-			error tolerance to end iteration
-			
-		Return
-		------
-		j : np.array
-			radial current density where it's intergal = iP
-		
-		References
-		----------
-		http://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
-		"""
-		
-		j=radialFunction(r,[j0Guess,params[1],params[2]])
-		ITotal=firstOrderIntegration(r,j*r)*2*np.pi
-		error=(ITotal-iP)/iP
-		
-		count=0
-		if verbose==True:
-			print('Starting iterative solver to calculated current density given the plasma current')
-		while(np.abs(error)>errorTol):
-			count+=1
-		
-			if error<0:
-				j0GuessLeft=j0Guess
-			else:
-				j0GuessRight=j0Guess
-				
-			j0Guess=np.mean([j0GuessLeft,j0GuessRight])
-			
-			j=radialFunction(r,[j0Guess,params[1],params[2]])
-			
-			ITotal=firstOrderIntegration(r,j*r)*2*np.pi
-			error=(ITotal-iP)/iP
-			if verbose==True:
-				print('count: %d, \t error: %.6f \t guess: %.3f, \t I: %.1f' % (count,error,j0Guess,ITotal))
-	
-		if plot==True:
-			fig,ax=plt.subplots()
-			ax.plot(r*100.,j/10000.)
-			_plot.finalizeSubplot(ax,xlabel='minor radius (cm)',ylabel=r'current density ($A/cm^2$)')
-			plt.show()
-		return j
-	
-	j=calcCurrentProfileFromIP(r,r_limiter=r_limiter,iP=iP,
-						   radialFunction=wessonCurrentModel, 
-						   params=[1,r_limiter,l],j0Guess=2783578.873,plot=plot,verbose=verbose)
-	
-	return j
+    """
+    Calculates a tokamak's current density using Wesson's model
+    
+    Parameters
+    ----------
+    ip : float
+        plasma current
+    q_limiter : float
+        safety factor at r_limiter (minor radius at the limiter)
+    r : numpy.ndarray
+        radial coordinate in meters.  should range from 0 to r_wall
+    r_wall : float
+        minor radius at the wall in meters.  r_wall=0.16 in HBT-EP
+    r_limiter : float
+        minor radius at the limiter in meters.  r_wall=0.15 in HBT-EP
+    q_offset : float
+        safety factor at r=0
+    plot : bool
+        plot results
+    verbose : bool
+        print misc output
+        
+    Returns
+    -------
+    j : numpy.ndarray
+        current density as a function of minor radius in amps per meter squared
+    r : numpy.ndarray
+        radial coordinate in meters
+        
+    Example
+    -------
+    
+    ::
+        
+        r_wall=0.16
+        r=np.linspace(0,r_wall,1001)
+        currentDensityModel(10e3,3,r_wall=r_wall)
+    
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    l=q_limiter/q_offset-1
+    
+    def firstOrderIntegration(x,y):
+        """ numerical intergration """
+        dx=x[1]-x[0]
+        return np.sum(dx*y)
+    
+    def wessonCurrentModel(r,params):
+        """
+        Wesson's current model, page 114 in his 2004 book
+        """
+        j0=params[0] # j(r=0)=j0
+        r0=params[1] # plasma edge (last closed flux surface)
+        l=params[2]
+        j=j0*(1-(r/r0)**2)**(l)
+        j[np.where(r>r0)]=0
+        return j
+    
+    def calcCurrentProfileFromIP(r,r_limiter,radialFunction,params,iP,j0GuessLeft=1e5,j0GuessRight=1e7,j0Guess=1e6,errorTol=1e-6,plot=True,verbose=True):
+        """
+        The references only provide I_P and do not provide j(r=0).  This 
+        subfunction makes a guess at j(0) and calculates j(r) with the provided
+        q-profile function.  It then iterates until the integral is equal to IP.  
+        
+        Parameters
+        ----------
+        r : numpy.array
+            radial coordinate array
+        r_limiter : float
+            radial location of the limiter
+        radialFunction : function(r,params)
+            returns radial density current distribution
+        params : list
+            list of parameters to pass to radialFunction
+        iP : float
+            plasma current [amps]
+        j0GuessLeft : float
+            lower bound of j0 guess value
+        j0GuessRight : float
+            upper bound of j0 guess value
+        errorTol : float
+            error tolerance to end iteration
+            
+        Return
+        ------
+        j : np.array
+            radial current density where it's intergal = iP
+        
+        References
+        ----------
+        http://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
+        """
+        
+        j=radialFunction(r,[j0Guess,params[1],params[2]])
+        ITotal=firstOrderIntegration(r,j*r)*2*np.pi
+        error=(ITotal-iP)/iP
+        
+        count=0
+        if verbose==True:
+            print('Starting iterative solver to calculated current density given the plasma current')
+        while(np.abs(error)>errorTol):
+            count+=1
+        
+            if error<0:
+                j0GuessLeft=j0Guess
+            else:
+                j0GuessRight=j0Guess
+                
+            j0Guess=np.mean([j0GuessLeft,j0GuessRight])
+            
+            j=radialFunction(r,[j0Guess,params[1],params[2]])
+            
+            ITotal=firstOrderIntegration(r,j*r)*2*np.pi
+            error=(ITotal-iP)/iP
+            if verbose==True:
+                print('count: %d, \t error: %.6f \t guess: %.3f, \t I: %.1f' % (count,error,j0Guess,ITotal))
+    
+        if plot==True:
+            fig,ax=plt.subplots()
+            ax.plot(r*100.,j/10000.)
+            _plot.finalizeSubplot(ax,xlabel='minor radius (cm)',ylabel=r'current density ($A/cm^2$)')
+            plt.show()
+        return j
+    
+    j=calcCurrentProfileFromIP(r,r_limiter=r_limiter,iP=iP,
+                           radialFunction=wessonCurrentModel, 
+                           params=[1,r_limiter,l],j0Guess=2783578.873,plot=plot,verbose=verbose)
+    
+    return j
 
 def qProfile_cylindricalApproximation(r,j,iP,r_limiter=0.15,R=0.92,BT=0.35,q_limiter=3.0,q_offset=0.9,plot=False):
-	"""
-	Recommended q-profile model in Ivanov's 2014 paper. 
-	
-	Parameters
-	----------
-	r : numpy.ndarray
-		minor radial coordinate in meters.  should range from 0 to r_wall
-	j : numpy.ndarray
-		current density (amps per meter squared) as a function of radius
-	iP : float
-		plasma current (in amps)
-	r_limiter : float
-		radial location of the limiter
-	R : float
-		major radius (in meters)
-	BT : float
-		toroidal magnetic field strength (in Tesla)
-	q_limiter : float
-		safety factor at the limiter
-	q_offset : float
-		safety factor at r=0
-	
-	Example
-	-------
-		import numpy as np
-		r_wall=0.16
-		iP=14e3
-		r=np.linspace(0,r_wall,1001)
-		q_offset=0.9
-		r_limiter=0.15
-		q_limiter=3.0
-		j=currentDensityModel(iP=iP,r=r,r_wall=r_wall,q_offset=q_offset,r_limiter=r_limiter,q_limiter=q_limiter)
-		q=qProfile_cylindricalApproximation(r,j,iP=iP,r_limiter=r_limiter,q_offset=q_offset,q_limiter=q_limiter,plot=True)
-		
-	Notes
-	-----
-	The original source for q(r) is only valid for r<=a.  
-	To correct for this, I solved \int B_{\theta} dl = \mu I_p and 
-	q=\frac{rB_z}{RB_{\theta}} to provide q all the way out to r=b.
-	
-	References
-	----------
-	https://doi.org/10.1063/1.4897174
-	"""
-	import numpy as np
-	import matplotlib.pyplot as plt
-	
-	## physical constants
-	mu0=4*np.pi*1e-7
-	
-	l=q_limiter/q_offset-1
-	q=  2*(l+1)*BT/(mu0*j[0]*R)*(r/r_limiter)**2/(1-(1-(r/r_limiter)**2)**(l+1))
-	q[0]=q[1]
-	i=np.where(q>0)[0]
-	for k in range(i[-1]+1,len(q)):
-		q[k]=2*np.pi*r[k]**2*BT/(R*mu0*iP)
-		
-	if plot==True:
-		fig,ax=plt.subplots(2)
-		ax[0].plot(r*100.,j/10000.)
-		_plot.finalizeSubplot(ax[0],ylabel=r'$A/cm^2$',subtitle='Current density')
-		ax[1].plot(r*100,q)
-		_plot.finalizeSubplot(ax[1],xlabel='minor radius (cm)',ylabel=r'q',subtitle='Safety factor')
-		_plot.finalizeFigure(fig,figSize=[6,6/1.6])
-		plt.show()
-	return q,j,r
-	
+    """
+    Recommended q-profile model in Ivanov's 2014 paper. 
+    
+    Parameters
+    ----------
+    r : numpy.ndarray
+        minor radial coordinate in meters.  should range from 0 to r_wall
+    j : numpy.ndarray
+        current density (amps per meter squared) as a function of radius
+    iP : float
+        plasma current (in amps)
+    r_limiter : float
+        radial location of the limiter
+    R : float
+        major radius (in meters)
+    BT : float
+        toroidal magnetic field strength (in Tesla)
+    q_limiter : float
+        safety factor at the limiter
+    q_offset : float
+        safety factor at r=0
+    
+    Example
+    -------
+        import numpy as np
+        r_wall=0.16
+        iP=14e3
+        r=np.linspace(0,r_wall,1001)
+        q_offset=0.9
+        r_limiter=0.15
+        q_limiter=3.0
+        j=currentDensityModel(iP=iP,r=r,r_wall=r_wall,q_offset=q_offset,r_limiter=r_limiter,q_limiter=q_limiter)
+        q=qProfile_cylindricalApproximation(r,j,iP=iP,r_limiter=r_limiter,q_offset=q_offset,q_limiter=q_limiter,plot=True)
+        
+    Notes
+    -----
+    The original source for q(r) is only valid for r<=a.  
+    To correct for this, I solved \int B_{\theta} dl = \mu I_p and 
+    q=\frac{rB_z}{RB_{\theta}} to provide q all the way out to r=b.
+    
+    References
+    ----------
+    https://doi.org/10.1063/1.4897174
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    ## physical constants
+    mu0=4*np.pi*1e-7
+    
+    l=q_limiter/q_offset-1
+    q=  2*(l+1)*BT/(mu0*j[0]*R)*(r/r_limiter)**2/(1-(1-(r/r_limiter)**2)**(l+1))
+    q[0]=q[1]
+    i=np.where(q>0)[0]
+    for k in range(i[-1]+1,len(q)):
+        q[k]=2*np.pi*r[k]**2*BT/(R*mu0*iP)
+        
+    if plot==True:
+        fig,ax=plt.subplots(2)
+        ax[0].plot(r*100.,j/10000.)
+        _plot.finalizeSubplot(ax[0],ylabel=r'$A/cm^2$',subtitle='Current density')
+        ax[1].plot(r*100,q)
+        _plot.finalizeSubplot(ax[1],xlabel='minor radius (cm)',ylabel=r'q',subtitle='Safety factor')
+        _plot.finalizeFigure(fig,figSize=[6,6/1.6])
+        plt.show()
+    return q,j,r
+    
