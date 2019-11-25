@@ -4,15 +4,16 @@ Functions related to the caliban gpu feedback computer
 
 # Library import 
 from __init__ import (_np,_mds,_pd,os,_plt,_plot,_process,_pref,gethostname,_copy)
-
+import sys
 import hbtepLib as _hbt # May be necessary
 
 
 
 if gethostname()=='spitzer':
     _LOCAL_DATA_PATH='/opt/hbt/data/control' 
-elif os.environ['USER'] == 'rian':
-    _LOCAL_DATA_PATH='/home/rian/Documents/control_data'
+elif sys.platform == 'linux2':
+    if os.environ['USER'] == 'rian':
+        _LOCAL_DATA_PATH='/home/rian/Documents/control_data'
 else:
 	_LOCAL_DATA_PATH=''
 

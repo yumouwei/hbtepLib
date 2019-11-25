@@ -5,14 +5,12 @@ data processing functions.
             
 ###############################################################################
 ### import libraries
-#from __init__ import (_np,_copy,_pd,_plt,_plot,_math)
-try:
-    from . import (_np,_copy,_pd,_plt,_plot,_math)
-except:
-    from copy import copy as _copy
+from __init__ import (_np,_copy,_pd,_plt,_plot,_math)
+
     
 # hbtepLib libraries
 #import _plotTools as _plot
+
 
             
 ###############################################################################
