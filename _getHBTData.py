@@ -4527,7 +4527,7 @@ class polBetaLi:
         """
         fig,p1=_plt.subplots()
         p1.plot(self.time*1e3,self.polBetaLi)
-        _plot.finalizeSubplot(p1,xlabel='Time (ms)')
+        _plot.finalizeSubplot(p1,xlabel='Time (ms)', ylabel='sum')
         _plot.finalizeFigure(fig,title=self.title)
         _plt.ylim(0,3)
         #_plot.yLim(0,10)
