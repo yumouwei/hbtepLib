@@ -16,8 +16,38 @@ provided shotnos.
 ###############################################################################
 ### import libraries
 
-from __init__ import (_np,_mds,_copy,_sys,_socket,os,_pd,_plt,_plot,_time,_process,_pref)
-import _processPlasma as processPlasma  # Has to be separate for some reason
+#from __init__ import (_np,_mds,_copy,_sys,_socket,os,_pd,_plt,_plot,_time,_process,_pref)
+#import _processPlasma as processPlasma  # Has to be separate for some reason
+"""	
+Wei: I changed it back because using (from __init__ ...) doesn't allow me to 
+    find class method using Tab. It also prevents the code from importing the
+    wrong file with same name
+"""
+import numpy as _np
+import MDSplus as _mds
+from copy import copy as _copy
+import sys as _sys
+import _socket
+import os
+import pandas as _pd
+
+# Support for headless launch
+try: # Try due to non-existance of 'DISPLAY' env. Var on John's laptop;
+    if os.environ.has_key('DISPLAY'): 
+        import matplotlib.pyplot as _plt
+        import _plotTools as _plot
+except:
+    import matplotlib.pyplot as _plt
+    import _plotTools as _plot
+    
+import time as _time
+import _processData as _process
+try:
+	import _hbtPreferences as _pref
+except ImportError:
+	_sys.exit("Code hault: _hbtPreferences.py file not found.  See readme.md" +
+	" concerning the creation of _hbtPreferences.py")
+
 ###############################################################################
 ### constants
 #_REMOTE_DATA_PATH='/opt/hbt/data/control'  
@@ -4457,6 +4487,59 @@ class xrayData:
         """
         self.plotOfXray().plot()
 
+
+class polBetaLi:
+    """
+    Calculate the sum beta_p + li/2 using Friedberg eq 6.90 (p 150)
+    betap + li/2 = 4*pi*R*Bv/(mu0*Ip) + 3/2 - ln(8*R/a)
+    Coefficients for calculating Bv are found by Jeff (see get_lambda.pro)
+    """
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,verbose=False):
+        
+        self.shotno = shotno
+        self.title = "%d, Beta_p + li/2" % shotno
+        
+        # get data
+        mu0 = 4E-7 * _np.pi 
+        
+        ip = ipData(shotno, tStart, tStop, False, findDisruption=False)
+        Ip = ip.ip
+        
+        plasmaRadius = plasmaRadiusData(shotno, tStart, tStop, False)
+        R = plasmaRadius.majorRadius
+        a = plasmaRadius.minorRadius
+        self.time = plasmaRadius.time
+        
+        bankData = capBankData(shotno, tStart, tStop, False)
+        OH_cur = bankData.ohBankCurrent
+        VF_cur = bankData.vfBankCurrent
+        Bv = VF_cur * 2.6602839e-06 - OH_cur * 1.9580808e-08
+        
+        #Calculate sum
+        self.polBetaLi = (4 * _np.pi * R * Bv)/(mu0 * Ip) + 1.5 - _np.log(8 * R / a)
+        
+        if plot == True or plot=='all':
+            self.plot()
+            
+    def plotOfpolBetaLi(self):
+        """
+        returns the plot of xray data vs time
+        """
+        fig,p1=_plt.subplots()
+        p1.plot(self.time*1e3,self.polBetaLi)
+        _plot.finalizeSubplot(p1,xlabel='Time (ms)')
+        _plot.finalizeFigure(fig,title=self.title)
+        _plt.ylim(0,3)
+        #_plot.yLim(0,10)
+        return p1
+
+    def plot(self):
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfpolBetaLi().plot()        
+        
+        return
 
 ###############################################################################
 ### debugging code
