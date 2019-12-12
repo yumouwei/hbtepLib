@@ -17,31 +17,21 @@ provided shotnos.
 ### import libraries
 
 #from __init__ import (_np,_mds,_copy,_sys,_socket,os,_pd,_plt,_plot,_time,_process,_pref)
-#import _processPlasma as processPlasma  # Has to be separate for some reason
-"""	
-Wei: I changed it back because using (from __init__ ...) doesn't allow me to 
-    find class method using Tab. It also prevents the code from importing the
-    wrong file with same name
-"""
+
+### import libraries
+
+# common libraries 
 import numpy as _np
 import MDSplus as _mds
 from copy import copy as _copy
 import sys as _sys
 import _socket
-import os
-import pandas as _pd
-
-# Support for headless launch
-try: # Try due to non-existance of 'DISPLAY' env. Var on John's laptop;
-    if os.environ.has_key('DISPLAY'): 
-        import matplotlib.pyplot as _plt
-        import _plotTools as _plot
-except:
-    import matplotlib.pyplot as _plt
-    import _plotTools as _plot
-    
+import matplotlib.pyplot as _plt
 import time as _time
+
+# hbtepLib libraries
 import _processData as _process
+import _plotTools as _plot
 try:
 	import _hbtPreferences as _pref
 except ImportError:
