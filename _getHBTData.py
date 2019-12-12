@@ -4526,7 +4526,7 @@ class sxrMidplaneData:
                            dataAddress=['\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_74 '],
                            tStart=tStart, tStop=tStop)
 
-        self.xray=-1*data[0];
+        self.sxr=-1*data[0];
         self.time=time;
         
         if plot == True or plot=='all':
@@ -4538,7 +4538,7 @@ class sxrMidplaneData:
         returns the plot of xray data vs time
         """
         fig,p1=_plt.subplots()
-        p1.plot(self.time*1e3,self.xray)
+        p1.plot(self.time*1e3,self.sxr)
         _plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Intensity')
         _plot.finalizeFigure(fig,title=self.title)
         
