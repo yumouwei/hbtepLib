@@ -4435,7 +4435,7 @@ class xrayData:
     title : str
         title to go on all plots
     xray : numpy.ndarray
-        plasma current data
+        xray data
     time : numpy.ndarray
         time data
         
@@ -4486,6 +4486,81 @@ class xrayData:
         Plot all relevant plots 
         """
         self.plotOfXray().plot()
+
+
+class sxrMidplaneData:
+    """
+    Gets Soft X-ray midplane sensor data at: devices.north_rack:cpci:input_74 
+    
+    Parameters
+    ----------
+    shotno : int
+        shot number of desired data
+    tStart : float
+        time (in seconds) to trim data before
+        default is 0 ms
+    tStop : float
+        time (in seconds) to trim data after
+        default is 10 ms
+    plot : bool
+        plots all relevant plots if true
+        default is False
+        
+    Attributes
+    ----------
+    shotno : int
+        shot number of desired data
+    title : str
+        title to go on all plots
+    sxr : numpy.ndarray
+        sxr data
+    time : numpy.ndarray
+        time data
+        
+    Subfunctions
+    ------------
+    plotOfSXR : 
+        returns the plot of sxr vs time
+    plot :
+        Plots all relevant plots
+    
+    """
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,verbose=False):
+        
+        self.shotno = shotno
+        self.title = "%d, SXR Midplane Data" % shotno
+        
+        # get data
+        
+        data, time=mdsData(shotno=shotno,
+                           dataAddress=['\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_74 '],
+                           tStart=tStart, tStop=tStop)
+
+        self.xray=-1*data[0];
+        self.time=time;
+        
+        if plot == True or plot=='all':
+            self.plot()
+        
+        
+    def plotOfSXR(self):
+        """
+        returns the plot of xray data vs time
+        """
+        fig,p1=_plt.subplots()
+        p1.plot(self.time*1e3,self.xray)
+        _plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Intensity')
+        _plot.finalizeFigure(fig,title=self.title)
+        
+        return p1
+        
+            
+    def plot(self):
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfSXR().plot()
+
 
 
 class polBetaLi:
