@@ -3919,6 +3919,335 @@ class nModeData_df:
         
 
 @_prepShotno
+class mModeData_df:
+	"""
+	This function performs m-mode (poloidal) mode analysis on the plasma.
+	Provides mode amplitude, phase, and frequency
+	
+	Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		True - plots relevant data
+		'all' - plots all data
+	mModeSensor : str
+		sensors to be used to calculate the modes
+		'PA1' or 'PA2' 
+	method : str
+		method to calculate mode analysis
+		'leastSquares' - performs a matrix least squares analysis
+		
+	Attributes
+	----------
+	shotno : int
+		data shot number
+	title : str
+		title to be placed on each plot
+	TODO add more
+		
+	Subfunctions
+	------------
+	plot :
+		plots relevant plots
+	TODO add more
+		
+	Notes
+	-----
+	
+	
+	"""	
+
+	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
+				 mModeSensor='PA1',method='leastSquares',phaseFilter='gaussian',
+				 Lambda=0.0):
+		
+		self.shotno=shotno
+		self.title = '%d.  %s sensor array.  n mode analysis' % (shotno,mModeSensor)
+#		self.nModeSensor=nModeSensor	
+		
+		data=paData(shotno,tStart=tStart,tStop=tStop)
+		dfPA=data.dfData
+		dfMeta=data.dfMeta
+		
+		dfPA=dfPA.iloc[:,dfPA.columns.str.contains(mModeSensor)]
+		dfMeta=dfMeta.iloc[dfMeta.index.str.contains(mModeSensor)]
+		theta=dfMeta['Theta'].to_numpy()
+#		Lambda=0.1
+		
+		def thetaStarCalc(theta, L=0):
+			"""
+			theta correction in Jeff's thesis.  Eq. 4.4.
+			L=0 does not alter theta
+			"""
+			return theta-L*_np.sin(theta)
+		
+		theta=thetaStarCalc(theta,Lambda)
+		
+		b=dfPA.to_numpy()
+		self._data=b
+		
+		time=dfPA.index.to_numpy()
+		
+		if method=='leastSquares':
+			n=len(theta)
+			A=_np.zeros((n,11))
+			A[:,0]=_np.ones(n);
+			A[:,1]=_np.sin(1*theta)
+			A[:,2]=_np.cos(1*theta) 
+			A[:,3]=_np.sin(2*theta)
+			A[:,4]=_np.cos(2*theta) 
+			A[:,5]=_np.sin(3*theta)
+			A[:,6]=_np.cos(3*theta) 
+			A[:,7]=_np.sin(4*theta)
+			A[:,8]=_np.cos(4*theta) 
+			A[:,9]=_np.sin(5*theta)
+			A[:,10]=_np.cos(5*theta) 
+			Ainv=_np.linalg.pinv(A)
+			x=Ainv.dot(b.transpose())
+			self._x=x
+			dfResults=_pd.DataFrame(data=x.transpose(),index=time,columns=['n0','m1Sin','m1Cos','m2Sin','m2Cos','m3Sin','m3Cos','m4Sin','m4Cos','m5Sin','m5Cos'])
+			dfResults['m1Amp']=_np.sqrt(dfResults['m1Sin']**2+dfResults['m1Cos']**2)
+			dfResults['m1Phase']=_np.arctan2(dfResults['m1Sin'],dfResults['m1Cos'])
+			dfResults['m2Amp']=_np.sqrt(dfResults['m2Sin']**2+dfResults['m2Cos']**2)
+			dfResults['m2Phase']=_np.arctan2(dfResults['m2Sin'],dfResults['m2Cos'])
+			dfResults['m3Amp']=_np.sqrt(dfResults['m3Sin']**2+dfResults['m3Cos']**2)
+			dfResults['m3Phase']=_np.arctan2(dfResults['m3Sin'],dfResults['m3Cos'])
+			dfResults['m4Amp']=_np.sqrt(dfResults['m4Sin']**2+dfResults['m4Cos']**2)
+			dfResults['m4Phase']=_np.arctan2(dfResults['m4Sin'],dfResults['m4Cos'])
+			dfResults['m5Amp']=_np.sqrt(dfResults['m5Sin']**2+dfResults['m5Cos']**2)
+			dfResults['m5Phase']=_np.arctan2(dfResults['m5Sin'],dfResults['m5Cos'])
+			dfResults['m1PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
+																_process.unwrapPhase(dfResults['m1Phase'].to_numpy()),
+																timeFWHM=0.5e-4,
+																plot=False,
+																filterType='low')
+			dfResults['m2PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
+																_process.unwrapPhase(dfResults['m2Phase'].to_numpy()),
+																timeFWHM=0.5e-4,
+																plot=False,
+																filterType='low')
+			dfResults['m3PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
+																_process.unwrapPhase(dfResults['m3Phase'].to_numpy()),
+																timeFWHM=0.5e-4,
+																plot=False,
+																filterType='low')
+			dfResults['m4PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
+																_process.unwrapPhase(dfResults['m4Phase'].to_numpy()),
+																timeFWHM=0.5e-4,
+																plot=False,
+																filterType='low')
+			dfResults['m5PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
+																_process.unwrapPhase(dfResults['m5Phase'].to_numpy()),
+																timeFWHM=0.5e-4,
+																plot=False,
+																filterType='low')
+			
+			dfResults['m1Freq']=_np.gradient(dfResults['m1PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
+			dfResults['m2Freq']=_np.gradient(dfResults['m2PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
+			dfResults['m3Freq']=_np.gradient(dfResults['m3PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
+			dfResults['m4Freq']=_np.gradient(dfResults['m4PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
+			dfResults['m5Freq']=_np.gradient(dfResults['m5PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
+			dfResults['m1PhaseFilt']=_process.wrapPhase(dfResults['m1PhaseFilt'].to_numpy())
+			dfResults['m2PhaseFilt']=_process.wrapPhase(dfResults['m2PhaseFilt'].to_numpy())
+			dfResults['m3PhaseFilt']=_process.wrapPhase(dfResults['m3PhaseFilt'].to_numpy())
+			dfResults['m4PhaseFilt']=_process.wrapPhase(dfResults['m4PhaseFilt'].to_numpy())
+			dfResults['m5PhaseFilt']=_process.wrapPhase(dfResults['m5PhaseFilt'].to_numpy())
+			
+		self.dfResults=dfResults
+		
+		## plot data
+		if plot==True:
+			self.plot()
+			
+#		elif plot == 'all':
+#			self.plotOfSlice(index=int(m/4)).plot();
+#			self.plotOfSlice(index=int(m/2)).plot();
+#			self.plot(True)
+#			
+	def plot(self,plotAll=False):
+		"""
+		plots
+		"""
+		fig,p1=_plt.subplots(4,sharex=True,figsize=[6,4])
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m1Cos']*1e4,
+					label=r'm=1 Cos.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m1Sin']*1e4,
+					label=r'm=1 Sin.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m2Cos']*1e4,
+					label=r'm=2 Cos.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m2Sin']*1e4,
+					label=r'm=2 Sin.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m3Cos']*1e4,
+					label=r'm=3 Cos.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m3Sin']*1e4,
+					label=r'm=3 Sin.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m4Cos']*1e4,
+					label=r'm=4 Cos.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m4Sin']*1e4,
+					label=r'm=4 Sin.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m5Cos']*1e4,
+					label=r'm=5 Cos.',
+					linewidth=0.8)
+		p1[0].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m5Sin']*1e4,
+					label=r'm=5 Sin.',
+					linewidth=0.8)
+		p1[1].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m1Amp']*1e4,
+					label=r'$\left| \delta B\right|_{m=1}$')
+		p1[1].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m2Amp']*1e4,
+					label=r'$\left| \delta B\right|_{m=2}$')
+		p1[1].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m3Amp']*1e4,
+					label=r'$\left| \delta B\right|_{m=3}$')
+		p1[1].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m4Amp']*1e4,
+					label=r'$\left| \delta B\right|_{m=4}$')
+		p1[1].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m5Amp']*1e4,
+					label=r'$\left| \delta B\right|_{m=5}$')
+		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m1Phase'],
+					label=r'$\angle \delta B_{m=1}$',
+					marker='.',
+					markersize=2,
+					linestyle='')
+		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m2Phase'],
+					label=r'$\angle \delta B_{m=2}$',
+					marker='.',
+					markersize=2,
+					linestyle='')
+		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m3Phase'],
+					label=r'$\angle \delta B_{m=3}$',
+					marker='.',
+					markersize=2,
+					linestyle='')
+		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m4Phase'],
+					label=r'$\angle \delta B_{m=4}$',
+					marker='.',
+					markersize=2,
+					linestyle='')
+		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m5Phase'],
+					label=r'$\angle \delta B_{m=5}$',
+					marker='.',
+					markersize=2,
+					linestyle='')
+#		p1[2].plot(	self.dfResults.index.to_numpy()*1e3,
+#					self.dfResults['n1PhaseFilt'],
+#					label=r'$\angle \delta B_{n=1}$',
+#					marker='.',
+#					markersize=2,
+#					linestyle='')
+		p1[3].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m1Freq']*1e-3,
+					label='Frequency')
+		p1[3].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m2Freq']*1e-3,
+					label='Frequency')
+		p1[3].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m3Freq']*1e-3,
+					label='Frequency')
+		p1[3].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m4Freq']*1e-3,
+					label='Frequency')
+		p1[3].plot(	self.dfResults.index.to_numpy()*1e3,
+					self.dfResults['m5Freq']*1e-3,
+					label='Frequency')
+		_plot.finalizeSubplot(	p1[0],
+								ylabel='G',
+								ylim=[-12,12],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8,
+								title=self.title,
+								ncol=2)
+		_plot.finalizeSubplot(	p1[1],
+								ylabel='G',
+								ylim=[-0.5,12],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8,
+								ncol=2)
+		_plot.finalizeSubplot(	p1[2],
+								ylabel='rad.',
+								ylim=[-_np.pi,_np.pi],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8,
+								ncol=2
+#								yticks=_np.array([-_np.pi,-_np.pi/2,0,_np.pi/2,_np.pi]),
+								)
+		_plot.finalizeSubplot(	p1[3],
+								ylabel='kHz',
+								xlabel='Time (ms)',
+								ylim=[-5,25],
+								legendLoc='upper left',
+								fontSizeStandard=8,
+								fontSizeTitle=8,
+								ncol=2)
+		_plot.finalizeFigure(fig)
+		
+		
+	def plotOfSlice(self,index=0):
+		"""
+		Plots fit data for a single time value
+		"""
+		j=index;
+		[n,m]=_np.shape(self._data)
+		y=_np.zeros(n);
+		for i in range(0,n):
+				y[i]=self._data[i][j]*1e4
+		p1=_plot.plot(shotno=[self.shotno],
+					  title=self.title+', t='+str(self.time[j]*1000)+'ms.')
+		phi=_np.linspace(0,_np.pi*2,100)
+		n1Fit=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)
+		n2Fit=self._x[0,j]+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
+		fitTotal=self._x[0,j]+self._x[1,j]*_np.sin(phi)+self._x[2,j]*_np.cos(phi)+self._x[3,j]*_np.sin(2*phi)+self._x[4,j]*_np.cos(2*phi)
+
+		# plot
+		p1.addTrace(yData=y,xData=self._phi,
+					marker='x',linestyle='',yLegendLabel='raw') 
+		p1.addTrace(yData=n1Fit,xData=phi,
+					yLegendLabel='n=1') 
+		p1.addTrace(yData=n2Fit,xData=phi,
+					yLegendLabel='n=2') 
+		p1.addTrace(yData=fitTotal,xData=phi,
+					yLegendLabel='Superposition') 
+		return p1
+
+
+@_prepShotno
 class mModeData:
     """
     This function performs a least squares fit to a poloidal array of sensors and analyzes m=2,3 and 4 modes.  Mode amplitude, phase, and phase velocity. 
