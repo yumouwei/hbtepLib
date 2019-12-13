@@ -974,7 +974,7 @@ def finalizeFigure(fig,title='',h_pad=0.25,w_pad=0.25, fontSizeTitle=12,figSize=
 def finalizeSubplot(ax,xlabel='',ylabel='',title='',subtitle='',
 					xlim=[],ylim=[],
 					fontSizeStandard=10, fontSizeTitle=12,
-					legendLoc='best', color='k',linestyle=':',alpha=0.3):
+					legendLoc='best', color='k',linestyle=':',alpha=0.3,ncol=1):
 	"""
 	Performs many of the "same old" commands that need to be performed for
 	each subplot but wraps it up into one function
@@ -1036,7 +1036,7 @@ def finalizeSubplot(ax,xlabel='',ylabel='',title='',subtitle='',
 			if label[0]!=u'_':
 				legend=True
 		if legend==True:
-			ax[i].legend(loc=legendLoc,numpoints=2,fontsize=fontSizeStandard) # fontsize=fontSizeStandard removed b/c not compatible with old version of matplotlib  #numpoints is the number of markers in the legend
+			ax[i].legend(loc=legendLoc,numpoints=2,fontsize=fontSizeStandard,ncol=ncol) # fontsize=fontSizeStandard removed b/c not compatible with old version of matplotlib  #numpoints is the number of markers in the legend
 			
 		# set x and y axis tick label fontsize
 		ax[i].tick_params(axis='both',labelsize=fontSizeStandard)
