@@ -172,6 +172,8 @@ def rmPhaseJumps(time,data,cut=_np.pi):
         time.insert(i,_np.NaN)
         indx += 1
     return _np.array(time),_np.array(data)
+
+
 def wrapPhase(data): 
     """
     Wraps phase data so that it repeats every 2pi.
@@ -189,7 +191,7 @@ def wrapPhase(data):
         wrapped data array
         
     """
-    inData=_copy(data);
+    inData=data*1.0
     outData=_np.zeros(inData.size);
     inData-=_np.pi;
     for i in range(0,_np.size(inData)-1):
