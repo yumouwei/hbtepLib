@@ -3809,8 +3809,8 @@ class nModeData_df:
 			self.plot()
 			
 		elif plot == 'all':
-			self.plotOfSlice(index=int(m/4)).plot();
-			self.plotOfSlice(index=int(m/2)).plot();
+			self.plotOfSlice(index=int(n/4)).plot();
+			self.plotOfSlice(index=int(n/2)).plot();
 			self.plot(True)
 			
 	def plot(self,plotAll=False):
