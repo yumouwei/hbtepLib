@@ -28,6 +28,7 @@ import sys as _sys
 import _socket
 import matplotlib.pyplot as _plt
 import time as _time
+import pandas as _pd
 
 # hbtepLib libraries
 import _processData as _process
