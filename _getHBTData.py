@@ -370,6 +370,7 @@ def mdsData(shotno=None,
 	
 			time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
 			
+		mdsConn.closeTree('hbtep2', shotno)
 		mdsConn.disconnect()
  
 	if time != [] and type(tStop)!=list:
