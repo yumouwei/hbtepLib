@@ -2506,7 +2506,7 @@ class quartzJumperData:
 	Notes
 	-----
 	Rog. D is permanently off for the time being
-	Rog. B is typically off in favor of Rog. A (not always)	
+	Rog. C is permanently off for the time being
 	
 	"""
 	def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False):
@@ -2518,7 +2518,8 @@ class quartzJumperData:
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_B',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_C',
 										'\HBTEP2::TOP.SENSORS.EXT_ROGS:EX_ROG_D',
-										'\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_96 ']
+										'\HBTEP2::TOP.DEVICES.WEST_RACK:CPCI:INPUT_96 ',
+										'\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_96 ']
 		data, time=mdsData(shotno=shotno,
 						   dataAddress=dataAddress,
 						   tStart=tStart, tStop=tStop)
@@ -2527,21 +2528,24 @@ class quartzJumperData:
 		self.eRogC=data[2];
 		self.eRogD=data[3];
 		data[4]*=100
-		self.westRackGround=data[4]
+		data[5]*=100
+		self.westRackGround=data[4]*100
+		self.northRackGround=data[5]*100
 		self.time=time;
 		self.sensorNames=['A. Section 9-10','B. Section 3-4','C. Section 10-1','D. Section 5-6']
 		self.phi=_np.array([198,342,234,54])*_np.pi/180.
 		self.theta=_np.array([0,0,0,0])
 		
 		# pandas dataframes
-		self.dfData=_pd.DataFrame(	 data=_np.array((time,data[0],data[1],data[2],data[3],data[4])).transpose(),
-								columns=['Time','JumperA','JumperB','JumperC','JumperD','WestRackGround']).set_index('Time')
-		self.dfMeta=_pd.DataFrame(	 data={'SensorNames':['JumperA','JumperB','JumperC','JumperD','WestRackGround'],
-									'Phi':_np.array([198,342,234,54,0])*_np.pi/180.,
-									'Theta':_np.array([0,0,0,0,0]),
+		self.dfData=_pd.DataFrame(	 data=_np.array((time,data[0],data[1],data[2],data[3],data[4],data[5])).transpose(),
+								columns=['Time','Jumper9_10','Jumper3_4','Jumper10_1','Jumper5_6','WestRackGround','NorthRackGround']).set_index('Time')
+		self.dfMeta=_pd.DataFrame(	 data={'SensorNames':['Jumper9_10','Jumper3_4','Jumper10_1','Jumper5_6','WestRackGround','NorthRackGround'],
+									'Phi':_np.array([198,342,234,54,0,0])*_np.pi/180.,
+									'Theta':_np.array([0,0,0,0,0,0]),
 									'Address':dataAddress,
-									'SectionNum':[9.5,3.5,0.5,5.5,0]},
-								columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')
+									'SectionNum':[9.5,3.5,0.5,5.5,0,0],
+									'JumperLetter':['A','B','C','D','na','na']},
+								columns=['SensorNames','Phi','Theta','Address','SectionNum','JumperLetter']).set_index('SensorNames')
 		
 		if plot == True:
 			self.plot()
@@ -2555,6 +2559,7 @@ class quartzJumperData:
 		p1[0].plot(self.time*1e3,self.eRogC,label='Rogowski C')
 		p1[0].plot(self.time*1e3,self.eRogD,label='Rogowski D')
 		p1[1].plot(self.time*1e3,self.westRackGround,label='West rack ground')
+		p1[1].plot(self.time*1e3,self.northRackGround,label='North rack ground')
 		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Current (A)')
 		_plot.finalizeFigure(fig,title=self.title)
 		
@@ -2799,7 +2804,7 @@ class solData:
 		self.solDataFit=[]
 		self.solData=[]
 		for i in range(0,len(self.sensorNames)):
-			temp,temp2=_process.gaussianHighPassFilter(self.solDataRaw[i],self.time,timeWidth=1./20000)
+			temp,temp2=_process.gaussianHighPassFilter(self.solDataRaw[i],self.time,timeWidth=1./20000,plot=False)
 			self.solData.append(temp)
 			self.solDataFit.append(temp2)
 			
@@ -3784,6 +3789,8 @@ class nModeData_df:
 			Ainv=_np.linalg.pinv(A)
 			x=Ainv.dot(b.transpose())
 			dfResults=_pd.DataFrame(data=x.transpose(),index=time,columns=['n0','n1Sin','n1Cos','n2Sin','n2Cos'])
+			dfResults['X1']=1j*dfResults['n1Sin']+dfResults['n1Cos']
+			dfResults['X2']=1j*dfResults['n2Sin']+dfResults['n2Cos']
 			dfResults['n1Amp']=_np.sqrt(dfResults['n1Sin']**2+dfResults['n1Cos']**2)
 			dfResults['n1Phase']=_np.arctan2(dfResults['n1Sin'],dfResults['n1Cos'])
 			dfResults['n2Amp']=_np.sqrt(dfResults['n2Sin']**2+dfResults['n2Cos']**2)
