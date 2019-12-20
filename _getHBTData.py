@@ -2031,6 +2031,41 @@ class sxrData:
 		return sp1
 			
 	
+def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,badSensors=['FB03_S1P','FB06_S2P','FB08_S3P'],poloidalOnly=True):
+	
+	rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
+	
+	names=[]
+	addresses=[]
+	
+	if poloidalOnly==True:
+		sensors=["P"]
+	else:
+		sensors=["P","R"]
+	for k in sensors:
+		for i in range(4):
+			for j in range(10):
+				names.append('FB%1.2d_S%d%s'%(j+1,i+1,k))
+				addresses.append('%s%s'%(rootAddress,names[-1]))
+	
+	dataRaw, time =mdsData(shotno,addresses, tStart, tStop)
+# 	dataRaw
+	dfData=_pd.DataFrame(data=_np.array(dataRaw).transpose(),columns=["%s_RAW"%i for i in names])
+	dfData['time']=time
+	dfData=dfData.set_index('time')
+	
+	# TODO drop bad sensors
+	badSensors=['%s_RAW'%i for i in badSensors]
+	dfData=dfData.drop(columns=badSensors)
+	
+	for i, (key, vals) in enumerate(dfData.iteritems()):
+		t=dfData.index.to_numpy()
+		dfData[key[0:8]]=_process.gaussianFilter(t,dfData[key],timeFWHM=5e-4,filterType='high',plot=False)
+
+	return dfData
+
+
+		
 @_prepShotno
 class fbData:
 	"""
