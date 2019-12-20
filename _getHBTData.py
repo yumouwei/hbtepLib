@@ -525,6 +525,145 @@ class ipData:
 		
 		
 @_prepShotno
+def ipData_df(	shotno=96530,
+				tStart=_TSTART,
+				tStop=_TSTOP,
+				plot=False,
+				findDisruption=True,
+				verbose=False,
+				paIntegrate=False):
+	"""
+	Gets plasma current (I_p) data
+	
+	Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	title : str
+		title to go on all plots
+	ip : numpy.ndarray
+		plasma current data
+	time : numpy.ndarray
+		time data
+		
+	Subfunctions
+	------------
+	plotOfIP : 
+		returns the plot of IP vs time
+	plot :
+		Plots all relevant plots
+	
+	"""
+	
+	shotno = shotno
+	title = "%d, Ip Data" % shotno
+	
+	# use the IP Rogowski coil to get IP
+	data, time=mdsData(shotno=shotno,
+						  dataAddress=['\HBTEP2::TOP.SENSORS.ROGOWSKIS:IP'],
+						  tStart=tStart, tStop=tStop)
+	
+	ip=data[0];
+	time=time;
+	
+	dfData=_pd.DataFrame(index=time)
+	dfData['ip']=ip*1.0
+	
+# 	dfData.plot()
+	
+	if paIntegrate==True:
+		# integrate PA1 sensor data to get IP
+		dfPA=paData(shotno,tStart,tStop).dfDataRaw
+		key='PA1'
+		dfPA=dfPA.iloc[:,dfPA.columns.str.contains(key)]
+		
+		mu0=4*_np.pi*1e-7
+		minorRadius=0.16
+		ipPAIntegration=_np.array(dfPA.sum(axis=1)*1.0/dfPA.shape[1]*2*_np.pi*minorRadius/mu0)
+		dfData['ip%s'%key]=ipPAIntegration
+
+	
+	if findDisruption==True:
+		
+		try:
+			dfTemp=dfData[dfData.index>1.5e-3]
+			
+			# filter data to remove low-frequency offset
+			ipSmooth,temp=_process.gaussianHighPassFilter(dfTemp.ip.to_numpy()*1.0,dfTemp.index.to_numpy(),
+											timeWidth=1./20e3,plot=verbose)
+			
+			# find time derivative of smoothed ip
+			dip2dt=_np.gradient(ipSmooth)				
+			
+			# find the first large rise in d(ip2)/dt
+			threshold=15.0
+			index=_np.where(dip2dt>threshold)[0][0]
+			
+			# debugging feature
+			if verbose==True:
+				_plt.figure()
+				t=dfTemp.index.to_numpy()
+				_plt.plot(t,dip2dt,label=r'$\frac{d(ip)}{dt}$')
+				_plt.plot([t[0],t[-1]],[threshold,threshold],
+						  label='threshold')
+				_plt.legend()
+			
+			# find the max value of ip immediately after the disrup. onset
+			while(dfTemp.ip.to_numpy()[index]<dfTemp.ip.to_numpy()[index+1]):
+				index+=1
+			tDisrupt=dfTemp.iloc[index].name
+			timeDisruption=_np.zeros(dfData.shape[0])
+			dfData['timeDisruption']=timeDisruption
+			dfData['timeDisruption'].at[tDisrupt]=dfData['ip'].at[tDisrupt]
+# 			plt.plot(timeDisruption)
+			
+		except:
+			print("time of disruption could not be found")
+			timeDisruption=None
+	
+		
+	def plot():
+		"""
+		returns the plot of IP vs time
+		"""
+		fig,p1=_plt.subplots()
+		p1.plot(time*1e3,ip*1e-3,label='IP Rogowski')
+		try:
+			p1.plot(time*1e3,ipPAIntegration*1e-3,label='PA')
+		except:
+			pass
+		try:
+			p1.plot(timeDisruption*1e3,ip[time==timeDisruption]*1e-3,label='Disruption',marker='x',linestyle='')
+		except:
+			"Time of disruption not available to plot"
+		_plot.finalizeSubplot(p1,xlabel='Time (ms)',ylabel='Plasma Current (kA)')
+		_plot.finalizeFigure(fig,title=title)
+		
+		return p1
+	
+	if plot == True or plot=='all':
+		plot()
+		
+	return dfData
+		
+			
+		
+		
+@_prepShotno
 class egunData:
 	"""
 	Gets egun data
