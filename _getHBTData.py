@@ -531,7 +531,7 @@ def ipData_df(	shotno=96530,
 				plot=False,
 				findDisruption=True,
 				verbose=False,
-				paIntegrate=False):
+				paIntegrate=True):
 	"""
 	Gets plasma current (I_p) data
 	
@@ -2054,7 +2054,13 @@ def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,badSensors=['F
 	dfData['time']=time
 	dfData=dfData.set_index('time')
 	
-	# TODO drop bad sensors
+	phi=_np.pi/180.*_np.array([241,277,313,349,25,61, 97,133,169,205]*4)
+	theta=_np.pi/180.*_np.array([_np.ones(10)*(-83.4),_np.ones(10)*(-29.3),_np.ones(10)*29.3,_np.ones(10)*83.4]).flatten()
+	dfMeta=_pd.DataFrame(index=names)
+	dfMeta['phi']=phi
+	dfMeta['theta']=theta
+	dfMeta['address']=addresses
+	
 	badSensors=['%s_RAW'%i for i in badSensors]
 	dfData=dfData.drop(columns=badSensors)
 	
