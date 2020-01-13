@@ -13,6 +13,7 @@ related functions, models, and analysis.
 import numpy as _np
 import matplotlib.pyplot as _plt
 import scipy.sparse as sp
+import pandas as _pd
 
 # hbtepLib library
 import _plotTools as _plot
@@ -33,6 +34,140 @@ def _findNearestForWeighting(array,value):
         sign=-1;
     
     return idx,sign #array[idx] #index instead of 
+
+
+###################################################################################
+### Mode analysis
+	
+def nModeLeastSquares(dfData,phi,theta,nModeNumbers=[1,2],plot=False,title=''):
+	"""
+	Solves least squares mode 
+	
+	Parameters:
+	-----------
+	dfData : pandas.core.frame.DataFrame
+		index is time in units seconds
+		columns represent the sensors measurents associated with phi and theta.
+			offset should already be removed
+	phi : numpy.ndarray
+		phi is the toroidal location of each sensor
+	theta : numpy.ndarray
+		theta is the poloidal location of each sensor
+	nModeNumbers : list of ints
+		The n mode numbers over which the analysis should take place
+		
+	Returns:
+	--------
+	dfResults : pandas.core.frame.DataFrame
+		index is time
+		columns represent the sine, cosine, amplitude, phase, and complex pairing
+			of each mode number
+			
+	#TODO(John): 
+	------
+	There should be a way to generalize this to do n or m analysis.
+	Add frequency calculation
+	"""
+	if 0 in nModeNumbers:
+		raise Exception("n=0 not allowed")
+	
+	b=dfData.to_numpy()
+	time=dfData.index.to_numpy()
+	n=len(dfData.columns)
+	m=len(nModeNumbers)*2+1
+	A=_np.zeros((n,m))
+	A[:,0]=_np.ones(n);
+	for i,nMode in enumerate(nModeNumbers):
+		A[:,i*2+1]=_np.sin(theta-nMode*phi)
+		A[:,i*2+2]=_np.cos(theta-nMode*phi)
+	Ainv=_np.linalg.pinv(A)
+	x=Ainv.dot(b.transpose()).transpose()
+	
+	columns=['n0']
+	for i,nMode in enumerate(nModeNumbers):
+		columns.append('n%dSin'%nMode)
+		columns.append('n%dCos'%nMode)
+		
+	dfResults=_pd.DataFrame(data=x,index=time,columns=columns)
+		
+	for i,nMode in enumerate(nModeNumbers):
+		dfResults['n%dAmp'%nMode]=_np.sqrt(dfResults['n%dSin'%nMode]**2+dfResults['n%dCos'%nMode]**2)
+		dfResults['n%dPhase'%nMode]=_np.arctan2(dfResults['n%dSin'%nMode],dfResults['n%dCos'%nMode])
+		## TODO add frequency
+		dfResults['X%d'%nMode]=1j*dfResults['n%dSin'%nMode]+dfResults['n%dCos'%nMode]
+		
+	if plot==True:
+		fig,ax=_plt.subplots(2,sharex=True)
+		ax[0].plot(time,dfResults.n1Amp,label='n1Amp')
+		ax[0].plot(time,dfResults.n1Sin,label='n1Sin')
+		ax[0].plot(time,dfResults.n1Cos,label='n1Cos')
+		ax[1].plot(time,dfResults.n1Phase,'.')
+		_plot.finalizeSubplot(ax[0],title='%s'%title)
+		_plot.finalizeSubplot(ax[1])
+		
+	return dfResults
+
+
+
+def mModeLeastSquares(dfData,phi,theta,mModeNumbers=[2,3,4]):
+	"""
+	Solves least squares mode 
+	
+	Parameters:
+	-----------
+	dfData : pandas.core.frame.DataFrame
+		index is time in units seconds
+		columns represent the sensors measurents associated with phi and theta.
+			offset should already be removed
+	phi : numpy.ndarray
+		phi is the toroidal location of each sensor
+	theta : numpy.ndarray
+		theta is the poloidal location of each sensor
+	mModeNumbers : list of ints
+		The m mode numbers over which the analysis should take place
+		
+	Returns:
+	--------
+	dfResults : pandas.core.frame.DataFrame
+		index is time
+		columns represent the sine, cosine, amplitude, phase, and complex pairing
+			of each mode number
+			
+	#TODO(John): 
+	------
+	There should be a way to generalize this to do n or m analysis.
+	Add frequency calculation
+	"""
+	
+	
+	b=dfData.to_numpy()
+	time=dfData.index.to_numpy()
+	n=len(dfData.columns)
+	m=len(mModeNumbers)*2+1
+	A=_np.zeros((n,m))
+	A[:,0]=_np.ones(n);
+	for i,mMode in enumerate(mModeNumbers):
+		print(mMode)
+		A[:,-1+i*2]=_np.sin(mMode*theta-phi)
+		A[:, 0+i*2]=_np.cos(mMode*theta-phi)
+	Ainv=_np.linalg.pinv(A)
+	x=Ainv.dot(b.transpose()).transpose()
+	
+	columns=['m0']
+	for i,mMode in enumerate(mModeNumbers):
+		columns.append('m%dSin'%mMode)
+		columns.append('m%dCos'%mMode)
+		
+	dfResults=_pd.DataFrame(data=x,index=time,columns=columns)
+		
+	for i,mMode in enumerate(mModeNumbers):
+		dfResults['m%dAmp'%mMode]=_np.sqrt(dfResults['m%dSin'%mMode]**2+dfResults['m%dCos'%mMode]**2)
+		dfResults['m%dPhase'%mMode]=_np.arctan2(dfResults['m%dSin'%mMode],dfResults['m%dCos'%mMode])
+		## TODO add frequency
+		dfResults['X%d'%mMode]=1j*dfResults['m%dSin'%mMode]+dfResults['m%dCos'%mMode]
+		
+	return dfResults
+    
     
 ###############################################################################
 ### Langmuir probe calculation

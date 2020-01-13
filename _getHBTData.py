@@ -1908,6 +1908,155 @@ class paData:
 		
 		
 @_prepShotno
+def paData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
+			  removeBadSensors=True,correctTheta=False):
+	"""
+	Downloads poloidal array sensor data.  Presently, only poloidal
+	measurements as the radial sensors are not yet implemeted.  
+	
+	Parameters
+	----------
+
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		True - plots all 64 sensors
+		'sample' - plots one of each (PA1 and PA2)
+		'all' - same as True
+	smoothingAlgorithm : str
+		informs function as to which smoothing algorithm to use on each PA 
+		sensor
+		
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	title : str
+		title to put at the top of figures
+	theta : numpy.ndarray
+		poloidal location of sensors.  
+	namesPA1 : numpy.ndarray
+		1D array of all PA1 sensor names
+	namesPA2 : numpy.ndarray
+		1D array of all PA2 sensor names
+	pa1Raw : list (of numpy.ndarray)
+		raw PA1 sensor data
+	pa2Raw : list (of numpy.ndarray)
+		raw PA2 sensor data
+	pa1Data : list (of numpy.ndarray)
+		PA1 sensor data, processed
+	pa2Data : list (of numpy.ndarray)
+		PA2 sensor data, processed
+	pa1RawFit : list (of numpy.ndarray)
+		fit applied to raw data
+	pa2RawFit : list (of numpy.ndarray)
+		fit applied to raw data
+		
+	Subfunctions
+	------------
+	plotOfPA1 : 
+		returns plot of PA1 sensor based on the provided index
+	plotOfPA2 : 
+		returns plot of PA2 sensor based on the provided index
+	plot :
+		plots all relevant plots	
+		
+		
+	Notes
+	-----
+	'PA2_S14P' is a known bad sensor
+	pa1_s16 ???
+
+	"""
+
+	shotno = shotno
+	title1 = '%d, PA1 sensors' % shotno
+	title2 = '%d, PA2 sensors' % shotno
+	badSensors=['PA2_S14P','PA2_S27P']
+	correctTheta=correctTheta
+	tStart = tStart
+	tStop = tStop
+	
+	# poloidal location
+	thetaPA1 =_np.array([-174.74778518, -164.23392461, -153.66901098, -143.01895411,	   -132.24974382, -121.3277924 , -110.22067715,  -98.93591492,		-87.23999699,  -75.60839722,  -63.97679673,  -52.34519359,		-40.71359604,  -29.08199717,  -17.45039318,   -5.81879416,		  5.81280487,   17.44440438,   29.07600466,   40.70760263,		 52.33920936,   63.97080017,   75.60240749,   87.23400093,		 98.93591492,  110.22067715,  121.3277924 ,  132.24974382,		143.01895411,  153.66901098,  164.23392461,  174.74778518])*_np.pi/180.
+	thetaPA2 =_np.array([-174.74778518, -164.23392461, -153.66901098, -143.01895411,	   -132.24974382, -121.3277924 , -110.22067715,  -98.93591492,		-87.23999699,  -75.60839722,  -63.97679673,  -52.34519359,		-40.71359604,  -29.08199717,  -17.45039318,   -5.81879416,		  5.81280487,   17.44440438,   29.07600466,   40.70760263,		 52.33920936,   63.97080017,   75.60240749,   87.23400093,		 98.93591492,  110.22067715,  121.3277924 ,  132.24974382,		143.01895411,  153.66901098,  164.23392461,  174.74778518])*_np.pi/180.
+	
+	# toroidal location
+	phiPA1=_np.ones(len(thetaPA1))*317.5*_np.pi/180.
+	phiPA2=_np.ones(len(thetaPA2))*137.5*_np.pi/180.
+	
+	# sensor names
+	namesPA1=_np.array([   'PA1_S01P', 'PA1_S02P', 'PA1_S03P', 'PA1_S04P', 'PA1_S05P', 'PA1_S06P', 'PA1_S07P', 'PA1_S08P', 'PA1_S09P', 'PA1_S10P', 'PA1_S11P', 'PA1_S12P', 'PA1_S13P', 'PA1_S14P', 'PA1_S15P', 'PA1_S16P', 'PA1_S17P', 'PA1_S18P', 'PA1_S19P', 'PA1_S20P', 'PA1_S21P', 'PA1_S22P', 'PA1_S23P', 'PA1_S24P', 'PA1_S25P', 'PA1_S26P', 'PA1_S27P', 'PA1_S28P', 'PA1_S29P', 'PA1_S30P', 'PA1_S31P', 'PA1_S32P'])
+	namesPA2=_np.array([   'PA2_S01P', 'PA2_S02P', 'PA2_S03P', 'PA2_S04P', 'PA2_S05P', 'PA2_S06P', 'PA2_S07P', 'PA2_S08P', 'PA2_S09P', 'PA2_S10P', 'PA2_S11P', 'PA2_S12P', 'PA2_S13P', 'PA2_S14P', 'PA2_S15P', 'PA2_S16P', 'PA2_S17P', 'PA2_S18P', 'PA2_S19P', 'PA2_S20P', 'PA2_S21P', 'PA2_S22P', 'PA2_S23P', 'PA2_S24P', 'PA2_S25P', 'PA2_S26P', 'PA2_S27P', 'PA2_S28P', 'PA2_S29P', 'PA2_S30P', 'PA2_S31P', 'PA2_S32P'])
+
+				
+
+#	if correctTheta:
+#		thetaPA1=processPlasma.thetaCorrection(shotno,thetaPA1,\
+#				tStart,tStop)[1]
+#		thetaPA2=processPlasma.thetaCorrection(shotno,thetaPA2,\
+#				tStart,tStop)[1]
+	# compile full sensor addresses names
+	pa1SensorAddresses=[]
+	pa2SensorAddresses=[]		
+	rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
+	for i in range(0,len(namesPA1)):
+		pa1SensorAddresses.append(rootAddress+namesPA1[i])
+	for i in range(0,len(namesPA2)):
+		pa2SensorAddresses.append(rootAddress+namesPA2[i])
+		
+	# get raw data
+	pa1Raw,pa1Time=mdsData(shotno,pa1SensorAddresses, tStart, tStop)
+	pa2Raw,pa2Time=mdsData(shotno,pa2SensorAddresses, tStart, tStop)
+	
+	# data smoothing algorithm
+	pa1Data=[]
+	pa1RawFit=[]
+	pa2Data=[]
+	pa2RawFit=[]
+	
+	# gaussian offset subtraction
+	for i in range(0,len(namesPA1)):
+		temp,temp2=_process.gaussianHighPassFilter(pa1Raw[i][:],pa1Time,timeWidth=1./20000)
+		pa1RawFit.append(temp2)
+		pa1Data.append(temp)
+	for i in range(0,len(namesPA2)):
+		temp,temp2=_process.gaussianHighPassFilter(pa2Raw[i][:],pa2Time,timeWidth=1./20000)
+		pa2RawFit.append(temp2)
+		pa2Data.append(temp)
+		
+	# pandas dataframes 
+	dfData=_pd.DataFrame(	 data=_np.append(_np.array([pa1Time]).transpose(),_np.array(pa1Data+pa2Data).transpose(),axis=1),
+						columns=_np.append(_np.append(_np.array(['Time']),namesPA1),namesPA2)).set_index('Time')
+	dfDataRaw=_pd.DataFrame(	 data=_np.append(_np.array([pa1Time]).transpose(),_np.array(pa1Raw+pa2Raw).transpose(),axis=1),
+						columns=_np.append(_np.append(_np.array(['Time']),namesPA1),namesPA2)).set_index('Time')
+	dfMeta=_pd.DataFrame(	 data={'SensorNames':_np.append(namesPA1,namesPA2),
+								'Phi':_np.append(phiPA1,phiPA2),
+								'Theta':_np.append(thetaPA1,thetaPA2),
+								'Address':pa1SensorAddresses+pa2SensorAddresses,
+								'SectionNum':_np.append([3]*32,[8]*32),
+								},
+							columns=['SensorNames','Phi','Theta','Address','SectionNum']).set_index('SensorNames')#,'Address','SectionNum'])
+	
+	if removeBadSensors==True:
+		dfData=dfData.drop(columns=badSensors)
+		dfDataRaw=dfDataRaw.drop(columns=badSensors)
+		dfMeta=dfMeta.drop(index=badSensors)
+		
+#	return dfData,dfDataRaw,dfMeta
+	return dfData,dfDataRaw,dfMeta
+		
+		
+		
+@_prepShotno
 class sxrData:
 	"""
 	Downloads (and optionally plots) soft xray sensor data.   
@@ -2223,7 +2372,7 @@ class fbData:
 		self.fbRadRawFit=[[],[],[],[]]
 		for j in range(0,4):
 			for i in range(0,len(self.fbPolNames[j])):
-				temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./20000*1.0,plot=True) 
+				temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./20000*1.0,plot=False) 
 				self.fbPolRawFit[j].append(temp2)
 				self.fbPolData[j].append(temp)
 				
@@ -2556,7 +2705,148 @@ class taData:
 		sp1.plot()
   
 
+@_prepShotno
+def taData_df(shotno=98173,
+			tStart=_TSTART,
+			tStop=_TSTOP,
+			plot=False,
+			removeBadSensors=False):
+	"""
+	Downloads toroidal array (TA) sensor data.  Presently, only poloidal
+	measurements as the radial sensors are not yet implemeted.  
+	
+	Parameters
+	----------
 
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		True - Plots a sample of each FB poloidal and radial data
+		'sample'- same as True
+		'all' - Plots all 80 sensor data
+#	smoothingAlgorithm : str
+#		informs function as to which smoothing algorithm to use on each PA 
+#		sensor
+		
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	title : str
+		title to go on all plots
+	namesTAPol : list (of str)
+		names of poloidal-TA sensors
+	namesTARad : list (of str)
+		names of radial-TA sensors
+	phi : numpy.ndarray
+		toroidal location of each poloidal-TA sensor.  units in radians.
+	phiR : numpy.ndarray
+		toroidal location of each raidal-TA sensor.  units in radians.
+	taPolRaw : list (of numpy.ndarray)
+		raw poloidal-TA sensor data
+	taRadRaw : list (of numpy.ndarray)
+		raw radial-TA sensor data
+	taPolTime : numpy.ndarray
+		time data associated with poloidal-TA sensor data
+	taRadTime : numpy.ndarray
+		time data associated with radial-TA sensor data
+	taPolData : list (of numpy.ndarray)
+		poloidal-TA sensor data
+	taRadData : list (of numpy.ndarray)
+		radial-TA sensor data
+	taPolRawFit : list (of numpy.ndarray)
+		fit of raw poloidal-TA sensor data.  subtract this from taPolRaw to get
+		taPolData
+	taRadRawFit : list (of numpy.ndarray)
+		fit of raw radial-TA sensor data.  subtract this from taRadRaw to get
+		taRadData
+		
+	Subfunctions
+	------------
+	plotOfSinglePol :
+		returns plot function of a single poloidal sensor, based on provided 
+		index
+	plot :
+		plots all relevant datas
+
+	"""
+	
+	shotno = shotno
+	title = "%d, TA sensor data." % shotno
+	badSensors=[] # no bad sensors as of present
+	
+	# names of poloidal and radial sensors
+	namesTAPol=['TA01_S1P', 'TA01_S2P', 'TA01_S3P', 'TA02_S1P', 'TA02_S2P', 'TA02_S3P', 'TA03_S1P', 'TA03_S2P', 'TA03_S3P', 'TA04_S1P', 'TA04_S2P', 'TA04_S3P', 'TA05_S1P', 'TA05_S2P', 'TA05_S3P', 'TA06_S1P', 'TA06_S2P', 'TA06_S3P', 'TA07_S1P', 'TA07_S2P', 'TA07_S3P', 'TA08_S1P', 'TA08_S2P', 'TA08_S3P', 'TA09_S1P', 'TA09_S2P', 'TA09_S3P', 'TA10_S1P', 'TA10_S2P', 'TA10_S3P'];
+	namesTARad=['TA01_S2R', 'TA02_S2R', 'TA03_S2R', 'TA04_S2R', 'TA05_S2R', 'TA06_S2R', 'TA07_S2R', 'TA08_S2R', 'TA09_S2R', 'TA10_S2R']
+	
+	# toroidal locations for the poloidal measurements
+	phi=_np.pi/180.*_np.array([241.5,250.5,259.5,277.5,286.5,295.5,313.5,322.5,331.5,349.5,358.5,7.5,25.5,34.5,43.5,61.5,70.5,79.5,97.5,106.5,115.5,133.5,142.5,151.5,169.5,178.5,187.5,205.5,214.5,223.5])	
+	
+	# poloidal locations of sensors
+	theta=_np.ones(len(phi))*(189-360)*_np.pi/180
+	
+#		# toroidal locations for the radial measurements
+#		phiR=_np.pi/180.*_np.array([-108.,  -72.,  -36.,	0.,   36.,   72.,  108.,  144.,  180.,  216.])
+	
+	# compile full sensor addresses names
+	taPolSensorAddresses=[]
+	taRadSensorAddresses=[]	
+	rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
+	for i in range(0,30):
+		taPolSensorAddresses.append(rootAddress+namesTAPol[i])
+		if i < 10:
+			taRadSensorAddresses.append(rootAddress+namesTARad[i])
+			
+	# get raw data
+	taPolRaw,taPolTime=mdsData(shotno,taPolSensorAddresses, tStart, tStop)
+	taRadRaw,taRadTime=mdsData(shotno,taRadSensorAddresses, tStart, tStop)
+	  
+	# data smoothing algorithm
+	taPolData=[]
+	taPolRawFit=[]
+	taRadData=[]
+	taRadRawFit=[]
+	
+	# high pass filter the measurements
+	for i in range(0,30):
+		temp,temp2=_process.gaussianHighPassFilter(taPolRaw[i][:],taPolTime,timeWidth=1./20000)
+		taPolData.append(temp)
+		taPolRawFit.append(temp2)
+		
+	# pandas dataframes 
+	#TODO(John) rewrite entire class.  start with dataframes instead of lists
+	dfData=_pd.DataFrame(	 data=_np.append(_np.array([taPolTime]).transpose(),_np.array(taPolData).transpose(),axis=1),
+							columns=['Time']+namesTAPol).set_index('Time')
+	dfDataRaw=_pd.DataFrame(	 data=_np.append(_np.array([taPolTime]).transpose(),_np.array(taPolRaw).transpose(),axis=1),
+							columns=['Time']+namesTAPol).set_index('Time')
+	dfMeta=_pd.DataFrame(	 data={'SensorNames':namesTAPol,
+								'Phi':phi,
+								'Theta':theta,
+								'Address':taPolSensorAddresses,
+								'SectionNum':_np.array([ 1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,  5,  5,  6,  6,
+													   6,  7,  7,  7,  8,  8,  8,  9,  9,  9, 10, 10, 10]),
+								'CenterSensor':[False,  True, False, False,  True, False, False,  True, False,
+											   False,  True, False, False,  True, False, False,  True, False,
+											   False,  True, False, False,  True, False, False,  True, False,
+											   False,  True, False],
+								},
+							columns=['SensorNames','Phi','Theta','Address','SectionNum','CenterSensor']).set_index('SensorNames')#,'Address','SectionNum'])
+	
+
+	if removeBadSensors==True:
+		dfData=dfData.drop(columns=badSensors)
+		dfDataRaw=dfDataRaw.drop(columns=badSensors)
+		dfMeta=dfMeta.drop(index=badSensors)
+
+	return dfData,dfDataRaw,dfMeta
 
 
 @_prepShotno
@@ -4192,8 +4482,8 @@ def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 	# load data from requested sensor array
 	if nModeSensor=='TA':
 		## load TA data
-		temp=taData(shotno,tStart,tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
-		b=temp.taPolData
+		temp=taData(shotno,tStart,tStop);  # asking for an extra half millisecond (see Notes above) 
+		b=_np.array(temp.taPolData)
 		time=temp.taPolTime
 		phi=temp.phi
 #			[n,m]=_np.shape(data)
@@ -4201,6 +4491,7 @@ def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 		fb=fbData(shotno,tStart,tStop)
 		time=fb.dfData.index.to_numpy()
 		b=fb.dfData.iloc[:,fb.dfData.columns.str.contains('S4P')].to_numpy()
+		b=b.transpose()
 		phi=fb.dfMeta[fb.dfMeta.index.str.contains('S4P')].Phi.to_numpy()
 	
 	if method=='leastSquares':
@@ -4212,7 +4503,7 @@ def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 		A[:,3]=_np.sin(-2*phi)
 		A[:,4]=_np.cos(-2*phi)
 		Ainv=_np.linalg.pinv(A)
-		x=Ainv.dot(b.transpose())
+		x=Ainv.dot(b)
 		dfResults=_pd.DataFrame(data=x.transpose(),index=time,columns=['n0','n1Sin','n1Cos','n2Sin','n2Cos'])
 		dfResults['X1']=1j*dfResults['n1Sin']+dfResults['n1Cos']
 		dfResults['X2']=1j*dfResults['n2Sin']+dfResults['n2Cos']
