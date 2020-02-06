@@ -5634,6 +5634,46 @@ class polBetaLi:
 		
 		return
 
+class nGreenwald:
+    """
+	Calculate Greenwald's density limit
+	ng = 1e14 * elong * IP(kA)*1000. / (!pi*minor_r^2) ; in m^-3
+	"""
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,verbose=False):
+		
+        self.shotno = shotno
+        self.title = "%d, Greenwald limit" % shotno
+        # get data
+        elong = 1
+        ip = ipData(shotno, tStart, tStop, False, findDisruption=False)
+        Ip = ip.ip
+        self.time = ip.time
+        plasmaRadius = plasmaRadiusData(shotno, tStart, tStop, False)
+        a = plasmaRadius.minorRadius
+        
+        self.nGreenwald = (1e14*elong*Ip)/(_np.pi*a**2) 
+        if plot == True or plot=='all':
+            self.plot()
+			
+    def plotOfNGreenwald(self):
+        """
+        returns the plot of xray data vs time
+        """
+        fig,p1=_plt.subplots()
+        p1.plot(self.time*1e3,self.nGreenwald)
+        _plot.finalizeSubplot(p1,xlabel='Time (ms)', ylabel='m^-3')
+        _plot.finalizeFigure(fig,title=self.title)
+        _plt.ylim(0,5e19)
+        #_plot.yLim(0,10)
+        return p1
+
+    def plot(self):
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfNGreenwald().plot()		
+        return
+
 ###############################################################################
 ### debugging code
 
