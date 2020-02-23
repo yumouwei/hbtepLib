@@ -447,11 +447,15 @@ class ipData:
 		if paIntegrate==True:
 			# integrate PA1 sensor data to get IP
 			dfPA=paData(shotno,tStart,tStop).dfDataRaw
-			dfPA=dfPA.iloc[:,dfPA.columns.str.contains('PA1')]
+			dfPA=dfPA.drop(columns=['PA2_S27P','PA2_S14P','PA1_S16P'])
+			dfPA1=dfPA.iloc[:,dfPA.columns.str.contains('PA1')]
+			dfPA2=dfPA.iloc[:,dfPA.columns.str.contains('PA2')]
 			
 			mu0=4*_np.pi*1e-7
 			minorRadius=0.16
-			self.ipPAIntegration=_np.array(dfPA.sum(axis=1)*1.0/dfPA.shape[1]*2*_np.pi*minorRadius/mu0)
+			self.ipPA1Integration=_np.array(dfPA1.sum(axis=1)*1.0/dfPA1.shape[1]*2*_np.pi*minorRadius/mu0)
+			self.ipPA2Integration=_np.array(dfPA2.sum(axis=1)*1.0/dfPA2.shape[1]*2*_np.pi*minorRadius/mu0)
+
 
 		
 		if findDisruption==True:
@@ -504,7 +508,8 @@ class ipData:
 		fig,p1=_plt.subplots()
 		p1.plot(self.time*1e3,self.ip*1e-3,label='IP Rogowski')
 		try:
-			p1.plot(self.time*1e3,self.ipPAIntegration*1e-3,label='PA')
+			p1.plot(self.time*1e3,self.ipPA1Integration*1e-3,label='PA1')
+			p1.plot(self.time*1e3,self.ipPA2Integration*1e-3,label='PA2')
 		except:
 			pass
 		try:
@@ -2193,7 +2198,8 @@ def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,badSensors=['F
 		sensors=["P","R"]
 	for k in sensors:
 		for i in range(4):
-			for j in range(10):
+#			for j in range(10):
+			for j in _np.array([5,6,7,8,9,10,1,2,3,4])-1:
 				names.append('FB%1.2d_S%d%s'%(j+1,i+1,k))
 				addresses.append('%s%s'%(rootAddress,names[-1]))
 	
@@ -2203,13 +2209,15 @@ def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,badSensors=['F
 	dfData['time']=time
 	dfData=dfData.set_index('time')
 	
-	phi=_np.pi/180.*_np.array([241,277,313,349,25,61, 97,133,169,205]*4)
+#	phi=_np.pi/180.*_np.array([241,277,313,349,25,61, 97,133,169,205]*4)
+	phi=_np.pi/180.*_np.array([25,61, 97,133,169,205,241,277,313,349]*4)
 	theta=_np.pi/180.*_np.array([_np.ones(10)*(-83.4),_np.ones(10)*(-29.3),_np.ones(10)*29.3,_np.ones(10)*83.4]).flatten()
 	dfMeta=_pd.DataFrame(index=names)
-	dfMeta['phi']=phi
-	dfMeta['theta']=theta
+	dfMeta['Phi']=phi
+	dfMeta['Theta']=theta
 	dfMeta['address']=addresses
 	
+	dfMeta=dfMeta.drop(index=badSensors)
 	badSensors=['%s_RAW'%i for i in badSensors]
 	dfData=dfData.drop(columns=badSensors)
 	
@@ -2217,7 +2225,7 @@ def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,badSensors=['F
 		t=dfData.index.to_numpy()
 		dfData[key[0:8]]=_process.gaussianFilter(t,dfData[key],timeFWHM=5e-4,filterType='high',plot=False)
 
-	return dfData
+	return dfData,dfMeta
 
 
 		
@@ -2780,15 +2788,15 @@ def taData_df(shotno=98173,
 	"""
 	
 	shotno = shotno
-	title = "%d, TA sensor data." % shotno
+#	title = "%d, TA sensor data." % shotno
 	badSensors=[] # no bad sensors as of present
 	
 	# names of poloidal and radial sensors
-	namesTAPol=['TA01_S1P', 'TA01_S2P', 'TA01_S3P', 'TA02_S1P', 'TA02_S2P', 'TA02_S3P', 'TA03_S1P', 'TA03_S2P', 'TA03_S3P', 'TA04_S1P', 'TA04_S2P', 'TA04_S3P', 'TA05_S1P', 'TA05_S2P', 'TA05_S3P', 'TA06_S1P', 'TA06_S2P', 'TA06_S3P', 'TA07_S1P', 'TA07_S2P', 'TA07_S3P', 'TA08_S1P', 'TA08_S2P', 'TA08_S3P', 'TA09_S1P', 'TA09_S2P', 'TA09_S3P', 'TA10_S1P', 'TA10_S2P', 'TA10_S3P'];
+	namesTAPol=['TA04_S3P', 'TA05_S1P', 'TA05_S2P', 'TA05_S3P', 'TA06_S1P', 'TA06_S2P', 'TA06_S3P', 'TA07_S1P', 'TA07_S2P', 'TA07_S3P', 'TA08_S1P', 'TA08_S2P', 'TA08_S3P', 'TA09_S1P', 'TA09_S2P', 'TA09_S3P', 'TA10_S1P', 'TA10_S2P', 'TA10_S3P','TA01_S1P', 'TA01_S2P', 'TA01_S3P', 'TA02_S1P', 'TA02_S2P', 'TA02_S3P', 'TA03_S1P', 'TA03_S2P', 'TA03_S3P', 'TA04_S1P', 'TA04_S2P'];
 	namesTARad=['TA01_S2R', 'TA02_S2R', 'TA03_S2R', 'TA04_S2R', 'TA05_S2R', 'TA06_S2R', 'TA07_S2R', 'TA08_S2R', 'TA09_S2R', 'TA10_S2R']
 	
 	# toroidal locations for the poloidal measurements
-	phi=_np.pi/180.*_np.array([241.5,250.5,259.5,277.5,286.5,295.5,313.5,322.5,331.5,349.5,358.5,7.5,25.5,34.5,43.5,61.5,70.5,79.5,97.5,106.5,115.5,133.5,142.5,151.5,169.5,178.5,187.5,205.5,214.5,223.5])	
+	phi=_np.pi/180.*_np.array([7.5,25.5,34.5,43.5,61.5,70.5,79.5,97.5,106.5,115.5,133.5,142.5,151.5,169.5,178.5,187.5,205.5,214.5,223.5,241.5,250.5,259.5,277.5,286.5,295.5,313.5,322.5,331.5,349.5,358.5])	
 	
 	# poloidal locations of sensors
 	theta=_np.ones(len(phi))*(189-360)*_np.pi/180
@@ -3779,12 +3787,133 @@ class plasmaRadiusData:
 	def plot(self,plotAll=False):
 		fig,p1=_plt.subplots(2,sharex=True)
 		p1[0].plot(self.time*1e3,self.majorRadius*1e2,label='Major Radius')
+		p1[0].plot(self.time*1e3,_np.ones(_np.shape(self.time*1e3))*92)
+		p1[0].plot(self.time*1e3,_np.ones(_np.shape(self.time*1e3))*90)
 		p1[1].plot(self.time*1e3,self.minorRadius*1e2,label='Minor Radius')
 		_plot.finalizeSubplot(p1[0],xlabel='Time (ms)',ylabel='Major Radius (cm)',ylim=[89,95])
 		_plot.finalizeSubplot(p1[1],ylabel='Minor Radius (cm)',ylim=[10,16])
 		_plot.finalizeFigure(fig,title=self.title)
 		
 		return p1
+	
+def plasmaRadiusData_df(shotno=95782,tStart=_TSTART,tStop=_TSTOP, plot=False, probeRadius=[]):
+	"""
+	Calculate the major and minor radius.
+	
+	Parameters
+	----------
+	shotno : int
+		shot number of desired data
+	tStart : float
+		time (in seconds) to trim data before
+		default is 0 ms
+	tStop : float
+		time (in seconds) to trim data after
+		default is 10 ms
+	plot : bool
+		plots all relevant plots if true
+		default is False
+		
+	Attributes
+	----------
+	shotno : int
+		shot number of desired data
+	title : str
+		title to go on all plots
+	majorRadius : numpy.ndarray
+		plasma major radius in meters
+	minorRadius : numpy.ndarray
+		plasma minor radius in meters
+	time : numpy.ndarray
+		time (in seconds) associated with data
+		
+	Subfunctions
+	------------
+	plotOfMajorRadius : 
+		returns the plot of major radius vs time
+	plotOfMinorRadius : 
+		returns the plot of major radius vs time
+	plot :
+		Plots all relevant plots
+		
+	Notes
+	-----
+	The radius calculations below are pulled from Paul Hughes's 
+	pauls_MDSplus_toolbox.py code.  In that code, he attributes Niko Rath for 
+	its implementation
+	
+	"""
+	
+#	def __init__(self,
+#		self.shotno=shotno;
+#		self.title = "%d, plasma radius" % shotno
+		
+	# Determined by Daisuke during copper plasma calibration
+	a=.00643005
+	b=-1.10423
+	c=48.2567
+	
+	# Calculated by Jeff, but still has errors
+	vf_pickup = 0.0046315133 * -1e-3
+	oh_pickup = 7.0723416e-08
+	
+	# get vf and oh data
+	capBank=capBankData(shotno,tStart=tStart,tStop=tStop)
+	vf=capBank.vfBankCurrent
+	oh=capBank.ohBankCurrent
+	time=capBank.vfTime
+	
+	# get plasma current
+	ip=ipData(shotno,tStart=tStart,tStop=tStop)
+	ip=ip.ip*1212.3*1e-9  # ip gain
+	
+	# get cos-1 raw data
+	cos1=cos1RogowskiData(shotno,tStart=tStart,tStop=tStop+2e-06) # note that the cumtrapz function below loses a data point.  by adding 2e-06 to the time, i start with an additional point that it's ok to lose
+	# subtract offset
+	cos1Raw=cos1.cos1Raw-cos1.cos1RawOffset		
+	
+	# integrate cos-1 raw 
+	from scipy.integrate import cumtrapz
+	cos1 = cumtrapz(cos1Raw,cos1.time) + cos1Raw[:-1]*.004571
+	
+	# r-major calculations
+	pickup = vf * vf_pickup + oh * oh_pickup
+	ratio = ip / (cos1 - pickup)
+	arg = b**2 - 4 * a * (c-ratio)
+	arg[arg < 0] = 0
+	r_major = (-b + _np.sqrt(arg)) / (2*a)
+	majorRadius  = r_major / 100 # Convert to meters
+#		self.majorRadius -= 0.45/100
+		
+	# r-minor calculations
+	minorRadius=_np.ones(len(majorRadius))*0.15
+	outwardLimitedIndices=majorRadius > (0.92)
+	minorRadius[outwardLimitedIndices] = 1.07 - majorRadius[outwardLimitedIndices] # Outboard limited
+	inwardLimitedIndices=majorRadius < (0.92 - 0.01704)   
+	minorRadius[inwardLimitedIndices] = majorRadius[inwardLimitedIndices] - 0.75296 # inward limited
+	
+	dfData=_pd.DataFrame()
+	dfData['time']=time
+	dfData['minorRadius']=minorRadius
+	dfData['majorRadius']=majorRadius
+	dfData=dfData.set_index('time')
+	
+	return dfData
+#	
+#		if plot==True:
+#			self.plot();
+#
+#	def plot(self,plotAll=False):
+#		fig,p1=_plt.subplots(2,sharex=True)
+#		p1[0].plot(self.time*1e3,self.majorRadius*1e2,label='Major Radius')
+#		p1[0].plot(self.time*1e3,_np.ones(_np.shape(self.time*1e3))*92)
+#		p1[0].plot(self.time*1e3,_np.ones(_np.shape(self.time*1e3))*90)
+#		p1[1].plot(self.time*1e3,self.minorRadius*1e2,label='Minor Radius')
+#		_plot.finalizeSubplot(p1[0],xlabel='Time (ms)',ylabel='Major Radius (cm)',ylim=[89,95])
+#		_plot.finalizeSubplot(p1[1],ylabel='Minor Radius (cm)',ylim=[10,16])
+#		_plot.finalizeFigure(fig,title=self.title)
+#		
+#		return p1
 
 
 @_prepShotno
@@ -4403,7 +4532,7 @@ class nModeData:
 @_prepShotno
 def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 				 nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
-				 phaseFilterTimeConstant=1.0/100e3):
+				 phaseFilterTimeConstant=0.5e-4):
 	"""
 	This function performs n-mode (toroidal) mode analysis on the plasma.
 	Provides mode amplitude, phase, and frequency
@@ -4513,12 +4642,12 @@ def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 		dfResults['n2Phase']=_np.arctan2(dfResults['n2Sin'],dfResults['n2Cos'])
 		dfResults['n1PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
 															_process.unwrapPhase(dfResults['n1Phase'].to_numpy()),
-															timeFWHM=0.5e-4,
+															timeFWHM=phaseFilterTimeConstant,
 															plot=False,
 															filterType='low')
 		dfResults['n2PhaseFilt']=_process.gaussianFilter(	dfResults.index.to_numpy(),
 															_process.unwrapPhase(dfResults['n2Phase'].to_numpy()),
-															timeFWHM=0.5e-4,
+															timeFWHM=phaseFilterTimeConstant,
 															plot=False,
 															filterType='low')
 		dfResults['n1Freq']=_np.gradient(dfResults['n1PhaseFilt'])/_np.gradient(dfResults.index.to_numpy())/(_np.pi*2)
@@ -4529,7 +4658,7 @@ def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 	dfResults=dfResults
 	
 			
-	def plot(plotAll=False):
+	def Plot(plotAll=False):
 		"""
 		plots
 		"""
@@ -4559,7 +4688,7 @@ def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 	#					linestyle='')
 		p1[3].plot(	dfResults.index.to_numpy()*1e3,
 					dfResults['n1Freq']*1e-3,
-					label='Frequency (kHz)')
+					label='Frequency\n(kHz)')
 		if plotAll==True:
 			p1[0].plot(	dfResults.index.to_numpy()*1e3,
 						dfResults['n2Cos']*1e4,
@@ -4608,13 +4737,82 @@ def nModeData_df(shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
 								fontSizeStandard=8,
 								fontSizeTitle=8)
 		_plot.finalizeFigure(fig)
+		
+		print('saf')
 			
 		
 	## plot data
 	if plot==True:
-		plot()
+		Plot()
 		
 	return dfResults
+
+
+def loadAllMagData(shotno):
+	"""
+	Downloads all TA, FB, and PA data into a single dataframe for data and another
+	for meta data
+	
+	#TODO
+	-----
+	taData_df, fbData_df, paData_df need to operating the same way.
+	"""
+	
+	taData,_,taMeta=taData_df(shotno)
+	fbData,fbMeta=fbData_df(shotno)
+	fbData=fbData.iloc[:,_np.invert(fbData.columns.str.contains('RAW'))]
+	paData,_,paMeta=paData_df(shotno)
+	
+	dfDataAll=_pd.concat((taData,paData,fbData),axis=1)
+	dfMetaAll=_pd.concat((taMeta,paMeta,fbMeta))
+	
+	for i,(key,val) in enumerate(dfMetaAll.iterrows()):
+		if 'FB' in val.name:
+			dfMetaAll.at[key,'marker']=u'^'
+		elif 'TA' in val.name:
+			dfMetaAll.at[key,'marker']=u'v'
+		elif 'PA1' in val.name:
+			dfMetaAll.at[key,'marker']=u'>'
+		elif 'PA2' in val.name:
+			dfMetaAll.at[key,'marker']=u'<'
+			
+	return dfDataAll,dfMetaAll
+
+
+
+def loadAllRawMagData(shotno):
+	"""
+	Downloads all TA, FB, and PA data into a single dataframe for data and another
+	for meta data
+	
+	#TODO
+	-----
+	taData_df, fbData_df, paData_df need to operating the same way.
+	"""
+	
+	taData,taDataRaw,taMeta=taData_df(shotno)
+	fbDataAll,fbMeta=fbData_df(shotno)
+	fbData=fbDataAll.iloc[:,_np.invert(fbDataAll.columns.str.contains('RAW'))]
+	fbDataRaw=fbDataAll.iloc[:,fbDataAll.columns.str.contains('RAW')]
+	fbDataRaw.columns =fbData.columns.to_numpy().tolist()
+	paData,paDataRaw,paMeta=paData_df(shotno)
+	
+	dfDataAll=_pd.concat((taDataRaw,paDataRaw,fbDataRaw),axis=1)
+	dfMetaAll=_pd.concat((taMeta,paMeta,fbMeta))
+	
+	for i,(key,val) in enumerate(dfMetaAll.iterrows()):
+		if 'FB' in val.name:
+			dfMetaAll.at[key,'marker']=u'^'
+		elif 'TA' in val.name:
+			dfMetaAll.at[key,'marker']=u'v'
+		elif 'PA1' in val.name:
+			dfMetaAll.at[key,'marker']=u'>'
+		elif 'PA2' in val.name:
+			dfMetaAll.at[key,'marker']=u'<'
+			
+	return dfDataAll,dfMetaAll
+
+
 
 
 @_prepShotno
