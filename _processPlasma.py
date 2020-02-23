@@ -1218,7 +1218,8 @@ def qProfile_cylindricalApproximation(r,j,iP,r_limiter=0.15,R=0.92,BT=0.35,q_lim
     mu0=4*np.pi*1e-7
     
     l=q_limiter/q_offset-1
-    q=  2*(l+1)*BT/(mu0*j[0]*R)*(r/r_limiter)**2/(1-(1-(r/r_limiter)**2)**(l+1))
+    Btheta=(mu0*j[0]*r_limiter**2)/(2*(l+1))*(1-(1-(r/r_limiter)**2)**(l+1))/r
+    q=2*(l+1)*BT/(mu0*j[0]*R)*(r/r_limiter)**2/(1-(1-(r/r_limiter)**2)**(l+1))
     q[0]=q[1]
     i=np.where(q>0)[0]
     for k in range(i[-1]+1,len(q)):
@@ -1232,5 +1233,5 @@ def qProfile_cylindricalApproximation(r,j,iP,r_limiter=0.15,R=0.92,BT=0.35,q_lim
         _plot.finalizeSubplot(ax[1],xlabel='minor radius (cm)',ylabel=r'q',subtitle='Safety factor')
         _plot.finalizeFigure(fig,figSize=[6,6/1.6])
         plt.show()
-    return q,j,r
+    return q,j,r,Btheta
     
