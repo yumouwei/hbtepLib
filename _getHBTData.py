@@ -5919,6 +5919,16 @@ class metadata:
         """
         self.printMetadata()	
         return
+    
+    def toDataFrame(self):
+        '''
+        Convert metadata to a 1-row pd.dataframe
+        '''
+        df = _pd.DataFrame(columns=['comment', 'date', 'operator', 'post_comment'])
+        df = df.append({'comment':self.comment, 'date':self.date, 
+                        'operator':self.operator, 'post_comment':self.post_comment}, 
+                       ignore_index=True)
+        return df
 ###############################################################################
 ### debugging code
 
