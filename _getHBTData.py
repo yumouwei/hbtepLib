@@ -5872,6 +5872,53 @@ class nGreenwald:
         self.plotOfNGreenwald().plot()		
         return
 
+class metadata:
+    """
+	Retrive shot metadata
+	"""
+    def __init__(self,shotno=96530, display=False):
+		
+        self.shotno = shotno
+        try:
+            self.comment = mdsData(shotno=shotno, dataAddress=['\HBTEP2::TOP.METADATA:COMMENT'])[0]
+        except:
+            self.comment = ''
+        try:
+            self.date = mdsData(shotno=shotno, dataAddress=['\HBTEP2::TOP.METADATA:DATE'])[0]
+        except:
+            self.date = ''
+        try:
+            self.operator = mdsData(shotno=shotno, dataAddress=['\HBTEP2::TOP.METADATA:OPERATOR'])[0]
+        except:
+            self.operator = ''
+        try:    
+            self.post_comment = mdsData(shotno=shotno, dataAddress=['\HBTEP2::TOP.METADATA:POST_COMMENT'])[0]
+        except:
+            self.post_comment = ''
+            
+        if display == True:
+            self.show()
+			
+    def printMetadata(self):
+        """
+        Print all metadata in console
+        """
+        print('--COMMENT--')
+        print(self.comment)
+        print('--DATE--')
+        print(self.date)
+        print('--OPERATOR--')
+        print(self.operator)
+        print('--POST COMMENT--')
+        print(self.post_comment)
+        return 
+
+    def show(self):
+        """ 
+        Print
+        """
+        self.printMetadata()	
+        return
 ###############################################################################
 ### debugging code
 
