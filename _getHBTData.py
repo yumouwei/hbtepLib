@@ -5920,14 +5920,20 @@ class metadata:
         self.printMetadata()	
         return
     
-    def toDataFrame(self):
+    def toDataFrame(self, include_shotno=False):
         '''
         Convert metadata to a 1-row pd.dataframe
         '''
-        df = _pd.DataFrame(columns=['comment', 'date', 'operator', 'post_comment'])
-        df = df.append({'comment':self.comment, 'date':self.date, 
-                        'operator':self.operator, 'post_comment':self.post_comment}, 
-                       ignore_index=True)
+        if include_shotno == False:
+            df = _pd.DataFrame(columns=['comment', 'date', 'operator', 'post_comment'])
+            df = df.append({'comment':self.comment, 'date':self.date, 
+                            'operator':self.operator, 'post_comment':self.post_comment}, 
+                           ignore_index=True)
+        else:
+            df = _pd.DataFrame(columns=['shotno', 'comment', 'date', 'operator', 'post_comment'])
+            df = df.append({'shotno':self.shotno, 'comment':self.comment, 'date':self.date, 
+                            'operator':self.operator, 'post_comment':self.post_comment}, 
+                           ignore_index=True)               
         return df
 ###############################################################################
 ### debugging code
