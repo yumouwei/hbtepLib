@@ -5513,7 +5513,7 @@ class euvData:
 		self.det_ap_Z = _np.array([0.000000, 0.099975, 0.166773,-0.173440])
 		self.det_ap_Pol = _np.array([0.000635,.000635,.000635,.000635])
 		self.det_ap_Tor = _np.array([0.000635,.0254,.0254,.0244])
-		
+		self.orient = np.array([90,90,150,145]) # in degrees
 		# plot 
 		if plot==True:
 			self.plotOfEUVStripey(tStart,tStop).plot()

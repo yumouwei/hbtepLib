@@ -754,3 +754,25 @@ def prepAwg(waveform):
     fh = open('awgdata.dat', 'wb') 
     fh.write(struct.pack('=h', AO_CHANNELS))
     fh.write((waveform * INT16_MAX / 10).astype(_np.int16).tostring())
+
+def correctTimebase(dataMatrix,missVec,time=[],dT=6e-6,v=False):
+    # based on the vector of missing samples, mb_Float[:,0], extend arbitrary data matrix, and optional time vector
+    if _np.ndim(dataMatrix)==1:dataMatrix=dataMatrix[:,_np.newaxis]
+    i=1
+    while i < len(missVec):
+        if missVec[i]==1:
+            if i!=len(missVec)-1:
+                dataMatrix=_np.vstack((dataMatrix[0:i+1,:],dataMatrix[i,:],dataMatrix[i+1:,:]))
+                missVec=_np.hstack((missVec[0:i+1],missVec[i],missVec[i+1:]))
+                
+                if time!=[]:time=_np.hstack((  time[0:i+1],time[i]+dT/2,\
+                                time[i+1:]+dT/2 ))
+                i+=1;
+            else:
+                dataMatrix=_np.vstack((dataMatrix[0:i+1,:],dataMatrix[i,:]))
+                missVec=_np.hstack((missVec[0:i+1],missVec[i]))
+                if time!=[]:time=_np.hstack((time[0:i+1],time[i]+dT/2))
+                i+=1;
+        i+=1
+    if time!=[]:return dataMatrix.squeeze(),time
+    else: return dataMatrix.squeeze()
