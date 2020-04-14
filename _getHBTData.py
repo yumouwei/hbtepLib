@@ -5521,11 +5521,11 @@ class euvData:
         self.R = mdsData(shotno,mdsAddressR)
         self.Z = mdsData(shotno,mdsAddressZ)
         self.Gain = mdsData(shotno,mdsAddressGain)
-        # aperture location
+        # aperture location: Values taken from tree
         self.det_ap_R = _np.array([1.160508, 1.090508, 0.907057, 0.929746]) 
         self.det_ap_Z = _np.array([0.000000, 0.099975, 0.166773,-0.173440])
         self.det_ap_Pol = _np.array([0.000635,.000635,.000635,.000635])
-        self.det_ap_Tor = _np.array([0.000635,.0254,.0254,.0244])
+        self.det_ap_Tor = _np.array([0.00635,.0254,.0254,.0244])
         self.orient = _np.array([90,90,150,145]) # in degrees
         self.impactParameters=_np.array([-15.20239282, -13.88379581, -12.34664158, -10.57283874,\
         -8.55643016,  -6.31046679,  -3.87255431,  -1.30599562,\
