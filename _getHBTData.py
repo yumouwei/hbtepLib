@@ -6015,7 +6015,7 @@ class conductivityTe:
         p1.plot(self.time*1e3,self.Te)
         _plot.finalizeSubplot(p1,xlabel='Time (ms)', ylabel='eV')
         _plot.finalizeFigure(fig,title=self.title)
-        _plt.ylim(0,150)
+        _plt.ylim(0,100)
         #_plot.yLim(0,10)
         return p1
 
