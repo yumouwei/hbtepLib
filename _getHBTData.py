@@ -6003,6 +6003,8 @@ class conductivityTe:
         R2 = 0
         eta = (a**2 * (R1 + R2))/(2 * R0)
         self.Te = (5.3e-5 * Z * lnLambda / eta) ** (2/3)
+        where_are_NaNs = _np.isnan(self.Te)
+        self.Te[where_are_NaNs] = 0
         
         if plot == True or plot=='all':
             self.plot()
