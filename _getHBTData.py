@@ -5977,9 +5977,9 @@ class conductivityTe:
         self.title = "%d, Conductivity Te" % shotno
         
         # get data          
-        hbt_ip = ipData(shotno)
-        hbt_vloop = loopVoltageData(shotno)
-        hbt_rad = plasmaRadiusData(shotno)
+        hbt_ip = ipData(shotno, tStart, tStop, False, findDisruption=False)
+        hbt_vloop = loopVoltageData(shotno, tStart, tStop, False)
+        hbt_rad = plasmaRadiusData(shotno, tStart, tStop, False)
         
         self.time = hbt_ip.time 
         
@@ -6002,9 +6002,9 @@ class conductivityTe:
         #R2 = (mu0 * R0)/2 * dlnipdt * li
         R2 = 0
         eta = (a**2 * (R1 + R2))/(2 * R0)
-        self.Te = (5.3e-5 * Z * lnLambda / eta) ** (2/3)
-        where_are_NaNs = _np.isnan(self.Te)
-        self.Te[where_are_NaNs] = 0
+        self.Te = ((5.3e-5 * Z * lnLambda / eta) ** 2) ** (1/3)
+        #where_are_NaNs = _np.isnan(self.Te)
+        #self.Te[where_are_NaNs] = 0
         
         if plot == True or plot=='all':
             self.plot()
