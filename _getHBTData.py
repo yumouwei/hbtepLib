@@ -5964,6 +5964,67 @@ class metadata:
                             'operator':self.operator, 'post_comment':self.post_comment}, 
                            ignore_index=True)               
         return df
+    
+    
+class conductivityTe:
+    """
+    Calculate Te_cond (eV) given Z & lnLambda (default: Z=1.5 & lnLambda=15).
+    Result does not include inductive effect!
+    """
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP, Z=1.5, lnLambda=15, plot=False,verbose=False):
+        
+        self.shotno = shotno
+        self.title = "%d, Conductivity Te" % shotno
+        
+        # get data          
+        hbt_ip = ipData(shotno)
+        hbt_vloop = loopVoltageData(shotno)
+        hbt_rad = plasmaRadiusData(shotno)
+        
+        self.time = hbt_ip.time 
+        
+        ip = hbt_ip.ip
+        #ip = savgol_filter(ip, 51, 3)
+        #lnip = np.log(ip)
+        #lnip[np.isnan(lnip)]=0
+        #dlnip = np.gradient(lnip)
+        #dlnipdt = dlnip / (t[1]-t[0])
+        
+        vloop = hbt_vloop.loopVoltage
+        #vloop = savgol_filter(vloop, 51, 3)
+        
+        R0 = hbt_rad.majorRadius
+        a = hbt_rad.minorRadius
+        
+        mu0 = 4*_np.pi*1e-7
+        
+        R1 = vloop/ip
+        #R2 = (mu0 * R0)/2 * dlnipdt * li
+        R2 = 0
+        eta = (a**2 * (R1 + R2))/(2 * R0)
+        self.Te = (5.3e-5 * Z * lnLambda / eta) ** (2/3)
+        
+        if plot == True or plot=='all':
+            self.plot()
+            
+    def plotOfTeCond(self):
+        """
+        returns the plot of Te data vs time
+        """
+        fig,p1=_plt.subplots()
+        p1.plot(self.time*1e3,self.Te)
+        _plot.finalizeSubplot(p1,xlabel='Time (ms)', ylabel='eV')
+        _plot.finalizeFigure(fig,title=self.title)
+        _plt.ylim(0,150)
+        #_plot.yLim(0,10)
+        return p1
+
+    def plot(self):
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfTeCond().plot()        
+        return
 ###############################################################################
 ### debugging code
 
