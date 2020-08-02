@@ -2045,30 +2045,40 @@ def paData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
     pa1RawFit=[]
     pa2Data=[]
     pa2RawFit=[]
-        
+    '''
+    # old
+    for i in range(0,len(namesPA1)):
+		temp,temp2=_process.gaussianHighPassFilter(pa1Raw[i][:],pa1Time,timeWidth=1./20000)
+		pa1RawFit.append(temp2)
+		pa1Data.append(temp)
+	for i in range(0,len(namesPA2)):
+		temp,temp2=_process.gaussianHighPassFilter(pa2Raw[i][:],pa2Time,timeWidth=1./20000)
+		pa2RawFit.append(temp2)
+		pa2Data.append(temp)
+    '''
     if smoothingAlgorithm == 'gaussian':
         # gaussian offset subtraction
-        for i in range(0,len(self.namesPA1)):
-            temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./20000)
-            self.pa1RawFit.append(temp2)
-            self.pa1Data.append(temp)
-        for i in range(0,len(self.namesPA2)):
-            temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./20000)
-            self.pa2RawFit.append(temp2)
-            self.pa2Data.append(temp)
+        for i in range(0,len(namesPA1)):
+            temp,temp2=_process.gaussianHighPassFilter(pa1Raw[i][:],pa1Time,timeWidth=1./20000)
+            pa1RawFit.append(temp2)
+            pa1Data.append(temp)
+        for i in range(0,len(namesPA2)):
+            temp,temp2=_process.gaussianHighPassFilter(pa2Raw[i][:],pa2Time,timeWidth=1./20000)
+            pa2RawFit.append(temp2)
+            pa2Data.append(temp)
             
     elif smoothingAlgorithm == 'butterworth':
         # butterworth lfilter
-        for i in range(0,len(self.namesPA1)):
-            temp = _process.butterworthFilter(self.pa1Raw[i][:],self.pa1Time,cutoffFreq=2e3,filterType='high')
-            temp2 = _process.butterworthFilter(self.pa1Raw[i][:],self.pa1Time,cutoffFreq=2e3,filterType='low')
-            self.pa1RawFit.append(temp2)
-            self.pa1Data.append(temp)
-        for i in range(0,len(self.namesPA2)):
-            temp = _process.butterworthFilter(self.pa2Raw[i][:],self.pa2Time,cutoffFreq=2e3,filterType='high')
-            temp2 = _process.butterworthFilter(self.pa2Raw[i][:],self.pa2Time,cutoffFreq=2e3,filterType='low')
-            self.pa2RawFit.append(temp2)
-            self.pa2Data.append(temp) 
+        for i in range(0,len(namesPA1)):
+            temp = _process.butterworthFilter(pa1Raw[i][:],pa1Time,cutoffFreq=2e3,filterType='high')
+            temp2 = _process.butterworthFilter(pa1Raw[i][:],pa1Time,cutoffFreq=2e3,filterType='low')
+            pa1RawFit.append(temp2)
+            pa1Data.append(temp)
+        for i in range(0,len(namesPA2)):
+            temp = _process.butterworthFilter(pa2Raw[i][:],pa2Time,cutoffFreq=2e3,filterType='high')
+            temp2 = _process.butterworthFilter(pa2Raw[i][:],pa2Time,cutoffFreq=2e3,filterType='low')
+            pa1RawFit.append(temp2)
+            pa1Data.append(temp)
     
     # pandas dataframes 
     dfData=_pd.DataFrame(     data=_np.append(_np.array([pa1Time]).transpose(),_np.array(pa1Data+pa2Data).transpose(),axis=1),
