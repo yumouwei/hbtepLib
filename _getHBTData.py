@@ -33,6 +33,7 @@ import pandas as _pd
 # hbtepLib libraries
 import _processData as _process
 import _plotTools as _plot
+from _processPlasma import thetaCorrection
 try:
     import _hbtPreferences as _pref
 except ImportError:
@@ -1691,9 +1692,9 @@ class paData:
                     
 
         if self.correctTheta:
-            self.thetaPA1=processPlasma.thetaCorrection(self.shotno,self.thetaPA1,\
+            self.thetaPA1=thetaCorrection(self.shotno,self.thetaPA1,\
                     self.tStart,self.tStop)[1]
-            self.thetaPA2=processPlasma.thetaCorrection(self.shotno,self.thetaPA2,\
+            self.thetaPA2=thetaCorrection(self.shotno,self.thetaPA2,\
                     self.tStart,self.tStop)[1]
         # compile full sensor addresses names
         pa1SensorAddresses=[]
@@ -1716,11 +1717,11 @@ class paData:
         
         # gaussian offset subtraction
         for i in range(0,len(self.namesPA1)):
-            temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./20000)
+            temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./10e3)
             self.pa1RawFit.append(temp2)
             self.pa1Data.append(temp)
         for i in range(0,len(self.namesPA2)):
-            temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./20000)
+            temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./10e3)
             self.pa2RawFit.append(temp2)
             self.pa2Data.append(temp)
             
@@ -2393,7 +2394,7 @@ class fbData:
         self.fbRadRawFit=[[],[],[],[]]
         for j in range(0,4):
             for i in range(0,len(self.fbPolNames[j])):
-                temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./20000*1.0,plot=False) 
+                temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./1e3*1.0,plot=False) 
                 self.fbPolRawFit[j].append(temp2)
                 self.fbPolData[j].append(temp)
                 
@@ -3201,8 +3202,10 @@ class usbSpectrometerData:
         
         fig,p1=_plt.subplots(len(self.spectrometerArrayNumber),sharex=True)
         for i in range(0,len(self.spectrometerArrayNumber)):
-            p1[i].plot(self.wavelength,self.spectrometerData[i],label='Time slice %d'%(self.spectrometerArrayNumber[i]))
-        _plot.finalizeSubplot(p1,xlabel='Wavelength [nm]',ylabel='Intensity')
+            p1[i].plot(self.wavelength,self.spectrometerData[i],label=\
+              'Time slice %d'%(self.spectrometerArrayNumber[i]))
+        _plot.finalizeSubplot(p1,xlabel='Wavelength [nm]',ylabel='Intensity',\
+                              ylim=[-100,3000])
         _plot.finalizeFigure(fig,title=self.title)
         
         return fig
@@ -5255,23 +5258,23 @@ class mModeData:
             self.m1Phase=_process.wrapPhase(
                             _process.gaussianLowPassFilter(
                                 _process.unwrapPhase(self.m1PhaseRaw),
-                                self.time,timeWidth=1./20e3))
+                                self.time,timeWidth=1./10e3))
             self.m2Phase=_process.wrapPhase(
                             _process.gaussianLowPassFilter(
                                 _process.unwrapPhase(self.m2PhaseRaw),
-                                self.time,timeWidth=1./20e3))
+                                self.time,timeWidth=1./10e3))
             self.m3Phase=_process.wrapPhase(
                             _process.gaussianLowPassFilter(
                                 _process.unwrapPhase(self.m3PhaseRaw),
-                                self.time,timeWidth=1./20e3))
+                                self.time,timeWidth=1./10e3))
             self.m4Phase=_process.wrapPhase(
                             _process.gaussianLowPassFilter(
                                 _process.unwrapPhase(self.m4PhaseRaw),
-                                self.time,timeWidth=1./20e3))
+                                self.time,timeWidth=1./10e3))
             self.m5Phase=_process.wrapPhase(
                             _process.gaussianLowPassFilter(
                                 _process.unwrapPhase(self.m5PhaseRaw),
-                                self.time,timeWidth=1./20e3))
+                                self.time,timeWidth=1./10e3))
             
         else:
             self.m1Phase=_np.zeros(len(self.m1PhaseRaw))  
@@ -5475,6 +5478,8 @@ class euvData:
         default is False
         True - plots far array of all 11 (of 16) channels
         'all' - plots 
+    undoGains : bool
+        Divide out standard analog, optical volume, absorbtion effective gain
         
     Attributes
     ----------
@@ -5499,7 +5504,7 @@ class euvData:
     
     """""
     
-    def __init__(self,shotno=101393,tStart=_TSTART,tStop=_TSTOP,plot=False):
+    def __init__(self,shotno=101393,tStart=_TSTART,tStop=_TSTOP,plot=False,undoGains=False):
         self.shotno=shotno
         self.title = '%d, EUV Array' % shotno
         
@@ -5518,6 +5523,7 @@ class euvData:
                 mdsAddressGain.append(address+':GAIN')
         # Pull data
         self.data, self.time = mdsData(shotno,mdsAddressRaw,tStart,tStop)
+       
         self.R = mdsData(shotno,mdsAddressR)
         self.Z = mdsData(shotno,mdsAddressZ)
         self.Gain = mdsData(shotno,mdsAddressGain)
@@ -5527,22 +5533,40 @@ class euvData:
         self.det_ap_Pol = _np.array([0.000635,.000635,.000635,.000635])
         self.det_ap_Tor = _np.array([0.00635,.0254,.0254,.0244])
         self.orient = _np.array([90,90,150,145]) # in degrees
+        # Impact parameters in Tree ordering
         self.impactParameters=_np.array([-15.20239282, -13.88379581, -12.34664158, -10.57283874,\
-        -8.55643016,  -6.31046679,  -3.87255431,  -1.30599562,\
-         1.30599562,   3.87255431,   6.31046679,   8.55643016,\
-        10.57283874,  12.34664158,  13.88379581,  15.20239282,\
-         4.30322029,   5.05782374,   5.82121675,   6.58965689,\
-         7.3590901 ,   8.12525048,   8.88376096,   9.63024278,\
-        10.36044694,  11.07036625,  11.75634593,  12.41518118,\
-        13.04417992,  13.64121203,  14.20472504,  14.73373985,\
-         0.48160587,  -0.45909578,  -1.48806338,  -2.60489231,\
-        -3.80409537,  -5.0735163 ,  -6.39312401,  -7.73487081,\
-        -9.06416928, -10.34320912, -11.53564661, -12.61149041,\
-       -13.55074303, -14.34481908, -14.99565891, -15.51324615,\
-        14.72875124,  14.0599001 ,  13.28190271,  12.39369218,\
-        11.39994292,  10.31173957,   9.14636266,   7.92605538,\
-         6.67595335,   5.42160618,   4.18662977,   2.99095252,\
-         1.84984336,   0.7737403 ,  -0.23139142,  -1.16322417])
+                                        -8.55643016,  -6.31046679,  -3.87255431,  -1.30599562,\
+                                         1.30599562,   3.87255431,   6.31046679,   8.55643016,\
+                                        10.57283874,  12.34664158,  13.88379581,  15.20239282,\
+                                         4.30322029,   5.05782374,   5.82121675,   6.58965689,\
+                                         7.3590901 ,   8.12525048,   8.88376096,   9.63024278,\
+                                        10.36044694,  11.07036625,  11.75634593,  12.41518118,\
+                                        13.04417992,  13.64121203,  14.20472504,  14.73373985,\
+                                         0.48160587,  -0.45909578,  -1.48806338,  -2.60489231,\
+                                        -3.80409537,  -5.0735163 ,  -6.39312401,  -7.73487081,\
+                                        -9.06416928, -10.34320912, -11.53564661, -12.61149041,\
+                                       -13.55074303, -14.34481908, -14.99565891, -15.51324615,\
+                                        14.72875124,  14.0599001 ,  13.28190271,  12.39369218,\
+                                        11.39994292,  10.31173957,   9.14636266,   7.92605538,\
+                                         6.67595335,   5.42160618,   4.18662977,   2.99095252,\
+                                         1.84984336,   0.7737403 ,  -0.23139142,  -1.16322417])
+        
+        # Normalized gains, based on 101340 analog gains, standard transmission and optical volumes
+        self.FullGains=_np.array([0.13419295, 0.17447191, 0.2232828 , 0.27936766, 0.33908668,
+                               0.39598491, 0.22072848, 0.23346128, 0.23346126, 0.22072844,
+                               0.39598476, 0.3390865 , 0.27936747, 0.22328261, 0.17447173,
+                               0.13419279, 0.23020624, 0.24371416, 0.25617676, 0.26724319,
+                               0.27657654, 0.28387413, 0.28888746, 0.2914398 , 0.29143931,
+                               0.288886  , 0.28387177, 0.27657335, 0.26723928, 0.25617224,
+                               0.24370917, 0.23020092, 0.0332453 , 0.04325202, 0.05535359,
+                               0.07073045, 0.08746174, 0.10487767, 0.13122203, 0.16644262,
+                               0.17484735, 0.17625678, 0.17021788, 0.15754277, 0.14006565,
+                               0.12008454, 0.09976488, 0.08074004, 0.6974821 , 0.78707957,
+                               0.86952871, 0.93725235, 0.98272602, 1.        , 0.4930806 ,
+                               0.47109016, 0.43638338, 0.39263246, 0.34401425, 0.2393401 ,
+                               0.35068849, 0.27624493, 0.21863522, 0.16980822])
+        if undoGains: 
+            for i in range(len(self.data)):self.data[i] /= self.FullGains[i];
         # plot 
         if plot==True:
             self.plotOfEUVStripey(tStart,tStop).plot()
@@ -5807,7 +5831,42 @@ class sxrMidplaneData:
         self.plotOfSXR().plot()
 
 
+class thomson:
+    """
+    Pull the data from the thomson scattering system if existent
+    """
+    def __init__(self,shotno,plot=False,tStart=_TSTART,tStop=_TSTOP):
+        self.shotno=shotno
+        # Get Data
+        addressTe=[]
+        addressNe=[]
+        addressLoc=[]
+        addressTime=[]
+        self.Te=[];self.Ne=[];self.Loc=[];self.TIME=[]
+        for i in range(10):
+            address = '\HBTEP2::TOP.SENSORS.THOMSON.POLY_%02d' %(i+1)
+            addressTe.append(address+':TE')
+            addressNe.append(address+':NE')
+            addressLoc.append(address+':LOCATION')
+            addressTime.append(address+'.LASER_ENERGY:TIME_AXIS')
 
+            try:self.Te.append(mdsData(shotno,addressTe[-1])[0])
+            except:pass
+            try:self.Ne.append(mdsData(shotno,addressNe[-1])[0])
+            except:pass
+            try:self.Loc.append(mdsData(shotno,addressLoc[-1])[0])
+            except:pass
+            try:self.TIME.append(mdsData(shotno,addressTime[-1])[0])
+            except:pass
+        if plot==True:self.plot()
+    def plot(self):
+        fig,(ax1,ax2)=_plt.subplots(1,2)
+        ax1.plot(self.Loc,self.Te,'*',ms=5)
+        ax2.plot(self.Loc,self.Ne,'*',ms=5)
+        ax1.set_title("Temperature")
+        ax2.set_title("Density")
+        _plt.show()
+        
 class polBetaLi:
     """
     Calculate the sum beta_p + li/2 using Friedberg eq 6.90 (p 150)

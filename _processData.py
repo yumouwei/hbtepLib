@@ -374,6 +374,21 @@ def linearizeDataMatrix(data):
 ###############################################################################
 ### filters and smoothing algorithms
     
+
+def downSample(data,time,new_dT,shftStart=False):
+    if new_dT%_np.mean(_np.diff(time))>=1e-7:
+        raise SyntaxError("Sampling rate must be integer multiple of original: %e vs %e"%(_np.mean(_np.diff(time)),new_dT))
+    dS=(new_dT/_np.mean(_np.diff(time))).astype(int)
+    
+    # Verify data shape
+    if data.shape[0] != len(time):data=data.T
+    
+    # Make smoothing kernel
+    boxMat=_np.zeros((len(time)/dS,len(time)))
+    for i in range(len(boxMat)):boxMat[i,i*dS:(i+1)*dS]=1./dS
+    
+    return _np.matmul(boxMat,data),_np.matmul(boxMat,time)-shftStart*new_dT*(3./2)#(dS/2)#*_np.mean(_np.diff(time))
+    
 def nPoleFilter(data,xData=None,numPoles=1,alpha=0.0625,filterType='lowPass',plot=False):
     """
     n-pole filter.  
@@ -745,7 +760,7 @@ def gaussianLowPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False):
 	References
 	----------
 	https://en.wikipedia.org/wiki/Full_width_at_half_maximum
-	https://docs.scipy.org/doc/scipy-0.19.0/reference/generated/scipy.signal.gaussian.html
+	https://docs.scipy.org/doc/8scipy-0.19.0/reference/generated/scipy.signal.gaussian.html
 	https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter1d.html
 	
 	Example
@@ -764,7 +779,8 @@ def gaussianLowPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False):
 	from scipy.ndimage import gaussian_filter1d
 
 	dt=t[1]-t[0]
-	sigma=2.355*timeWidth/dt  #TODO(John)  This equation is wrong.  Should be dividing by 2.355, not multiplying.  Fix here and with all dependencies
+    #1/(dt*timeWidth*2*_np.pi)#
+	sigma= (1./(2*_np.pi))*timeWidth/dt#2.355*timeWidth/dt#  #TODO(John)  This equation is wrong.  Should be dividing by 2.355, not multiplying.  Fix here and with all dependencies
 	yFiltered=gaussian_filter1d(y,sigma)
 	
 	if plot==True:
@@ -773,6 +789,7 @@ def gaussianLowPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False):
 		_plt.plot(t,y,label='Raw')
 		_plt.plot(t,yFiltered,label='Filtered')
 		_plt.legend()
+        _plt.grid()
 
 	if plotGaussian==True:
 		
@@ -835,6 +852,7 @@ def gaussianHighPassFilter(y,t,timeWidth=1./20000,plot=False,plotGaussian=False)
 		_plt.plot(t,fit,label='Fit')
 		_plt.plot(t,yFiltered,label='Filtered')
 		_plt.legend()
+        _plt.grid()
 		
 	return yFiltered, fit
 

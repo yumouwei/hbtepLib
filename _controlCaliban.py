@@ -538,6 +538,7 @@ def getModeAmp(shotno,numColumns=8,dataPath=_LOCAL_DATA_PATH,plot=False):#numCol
         time=getTime(len(data))
         fig,ax=_plt.subplots(2,sharex=True)
         ax[0].plot(time*1e3,data)
+        ax[0].legend(_np.arange(len(data)))
         ax[1].set_xlabel('time (ms)')
         for i in range(numColumns/2):
             ax[1].plot(time*1e3,_np.sqrt(data[:,i*2]**2+data[:,i*2+1]**2))
@@ -620,7 +621,8 @@ def getModePhase(shotno,numColumns=8,dataPath=_LOCAL_DATA_PATH,plot=False):
     return data
 
 
-def getTime(numSamples=1231,offsetSamples=-165,cycleTime=6e-6): # -165 sample offset appears correct for comparing input signals
+def getTime(numSamples=1231,offsetTime=-.99e-3,cycleTime=6e-6): # -165 sample offset appears correct for comparing input signals
+    offsetSamples=int(offsetTime//cycleTime)
     return _np.arange(offsetSamples,numSamples+offsetSamples)*cycleTime
 
 
@@ -756,6 +758,7 @@ def prepAwg(waveform):
     fh.write((waveform * INT16_MAX / 10).astype(_np.int16).tostring())
 
 def correctTimebase(dataMatrix,missVec,time=[],dT=6e-6,v=False):
+    misFrac=1#.4 # fraction of the sample missed
     # based on the vector of missing samples, mb_Float[:,0], extend arbitrary data matrix, and optional time vector
     if _np.ndim(dataMatrix)==1:dataMatrix=dataMatrix[:,_np.newaxis]
     i=1
@@ -765,13 +768,13 @@ def correctTimebase(dataMatrix,missVec,time=[],dT=6e-6,v=False):
                 dataMatrix=_np.vstack((dataMatrix[0:i+1,:],dataMatrix[i,:],dataMatrix[i+1:,:]))
                 missVec=_np.hstack((missVec[0:i+1],missVec[i],missVec[i+1:]))
                 
-                if time!=[]:time=_np.hstack((  time[0:i+1],time[i]+dT/2,\
-                                time[i+1:]+dT/2 ))
+                if time!=[]:time=_np.hstack((  time[0:i+1],time[i]+dT*misFrac,\
+                                time[i+1:]+dT*misFrac ))
                 i+=1;
             else:
                 dataMatrix=_np.vstack((dataMatrix[0:i+1,:],dataMatrix[i,:]))
                 missVec=_np.hstack((missVec[0:i+1],missVec[i]))
-                if time!=[]:time=_np.hstack((time[0:i+1],time[i]+dT/2))
+                if time!=[]:time=_np.hstack((time[0:i+1],time[i]+dT*misFrac))
                 i+=1;
         i+=1
     if time!=[]:return dataMatrix.squeeze(),time
