@@ -1624,6 +1624,8 @@ class paData:
     smoothingAlgorithm : str
         informs function as to which smoothing algorithm to use on each PA 
         sensor
+        'gaussian' - use gaussianHighPassFilter (default)
+        'butterworth' - use butterworth lfilter (causal filter)
         
     Attributes
     ----------
@@ -1668,7 +1670,7 @@ class paData:
     """
     
     def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
-              removeBadSensors=True,correctTheta=False):
+              removeBadSensors=True,correctTheta=False, smoothingAlgorithm='gaussian'):
         self.shotno = shotno
         self.title1 = '%d, PA1 sensors' % shotno
         self.title2 = '%d, PA2 sensors' % shotno
@@ -1715,15 +1717,29 @@ class paData:
         self.pa2Data=[]
         self.pa2RawFit=[]
         
-        # gaussian offset subtraction
-        for i in range(0,len(self.namesPA1)):
-            temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./10e3)
-            self.pa1RawFit.append(temp2)
-            self.pa1Data.append(temp)
-        for i in range(0,len(self.namesPA2)):
-            temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./10e3)
-            self.pa2RawFit.append(temp2)
-            self.pa2Data.append(temp)
+        if smoothingAlgorithm == 'gaussian':
+            # gaussian offset subtraction
+            for i in range(0,len(self.namesPA1)):
+                temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./20000)
+                self.pa1RawFit.append(temp2)
+                self.pa1Data.append(temp)
+            for i in range(0,len(self.namesPA2)):
+                temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./20000)
+                self.pa2RawFit.append(temp2)
+                self.pa2Data.append(temp)
+                
+        elif smoothingAlgorithm == 'butterworth':
+            # butterworth lfilter
+            for i in range(0,len(self.namesPA1)):
+                temp = _process.butterworthFilter(self.pa1Raw[i][:],self.pa1Time,cutoffFreq=2e3,filterType='high')
+                temp2 = _process.butterworthFilter(self.pa1Raw[i][:],self.pa1Time,cutoffFreq=2e3,filterType='low')
+                self.pa1RawFit.append(temp2)
+                self.pa1Data.append(temp)
+            for i in range(0,len(self.namesPA2)):
+                temp = _process.butterworthFilter(self.pa2Raw[i][:],self.pa2Time,cutoffFreq=2e3,filterType='high')
+                temp2 = _process.butterworthFilter(self.pa2Raw[i][:],self.pa2Time,cutoffFreq=2e3,filterType='low')
+                self.pa2RawFit.append(temp2)
+                self.pa2Data.append(temp)            
             
         # pandas dataframes 
         #TODO(John) rewrite entire class.  start with dataframes instead of lists
@@ -1915,7 +1931,7 @@ class paData:
         
 @_prepShotno
 def paData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
-              removeBadSensors=True,correctTheta=False):
+              removeBadSensors=True,correctTheta=False, smoothingAlgorithm='gaussian'):
     """
     Downloads poloidal array sensor data.  Presently, only poloidal
     measurements as the radial sensors are not yet implemeted.  
@@ -1940,6 +1956,8 @@ def paData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
     smoothingAlgorithm : str
         informs function as to which smoothing algorithm to use on each PA 
         sensor
+        'gaussian' - use gaussianHighPassFilter (default)
+        'butterworth' - use butterworth lfilter (causal filter)
         
     Attributes
     ----------
@@ -2028,17 +2046,41 @@ def paData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
     pa1RawFit=[]
     pa2Data=[]
     pa2RawFit=[]
-    
-    # gaussian offset subtraction
+    '''
+    # old
     for i in range(0,len(namesPA1)):
-        temp,temp2=_process.gaussianHighPassFilter(pa1Raw[i][:],pa1Time,timeWidth=1./20000)
-        pa1RawFit.append(temp2)
-        pa1Data.append(temp)
-    for i in range(0,len(namesPA2)):
-        temp,temp2=_process.gaussianHighPassFilter(pa2Raw[i][:],pa2Time,timeWidth=1./20000)
-        pa2RawFit.append(temp2)
-        pa2Data.append(temp)
-        
+		temp,temp2=_process.gaussianHighPassFilter(pa1Raw[i][:],pa1Time,timeWidth=1./20000)
+		pa1RawFit.append(temp2)
+		pa1Data.append(temp)
+	for i in range(0,len(namesPA2)):
+		temp,temp2=_process.gaussianHighPassFilter(pa2Raw[i][:],pa2Time,timeWidth=1./20000)
+		pa2RawFit.append(temp2)
+		pa2Data.append(temp)
+    '''
+    if smoothingAlgorithm == 'gaussian':
+        # gaussian offset subtraction
+        for i in range(0,len(namesPA1)):
+            temp,temp2=_process.gaussianHighPassFilter(pa1Raw[i][:],pa1Time,timeWidth=1./20000)
+            pa1RawFit.append(temp2)
+            pa1Data.append(temp)
+        for i in range(0,len(namesPA2)):
+            temp,temp2=_process.gaussianHighPassFilter(pa2Raw[i][:],pa2Time,timeWidth=1./20000)
+            pa2RawFit.append(temp2)
+            pa2Data.append(temp)
+            
+    elif smoothingAlgorithm == 'butterworth':
+        # butterworth lfilter
+        for i in range(0,len(namesPA1)):
+            temp = _process.butterworthFilter(pa1Raw[i][:],pa1Time,cutoffFreq=2e3,filterType='high')
+            temp2 = _process.butterworthFilter(pa1Raw[i][:],pa1Time,cutoffFreq=2e3,filterType='low')
+            pa1RawFit.append(temp2)
+            pa1Data.append(temp)
+        for i in range(0,len(namesPA2)):
+            temp = _process.butterworthFilter(pa2Raw[i][:],pa2Time,cutoffFreq=2e3,filterType='high')
+            temp2 = _process.butterworthFilter(pa2Raw[i][:],pa2Time,cutoffFreq=2e3,filterType='low')
+            pa1RawFit.append(temp2)
+            pa1Data.append(temp)
+    
     # pandas dataframes 
     dfData=_pd.DataFrame(     data=_np.append(_np.array([pa1Time]).transpose(),_np.array(pa1Data+pa2Data).transpose(),axis=1),
                         columns=_np.append(_np.append(_np.array(['Time']),namesPA1),namesPA2)).set_index('Time')
@@ -2199,7 +2241,9 @@ class sxrData:
         return sp1
             
     
-def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,badSensors=['FB03_S1P','FB06_S2P','FB08_S3P'],poloidalOnly=True):
+def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
+              badSensors=['FB03_S1P','FB06_S2P','FB08_S3P'],poloidalOnly=True,
+              smoothingAlgorithm='gaussian'):
     
     rootAddress='\HBTEP2::TOP.SENSORS.MAGNETIC:';
     
@@ -2237,8 +2281,11 @@ def fbData_df(shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,badSensors=['F
     
     for i, (key, vals) in enumerate(dfData.iteritems()):
         t=dfData.index.to_numpy()
-        dfData[key[0:8]]=_process.gaussianFilter(t,dfData[key],timeFWHM=5e-4,filterType='high',plot=False)
-
+        if smoothingAlgorithm == 'gaussian':
+            dfData[key[0:8]]=_process.gaussianFilter(t,dfData[key],timeFWHM=5e-4,filterType='high',plot=False)
+        #elif smoothingAlgorithm == 'butterworth':
+        #    # haven't implement this for butterworth filter
+        #    pass
     return dfData,dfMeta
 
 
@@ -2268,6 +2315,8 @@ class fbData:
     smoothingAlgorithm : str
         informs function as to which smoothing algorithm to use on each PA 
         sensor
+        'gaussian' - use gaussianHighPassFilter (default)
+        'butterworth' - use butterworth lfilter (causal filter)
         
     Attributes
     ----------
@@ -2311,7 +2360,8 @@ class fbData:
     Known bad sensors: 'FB03_S1P','FB06_S2P','FB08_S3P'
     The S4P array has no broken sensors at present.  
     """
-    def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,removeBadSensors=True,invertNegSignals=True):
+    def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
+                 removeBadSensors=True,invertNegSignals=True, smoothingAlgorithm='gaussian'):
         self.shotno = shotno
         self.title = "%d, FB sensors" % shotno
 #        self.badSensors=['FB03_S1P','FB06_S2P','FB08_S3P'] # some sensors appear to be broken
@@ -2392,12 +2442,23 @@ class fbData:
         self.fbPolRawFit=[[],[],[],[]]
         self.fbRadData=[[],[],[],[]]
         self.fbRadRawFit=[[],[],[],[]]
-        for j in range(0,4):
-            for i in range(0,len(self.fbPolNames[j])):
-                temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./1e3*1.0,plot=False) 
-                self.fbPolRawFit[j].append(temp2)
-                self.fbPolData[j].append(temp)
-                
+
+        # gaussian filter
+        if smoothingAlgorithm == 'gaussian':
+            for j in range(0,4):
+                for i in range(0,len(self.fbPolNames[j])):
+                    temp,temp2=_process.gaussianHighPassFilter(self.fbPolRaw[j][i][:],self.fbPolTime,timeWidth=1./20000*1.0,plot=False) 
+                    self.fbPolRawFit[j].append(temp2)
+                    self.fbPolData[j].append(temp)
+        # butterworth lfilter
+        elif smoothingAlgorithm == 'butterworth':
+            for j in range(0,4):
+                for i in range(0,len(self.fbPolNames[j])):
+                    temp = _process.butterworthFilter(self.fbPolRaw[j][i][:],self.fbPolTime,cutoffFreq=2e3,filterType='high')
+                    temp2 = _process.butterworthFilter(self.fbPolRaw[j][i][:],self.fbPolTime,cutoffFreq=2e3,filterType='low')
+                    self.fbPolRawFit[j].append(temp2)
+                    self.fbPolData[j].append(temp)        
+        
         # pandas dataframes 
         #TODO(John) rewrite entire class.  start with dataframes instead of lists
         flatten = lambda l: [item for sublist in l for item in sublist]
@@ -2531,9 +2592,11 @@ class taData:
         True - Plots a sample of each FB poloidal and radial data
         'sample'- same as True
         'all' - Plots all 80 sensor data
-#    smoothingAlgorithm : str
-#        informs function as to which smoothing algorithm to use on each PA 
-#        sensor
+    smoothingAlgorithm : str
+        informs function as to which smoothing algorithm to use on each PA 
+        sensor
+        'gaussian' - use gaussianHighPassFilter (default)
+        'butterworth' - use butterworth lfilter (causal filter)
         
     Attributes
     ----------
@@ -2583,7 +2646,8 @@ class taData:
                 tStart=_TSTART,
                 tStop=_TSTOP,
                 plot=False,
-                removeBadSensors=False):
+                removeBadSensors=False,
+                smoothingAlgorithm='gaussian'):
         self.shotno = shotno
         self.title = "%d, TA sensor data." % shotno
         self.badSensors=[] # no bad sensors as of present
@@ -2621,10 +2685,17 @@ class taData:
         self.taRadRawFit=[]
         
         # high pass filter the measurements
-        for i in range(0,30):
-            temp,temp2=_process.gaussianHighPassFilter(self.taPolRaw[i][:],self.taPolTime,timeWidth=1./20000)
-            self.taPolData.append(temp)
-            self.taPolRawFit.append(temp2)
+        if smoothingAlgorithm == 'gaussian':
+            for i in range(0,30):
+                temp,temp2=_process.gaussianHighPassFilter(self.taPolRaw[i][:],self.taPolTime,timeWidth=1./20000)
+                self.taPolData.append(temp)
+                self.taPolRawFit.append(temp2)
+        elif smoothingAlgorithm == 'butterworth':
+            for i in range(0,30):
+                temp = _process.butterworthFilter(self.taPolRaw[i][:],self.taPolTime,cutoffFreq=2e3,filterType='high')
+                temp2 = _process.butterworthFilter(self.taPolRaw[i][:],self.taPolTime,cutoffFreq=2e3,filterType='low')
+                self.taPolData.append(temp)
+                self.taPolRawFit.append(temp2)            
             
         # pandas dataframes 
         #TODO(John) rewrite entire class.  start with dataframes instead of lists
@@ -4060,6 +4131,11 @@ class nModeData:
     method : str
         method to calculate mode analysis
         'leastSquares' - performs a matrix least squares analysis
+    smoothingAlgorithm: str
+        smoothing algorithm for processing raw FB or TA data
+        default is 'gaussian'
+        'gaussian'
+        'butterworth'
         
     Attributes
     ----------
@@ -4114,7 +4190,7 @@ class nModeData:
         
     def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,
                  nModeSensor='FB',method='leastSquares',phaseFilter='gaussian',
-                 phaseFilterTimeConstant=1.0/100e3):
+                 phaseFilterTimeConstant=1.0/100e3, smoothingAlgorithm='gaussian'):
         
         self.shotno=shotno
         self.title = '%d.  %s sensor.  n mode analysis' % (shotno,nModeSensor)
@@ -4123,7 +4199,7 @@ class nModeData:
         # load data from requested sensor array
         if nModeSensor=='TA':
             ## load TA data
-            temp=taData(self.shotno,tStart,tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
+            temp=taData(self.shotno,tStart,tStop+0.5e-3, smoothingAlgorithm=smoothingAlgorithm);  # asking for an extra half millisecond (see Notes above) 
             data=temp.taPolData
             self.time=temp.taPolTime
             phi=temp.phi
@@ -4131,7 +4207,7 @@ class nModeData:
         elif nModeSensor=='FB' or nModeSensor=='FB_S4':
             ## load FB data
             array=3 # the 4th array (4-1=3) is the top most FB array and has no broken sensors
-            temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3);  # asking for an extra half millisecond (see Notes above) 
+            temp=fbData(self.shotno,tStart=tStart,tStop=tStop+0.5e-3, smoothingAlgorithm=smoothingAlgorithm);  # asking for an extra half millisecond (see Notes above) 
             data=temp.fbPolData[array]  ## top toroidal array = 0, bottom = 3
             self.time=temp.fbPolTime
             phi=_np.array(temp.phi[array])
@@ -5180,17 +5256,24 @@ class mModeData:
     plot : bool
         plots all relevant plots if true
         default is False
+    smoothingAlgorithm: str
+        smoothing algorithm for processing raw PA data
+        default is 'gaussian'
+        'gaussian'
+        'butterworth'
         
     Attributes
     ----------
     
     """  
     def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP,plot=False,theta0=0,\
-                 sensor='PA1',phaseFilter = 'gaussian',correctTheta=False):
+                 sensor='PA1',phaseFilter = 'gaussian',correctTheta=False, 
+                 smoothingAlgorithm='gaussian'):
         self.shotno=shotno
         self.title= '%d.  sensor = %s.  m mode analysis' % (shotno, sensor)
         
-        data=paData(self.shotno,tStart=tStart,tStop=tStop,removeBadSensors=True,correctTheta=correctTheta);
+        data=paData(self.shotno,tStart=tStart,tStop=tStop,removeBadSensors=True,
+                    correctTheta=correctTheta, smoothingAlgorithm=smoothingAlgorithm);
         if sensor=='PA1':
             #self._data=data.pa1Data # Non pandas
             self._data=data.dfData.filter(regex="PA1_*").to_numpy().transpose()
@@ -6023,6 +6106,69 @@ class metadata:
                             'operator':self.operator, 'post_comment':self.post_comment}, 
                            ignore_index=True)               
         return df
+    
+    
+class conductivityTe:
+    """
+    Calculate Te_cond (eV) given Z & lnLambda (default: Z=1.5 & lnLambda=15).
+    Result does not include inductive effect!
+    """
+    def __init__(self,shotno=96530,tStart=_TSTART,tStop=_TSTOP, Z=1.5, lnLambda=15, plot=False,verbose=False):
+        
+        self.shotno = shotno
+        self.title = "%d, Conductivity Te" % shotno
+        
+        # get data          
+        hbt_ip = ipData(shotno, tStart, tStop, False, findDisruption=False)
+        hbt_vloop = loopVoltageData(shotno, tStart, tStop, False)
+        hbt_rad = plasmaRadiusData(shotno, tStart, tStop, False)
+        
+        self.time = hbt_ip.time 
+        
+        ip = hbt_ip.ip
+        #ip = savgol_filter(ip, 51, 3)
+        #lnip = np.log(ip)
+        #lnip[np.isnan(lnip)]=0
+        #dlnip = np.gradient(lnip)
+        #dlnipdt = dlnip / (t[1]-t[0])
+        
+        vloop = hbt_vloop.loopVoltage
+        #vloop = savgol_filter(vloop, 51, 3)
+        
+        R0 = hbt_rad.majorRadius
+        a = hbt_rad.minorRadius
+        
+        mu0 = 4*_np.pi*1e-7
+        
+        R1 = vloop/ip
+        #R2 = (mu0 * R0)/2 * dlnipdt * li
+        R2 = 0
+        eta = (a**2 * (R1 + R2))/(2 * R0)
+        self.Te = ((5.3e-5 * Z * lnLambda / eta) ** 2) ** (1/3)
+        #where_are_NaNs = _np.isnan(self.Te)
+        #self.Te[where_are_NaNs] = 0
+        
+        if plot == True or plot=='all':
+            self.plot()
+            
+    def plotOfTeCond(self):
+        """
+        returns the plot of Te data vs time
+        """
+        fig,p1=_plt.subplots()
+        p1.plot(self.time*1e3,self.Te)
+        _plot.finalizeSubplot(p1,xlabel='Time (ms)', ylabel='eV')
+        _plot.finalizeFigure(fig,title=self.title)
+        _plt.ylim(0,100)
+        #_plot.yLim(0,10)
+        return p1
+
+    def plot(self):
+        """ 
+        Plot all relevant plots 
+        """
+        self.plotOfTeCond().plot()        
+        return
 ###############################################################################
 ### debugging code
 
