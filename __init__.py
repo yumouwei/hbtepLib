@@ -24,6 +24,7 @@ try: # Try due to non-existance of 'DISPLAY' env. Var on John's laptop;
         import matplotlib.pyplot as _plt
         import _plotTools as _plot
 except:
+    #print(os.pwd())
     import matplotlib.pyplot as _plt
     import _plotTools as _plot
 

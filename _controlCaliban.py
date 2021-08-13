@@ -11,7 +11,7 @@ import hbtepLib as _hbt # May be necessary
 
 if gethostname()=='spitzer':
     _LOCAL_DATA_PATH='/opt/hbt/data/control' 
-elif sys.platform == 'linux2':
+elif sys.platform == 'linux':
     if os.environ['USER'] == 'rian':
         _LOCAL_DATA_PATH='/home/rian/Documents/control_data'
 else:

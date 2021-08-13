@@ -344,7 +344,8 @@ def mdsData(shotno=None,
     time = []
     data = []
         
-    # check if computer is located locally or remotely.  The way it connects to spitzer remotely can only use one method, but locally, either method can be used.  
+    # check if computer is located locally or remotely.  
+    # The way it connects to spitzer remotely can only use one method, but locally, either method can be used.  
     if _ON_HBTEP_SERVER==True: # if operating local to the tree
         # converted from Ian's code
         
@@ -1670,7 +1671,8 @@ class paData:
     """
     
     def __init__(self,shotno=98170,tStart=_TSTART,tStop=_TSTOP,plot=False,
-              removeBadSensors=True,correctTheta=False, smoothingAlgorithm='gaussian'):
+              removeBadSensors=True,correctTheta=False, smoothingAlgorithm='gaussian',\
+                doLowPass=False):
         self.shotno = shotno
         self.title1 = '%d, PA1 sensors' % shotno
         self.title2 = '%d, PA2 sensors' % shotno
@@ -1720,11 +1722,15 @@ class paData:
         if smoothingAlgorithm == 'gaussian':
             # gaussian offset subtraction
             for i in range(0,len(self.namesPA1)):
-                temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./20000)
+                if doLowPass:
+                    self.pa1Raw[i]=_process.gaussianLowPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./20000)
+                temp,temp2=_process.gaussianHighPassFilter(self.pa1Raw[i][:],self.pa1Time,timeWidth=1./1500)
                 self.pa1RawFit.append(temp2)
                 self.pa1Data.append(temp)
             for i in range(0,len(self.namesPA2)):
-                temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./20000)
+                if doLowPass:
+                    self.pa2Raw[i]=_process.gaussianLowPassFilter(self.pa2Raw[i][:],self.pa1Time,timeWidth=1./20000)
+                temp,temp2=_process.gaussianHighPassFilter(self.pa2Raw[i][:],self.pa2Time,timeWidth=1./1500)
                 self.pa2RawFit.append(temp2)
                 self.pa2Data.append(temp)
                 
@@ -1786,6 +1792,7 @@ class paData:
                 '''
                 
         if plot==True or plot=='all':
+            self.plotPolar(tPoint=4e-3)
             self.plot(True)
         if plot=='sample':
             self.plotOfPA1().plot();
@@ -1914,13 +1921,15 @@ class paData:
     # Build polar plot a la JEff
     def plotPolar(self, tPoint = 1e-3):
         tPoint = _process.findNearest(self.pa1Time,tPoint) # time index
+        
         data = _np.array(self.pa1Data)[:,tPoint]
         data = _np.hstack( (data,data[0])) # wrap data
         offset = _np.min(data)
         if self.correctTheta:
-            self.thetaPA1=processPlasma.thetaCorrection(self.shotno,self.thetaPA1,\
+            self.thetaPA1=thetaCorrection(self.shotno,self.thetaPA1,\
                     self.tStart,self.tStop)[0]
-            self.thetaPA1=self.thetaPA1[tPoint,:]
+            print(_np.array(self.thetaPA1).shape)
+            self.thetaPA1=_np.array(self.thetaPA1)[:,tPoint]
         # Build plot 
         _plt.figure()
         ax = _plt.subplot(111,projection='polar')
