@@ -372,7 +372,8 @@ def mdsData(shotno=None,
     
             time = mdsConn.get('dim_of('+dataAddress[0]+')').data();  # time assocated with data
             
-        mdsConn.closeTree('hbtep2', shotno)
+        #mdsConn.closeTree('hbtep2', shotno)
+        mdsConn.closeAllTrees()
         mdsConn.disconnect()
  
     if time != [] and type(tStop)!=list:
@@ -5896,8 +5897,15 @@ class sxrMidplaneData:
         data, time=mdsData(shotno=shotno,
                            dataAddress=['\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_74 '],
                            tStart=tStart, tStop=tStop)
-
-        self.sxr=-1*data[0];
+        
+        # offset subtraction
+        
+        data_offset, time_offset=mdsData(shotno=shotno,
+                           dataAddress=['\HBTEP2::TOP.DEVICES.NORTH_RACK:CPCI:INPUT_74 '],
+                           tStart=0, tStop=0.5e-3)
+        offset = data_offset[0].mean()
+        
+        self.sxr=-1*(data[0] - offset);
         self.time=time;
         
         if plot == True or plot=='all':
@@ -5994,7 +6002,7 @@ class polBetaLi:
             
     def plotOfpolBetaLi(self):
         """
-        returns the plot of xray data vs time
+        returns the plot of polBetaLi data vs time
         """
         fig,p1=_plt.subplots()
         p1.plot(self.time*1e3,self.polBetaLi)
@@ -6035,7 +6043,7 @@ class nGreenwald:
             
     def plotOfNGreenwald(self):
         """
-        returns the plot of xray data vs time
+        returns the plot of nGreenwald vs time
         """
         fig,p1=_plt.subplots()
         p1.plot(self.time*1e3,self.nGreenwald)
